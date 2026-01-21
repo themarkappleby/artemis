@@ -1,6 +1,6 @@
 # Artemis
 
-A Progressive Web App (PWA) with iOS-style navigation, optimized for mobile devices.
+A PWA Ironsworn Starforged helper app.
 
 ## Getting Started
 
