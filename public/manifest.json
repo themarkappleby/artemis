@@ -2,14 +2,15 @@
   "name": "Artemis",
   "short_name": "Artemis",
   "description": "Artemis Progressive Web App",
-  "start_url": "/",
+  "start_url": "/artemis/",
+  "scope": "/artemis/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#007AFF",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "/artemis/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

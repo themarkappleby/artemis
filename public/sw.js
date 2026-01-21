@@ -1,19 +1,16 @@
 // Service Worker for Artemis PWA
 const CACHE_NAME = 'artemis-v1';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/src/main.jsx',
-  '/src/App.jsx',
-  '/src/App.css',
-  '/src/index.css'
-];
+const BASE_PATH = '/artemis/';
 
-// Install event - cache resources
+// Install event - cache initial resources
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll([
+        BASE_PATH,
+        BASE_PATH + 'index.html'
+      ]);
+    })
   );
   self.skipWaiting();
 });
@@ -34,12 +31,32 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - cache-first strategy for assets, network-first for pages
 self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+  
+  // Only handle requests from our app's scope
+  if (!url.pathname.startsWith(BASE_PATH)) {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        return response || fetch(event.request);
-      })
+    caches.match(request).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      
+      return fetch(request).then((response) => {
+        // Cache successful responses
+        if (response && response.status === 200) {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          });
+        }
+        return response;
+      });
+    })
   );
 });
