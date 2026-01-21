@@ -59,5 +59,5 @@
   background-color: #000000;
   -webkit-overflow-scrolling: touch;
   padding-top: 20px;
-  padding-bottom: 20px;
+  padding-bottom: calc(49px + env(safe-area-inset-bottom) + 20px);
 }

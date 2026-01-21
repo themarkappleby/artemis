@@ -19,6 +19,7 @@ html, body {
   overflow: hidden;
   position: fixed;
   background-color: #000000;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* Allow text selection in detail cards */
