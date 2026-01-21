@@ -1,0 +1,65 @@
+.navigation-view {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #000000;
+  color: #ffffff;
+}
+
+.navigation-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 16px;
+  background-color: #1c1c1e;
+  border-bottom: 0.5px solid #38383a;
+  flex-shrink: 0;
+  /* Safe area for notch */
+  padding-top: env(safe-area-inset-top);
+  height: calc(44px + env(safe-area-inset-top));
+}
+
+.back-button {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-top: calc(env(safe-area-inset-top) / 2);
+  background: none;
+  border: none;
+  color: #007AFF;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: opacity 0.2s;
+}
+
+.back-button:active {
+  opacity: 0.5;
+}
+
+.back-button svg {
+  width: 13px;
+  height: 21px;
+}
+
+.navigation-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+}
+
+.navigation-content {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #000000;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 35px;
+  padding-bottom: env(safe-area-inset-bottom);
+}

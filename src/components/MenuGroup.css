@@ -1,0 +1,19 @@
+.menu-group {
+  margin-bottom: 35px;
+}
+
+.menu-group-header {
+  font-size: 13px;
+  font-weight: 400;
+  color: #8e8e93;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  letter-spacing: -0.08px;
+}
+
+.menu-group-items {
+  background-color: #1c1c1e;
+  margin: 0 16px;
+  border-radius: 10px;
+  overflow: hidden;
+}

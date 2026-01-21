@@ -1,6 +1,6 @@
 # Artemis
 
-A basic React application built with Vite.
+A Progressive Web App (PWA) with iOS-style navigation, optimized for mobile devices.
 
 ## Getting Started
 
@@ -30,8 +30,18 @@ npm run build
 npm run preview
 ```
 
+## Features
+
+- 📱 **Progressive Web App (PWA)** - Installable on mobile devices
+- 🎨 **iOS-Style Navigation** - Familiar drill-down menu pattern with back button
+- 📲 **Mobile-First Design** - Optimized for mobile viewports
+- 🌙 **Dark Mode UI** - Modern dark theme interface
+- ⚡ **Fast & Responsive** - Built with React and Vite
+
 ## Tech Stack
 
 - React 18
 - Vite 6
 - Modern ES modules
+- Service Worker for offline support
+- iOS-style UI components

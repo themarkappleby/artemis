@@ -1,46 +1,117 @@
-.App {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+.app {
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #000000;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  position: relative;
 }
 
-.App-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-.card {
-  padding: 2em;
+/* Disable text selection for better native feel */
+.app {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+/* Allow text selection in input fields if needed */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
 }
 
-button:hover {
-  border-color: #646cff;
+/* View container for transitions */
+.view-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: #000000;
 }
 
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+/* Forward navigation animations */
+.slide-in-right {
+  animation: slideInFromRight 0.35s cubic-bezier(0.42, 0.0, 0.58, 1.0) forwards;
+  z-index: 2;
 }
 
-code {
-  background-color: #1a1a1a;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
+.slide-out-left {
+  animation: slideOutToLeft 0.35s cubic-bezier(0.42, 0.0, 0.58, 1.0) forwards;
+  z-index: 1;
+}
+
+/* Back navigation animations */
+.slide-in-left {
+  animation: slideInFromLeft 0.35s cubic-bezier(0.42, 0.0, 0.58, 1.0) forwards;
+  z-index: 1;
+}
+
+.slide-out-right {
+  animation: slideOutToRight 0.35s cubic-bezier(0.42, 0.0, 0.58, 1.0) forwards;
+  z-index: 2;
+}
+
+/* Keyframe definitions */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToLeft {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Optimize animations for mobile */
+@media (prefers-reduced-motion: no-preference) {
+  .view-container {
+    will-change: transform, opacity;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .slide-in-right,
+  .slide-out-left,
+  .slide-in-left,
+  .slide-out-right {
+    animation: none;
+  }
 }
