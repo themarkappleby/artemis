@@ -1,5 +1,5 @@
 // Service Worker for Artemis PWA
-const CACHE_NAME = 'artemis-v1';
+const CACHE_NAME = 'artemis-v2';
 const BASE_PATH = '/artemis/';
 
 // Install event - cache initial resources
@@ -38,6 +38,16 @@ self.addEventListener('fetch', (event) => {
   
   // Only handle requests from our app's scope
   if (!url.pathname.startsWith(BASE_PATH)) {
+    return;
+  }
+
+  // For navigation requests (when opening the PWA), always serve index.html
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(BASE_PATH + 'index.html').catch(() => {
+        return caches.match(BASE_PATH + 'index.html');
+      })
+    );
     return;
   }
 
