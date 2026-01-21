@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { NavigationView } from './components/NavigationView';
 import { MenuGroup } from './components/MenuGroup';
 import { MenuItem } from './components/MenuItem';
+import { DetailCard } from './components/DetailCard';
 import { TabBar } from './components/TabBar';
+import { useStarforged } from './hooks/useStarforged';
 import './App.css';
 
 function App() {
@@ -16,6 +18,8 @@ function App() {
   const [direction, setDirection] = useState(null);
   const [previousView, setPreviousView] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  
+  const { data: starforgedData, loading } = useStarforged();
 
   const navigate = (view) => {
     if (isTransitioning) return;
@@ -59,7 +63,6 @@ function App() {
   const handleTabChange = (tabId) => {
     if (tabId !== activeTab) {
       setActiveTab(tabId);
-      // Reset transition state when switching tabs
       setIsTransitioning(false);
       setPreviousView(null);
       setDirection(null);
@@ -78,345 +81,535 @@ function App() {
   }, []);
 
   const renderViewContent = (viewName) => {
-    // Tab-specific home views
+    if (loading) {
+      return (
+        <NavigationView title="Loading...">
+          <MenuGroup>
+            <MenuItem icon="⏳" label="Loading Starforged data..." showChevron={false} />
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+
+    // THE FORGE TAB
     if (viewName === 'home') {
       return (
         <NavigationView title="The Forge">
-          <MenuGroup>
+          <MenuGroup title="Game Setup">
             <MenuItem 
-              icon="👤" 
-              label="Profile" 
-              value="John Doe"
-              onClick={() => navigate('profile')}
+              icon="🌌" 
+              label="Setting Truths" 
+              onClick={() => navigate('setting-truths')}
+            />
+            <MenuItem 
+              icon="🎯" 
+              label="Character Creation" 
+              onClick={() => navigate('character-creation')}
             />
           </MenuGroup>
 
-          <MenuGroup title="General">
+          <MenuGroup title="Reference">
             <MenuItem 
-              icon="📱" 
-              label="Appearance" 
-              onClick={() => navigate('appearance')}
+              icon="📖" 
+              label="All Moves" 
+              onClick={() => navigate('all-moves-reference')}
             />
             <MenuItem 
-              icon="🔔" 
-              label="Notifications" 
-              onClick={() => navigate('notifications')}
+              icon="🎲" 
+              label="All Oracles" 
+              onClick={() => navigate('all-oracles-reference')}
             />
             <MenuItem 
-              icon="🔒" 
-              label="Privacy & Security" 
-              onClick={() => navigate('privacy')}
-            />
-          </MenuGroup>
-
-          <MenuGroup title="Content">
-            <MenuItem 
-              icon="📚" 
-              label="Library" 
-              onClick={() => navigate('library')}
-            />
-            <MenuItem 
-              icon="⭐" 
-              label="Favorites" 
-              value="12 items"
-              onClick={() => navigate('favorites')}
-            />
-            <MenuItem 
-              icon="📥" 
-              label="Downloads" 
-              onClick={() => navigate('downloads')}
+              icon="⚔️" 
+              label="All Assets" 
+              onClick={() => navigate('all-assets-reference')}
             />
           </MenuGroup>
 
-          <MenuGroup title="Support">
+          <MenuGroup title="Encounters">
             <MenuItem 
-              icon="❓" 
-              label="Help & Feedback" 
-              onClick={() => navigate('help')}
+              icon="👾" 
+              label="Creatures" 
+              onClick={() => navigate('encounters-creatures')}
             />
             <MenuItem 
-              icon="ℹ️" 
-              label="About" 
-              onClick={() => navigate('about')}
+              icon="🚀" 
+              label="Starships" 
+              onClick={() => navigate('encounters-starships')}
+            />
+          </MenuGroup>
+
+          <MenuGroup title="Tools">
+            <MenuItem 
+              icon="⚙️" 
+              label="Dice Roller" 
+              onClick={() => navigate('dice-roller')}
+            />
+            <MenuItem 
+              icon="📊" 
+              label="Progress Tracks" 
+              onClick={() => navigate('progress-tracks')}
             />
           </MenuGroup>
         </NavigationView>
       );
     }
 
+    // Setting Truths
+    if (viewName === 'setting-truths' && starforgedData) {
+      return (
+        <NavigationView title="Setting Truths" onBack={goBack}>
+          <MenuGroup>
+            {starforgedData.settingTruths.map((truth, index) => (
+              <MenuItem 
+                key={truth['$id'] || index}
+                icon="🌌" 
+                label={truth.Name || `Truth ${index + 1}`}
+                onClick={() => navigate(`setting-truth-${index}`)}
+              />
+            ))}
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+
+    // CHARACTER TAB
     if (viewName === 'character-home') {
       return (
         <NavigationView title="Character">
           <MenuGroup>
             <MenuItem 
-              icon="⚔️" 
-              label="Character Stats" 
-              onClick={() => navigate('stats')}
+              icon="👤" 
+              label="Character Sheet" 
+              onClick={() => navigate('character-sheet')}
             />
             <MenuItem 
-              icon="🎒" 
-              label="Inventory" 
-              onClick={() => navigate('inventory')}
-            />
-            <MenuItem 
-              icon="📜" 
-              label="Background" 
-              onClick={() => navigate('background')}
+              icon="💪" 
+              label="Stats & Conditions" 
+              onClick={() => navigate('stats-conditions')}
             />
           </MenuGroup>
+
+          <MenuGroup title="Assets">
+            {starforgedData?.assetTypes.map((assetType, index) => (
+              <MenuItem 
+                key={assetType['$id'] || index}
+                icon={getAssetIcon(assetType.Name)}
+                label={assetType.Name}
+                onClick={() => navigate(`asset-type-${index}`)}
+              />
+            ))}
+          </MenuGroup>
+
           <MenuGroup title="Progress">
             <MenuItem 
-              icon="📈" 
-              label="Experience" 
-              value="Level 5"
-              showChevron={false}
+              icon="🎯" 
+              label="Vows" 
+              onClick={() => navigate('vows')}
             />
             <MenuItem 
-              icon="🏆" 
-              label="Achievements" 
-              onClick={() => navigate('achievements')}
+              icon="🗺️" 
+              label="Expeditions" 
+              onClick={() => navigate('expeditions')}
+            />
+            <MenuItem 
+              icon="⚔️" 
+              label="Combat Tracks" 
+              onClick={() => navigate('combat-tracks')}
             />
           </MenuGroup>
         </NavigationView>
       );
     }
 
+    // Asset Type Details
+    if (viewName.startsWith('asset-type-') && starforgedData) {
+      const index = parseInt(viewName.split('-')[2]);
+      const assetType = starforgedData.assetTypes[index];
+      
+      if (assetType) {
+        return (
+          <NavigationView title={assetType.Name} onBack={goBack}>
+            <MenuGroup>
+              {assetType.Assets?.map((asset, assetIndex) => (
+                <MenuItem 
+                  key={asset['$id'] || assetIndex}
+                  icon={getAssetIcon(assetType.Name)}
+                  label={asset.Name}
+                  onClick={() => navigate(`asset-${index}-${assetIndex}`)}
+                />
+              )) || <MenuItem icon="📄" label="No assets available" showChevron={false} />}
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Individual Asset Details
+    if (viewName.startsWith('asset-') && viewName.split('-').length === 3 && starforgedData) {
+      const [, typeIndex, assetIndex] = viewName.split('-').map(Number);
+      const assetType = starforgedData.assetTypes[typeIndex];
+      const asset = assetType?.Assets?.[assetIndex];
+      
+      if (asset) {
+        return (
+          <NavigationView title={asset.Name} onBack={goBack}>
+            {asset.Requirement && (
+              <DetailCard
+                icon={getAssetIcon(assetType.Name)}
+                title="Requirement"
+                description={asset.Requirement}
+              />
+            )}
+            
+            {asset.Abilities && asset.Abilities.length > 0 && (
+              <MenuGroup title="Abilities">
+                {asset.Abilities.map((ability, abilityIndex) => (
+                  <MenuItem 
+                    key={abilityIndex}
+                    icon={ability.Enabled ? "✅" : "⭕"}
+                    label={ability.Name || `Ability ${abilityIndex + 1}`}
+                    onClick={() => navigate(`asset-ability-${typeIndex}-${assetIndex}-${abilityIndex}`)}
+                  />
+                ))}
+              </MenuGroup>
+            )}
+            
+            {asset.Inputs && asset.Inputs.length > 0 && (
+              <MenuGroup title="Inputs">
+                {asset.Inputs.map((input, inputIndex) => (
+                  <MenuItem 
+                    key={inputIndex}
+                    icon="✏️"
+                    label={input.Name || `Input ${inputIndex + 1}`}
+                    showChevron={false}
+                  />
+                ))}
+              </MenuGroup>
+            )}
+          </NavigationView>
+        );
+      }
+    }
+
+    // Asset Ability Details
+    if (viewName.startsWith('asset-ability-') && starforgedData) {
+      const parts = viewName.split('-');
+      const typeIndex = parseInt(parts[2]);
+      const assetIndex = parseInt(parts[3]);
+      const abilityIndex = parseInt(parts[4]);
+      const assetType = starforgedData.assetTypes[typeIndex];
+      const asset = assetType?.Assets?.[assetIndex];
+      const ability = asset?.Abilities?.[abilityIndex];
+      
+      if (ability) {
+        return (
+          <NavigationView title={ability.Name || 'Ability'} onBack={goBack}>
+            <DetailCard
+              icon={getAssetIcon(assetType.Name)}
+              title={ability.Name || 'Ability'}
+              description={ability.Text || 'No description available.'}
+            />
+          </NavigationView>
+        );
+      }
+    }
+
+    // MOVES TAB
     if (viewName === 'moves-home') {
       return (
         <NavigationView title="Moves">
-          <MenuGroup title="Combat">
-            <MenuItem 
-              icon="⚔️" 
-              label="Strike" 
-              onClick={() => navigate('strike')}
-            />
-            <MenuItem 
-              icon="🛡️" 
-              label="Defend" 
-              onClick={() => navigate('defend')}
-            />
-            <MenuItem 
-              icon="🏹" 
-              label="Ranged Attack" 
-              onClick={() => navigate('ranged')}
-            />
-          </MenuGroup>
-          <MenuGroup title="Skills">
-            <MenuItem 
-              icon="🔍" 
-              label="Investigate" 
-              onClick={() => navigate('investigate')}
-            />
-            <MenuItem 
-              icon="💬" 
-              label="Persuade" 
-              onClick={() => navigate('persuade')}
-            />
-            <MenuItem 
-              icon="🏃" 
-              label="Evade" 
-              onClick={() => navigate('evade')}
-            />
+          <MenuGroup title="Move Categories">
+            {starforgedData?.moveCategories.map((category, index) => (
+              <MenuItem 
+                key={category['$id'] || index}
+                icon={getMoveIcon(category.Name)}
+                label={category.Name}
+                value={`${category.Moves?.length || 0} moves`}
+                onClick={() => navigate(`move-category-${index}`)}
+              />
+            ))}
           </MenuGroup>
         </NavigationView>
       );
     }
 
+    // Move Category Details
+    if (viewName.startsWith('move-category-') && starforgedData) {
+      const index = parseInt(viewName.split('-')[2]);
+      const category = starforgedData.moveCategories[index];
+      
+      if (category) {
+        return (
+          <NavigationView title={category.Name} onBack={goBack}>
+            <MenuGroup>
+              {category.Moves?.map((move, moveIndex) => (
+                <MenuItem 
+                  key={move['$id'] || moveIndex}
+                  icon={getMoveIcon(category.Name)}
+                  label={move.Name}
+                  subtitle={move.Trigger?.Text || ''}
+                  onClick={() => navigate(`move-${index}-${moveIndex}`)}
+                />
+              )) || <MenuItem icon="📄" label="No moves available" showChevron={false} />}
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Individual Move Details
+    if (viewName.startsWith('move-') && viewName.split('-').length === 3 && starforgedData) {
+      const [, catIndex, moveIndex] = viewName.split('-').map(Number);
+      const move = starforgedData.moveCategories[catIndex]?.Moves?.[moveIndex];
+      
+      if (move) {
+        const category = starforgedData.moveCategories[catIndex];
+        const moveText = move.Text || 'No move text available.';
+        
+        return (
+          <NavigationView title={move.Name} onBack={goBack}>
+            <DetailCard
+              icon={getMoveIcon(category.Name)}
+              title={move.Name}
+              description={moveText}
+            />
+            
+            {move['Progress Move'] && (
+              <MenuGroup>
+                <MenuItem 
+                  icon="📊" 
+                  label="Progress Move" 
+                  showChevron={false}
+                />
+              </MenuGroup>
+            )}
+            
+            {move.Outcomes && (
+              <MenuGroup title="Outcomes">
+                {move.Outcomes['Strong Hit'] && (
+                  <MenuItem 
+                    icon="💪" 
+                    label="Strong Hit" 
+                    onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-strong`)}
+                  />
+                )}
+                {move.Outcomes['Weak Hit'] && (
+                  <MenuItem 
+                    icon="👍" 
+                    label="Weak Hit" 
+                    onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-weak`)}
+                  />
+                )}
+                {move.Outcomes.Miss && (
+                  <MenuItem 
+                    icon="❌" 
+                    label="Miss" 
+                    onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-miss`)}
+                  />
+                )}
+              </MenuGroup>
+            )}
+          </NavigationView>
+        );
+      }
+    }
+    
+    // Move Outcome Details
+    if (viewName.startsWith('move-outcome-') && starforgedData) {
+      const parts = viewName.split('-');
+      const catIndex = parseInt(parts[2]);
+      const moveIndex = parseInt(parts[3]);
+      const outcomeType = parts[4]; // 'strong', 'weak', or 'miss'
+      const move = starforgedData.moveCategories[catIndex]?.Moves?.[moveIndex];
+      
+      if (move?.Outcomes) {
+        const category = starforgedData.moveCategories[catIndex];
+        let outcomeText = '';
+        let outcomeTitle = '';
+        
+        if (outcomeType === 'strong' && move.Outcomes['Strong Hit']) {
+          outcomeText = move.Outcomes['Strong Hit'].Text || '';
+          outcomeTitle = 'Strong Hit';
+        } else if (outcomeType === 'weak' && move.Outcomes['Weak Hit']) {
+          outcomeText = move.Outcomes['Weak Hit'].Text || '';
+          outcomeTitle = 'Weak Hit';
+        } else if (outcomeType === 'miss' && move.Outcomes.Miss) {
+          outcomeText = move.Outcomes.Miss.Text || '';
+          outcomeTitle = 'Miss';
+        }
+        
+        return (
+          <NavigationView title={`${move.Name} - ${outcomeTitle}`} onBack={goBack}>
+            <DetailCard
+              icon={getMoveIcon(category.Name)}
+              title={outcomeTitle}
+              description={outcomeText}
+            />
+          </NavigationView>
+        );
+      }
+    }
+
+    // ORACLE TAB
     if (viewName === 'oracle-home') {
       return (
         <NavigationView title="Oracle">
-          <MenuGroup>
-            <MenuItem 
-              icon="🎲" 
-              label="Ask the Oracle" 
-              onClick={() => navigate('ask-oracle')}
-            />
-            <MenuItem 
-              icon="📖" 
-              label="Oracle Tables" 
-              onClick={() => navigate('oracle-tables')}
-            />
-          </MenuGroup>
-          <MenuGroup title="History">
-            <MenuItem 
-              icon="📜" 
-              label="Recent Rolls" 
-              onClick={() => navigate('recent-rolls')}
-            />
-            <MenuItem 
-              icon="💾" 
-              label="Saved Results" 
-              onClick={() => navigate('saved-results')}
-            />
+          <MenuGroup title="Oracle Categories">
+            {starforgedData?.oracleCategories.map((category, index) => (
+              <MenuItem 
+                key={category['$id'] || index}
+                icon={getOracleIcon(category.Name)}
+                label={category.Name}
+                onClick={() => navigate(`oracle-category-${index}`)}
+              />
+            ))}
           </MenuGroup>
         </NavigationView>
       );
     }
 
-    // Shared sub-views
-    switch (viewName) {
-      case 'profile':
+    // Oracle Category Details
+    if (viewName.startsWith('oracle-category-') && starforgedData) {
+      const index = parseInt(viewName.split('-')[2]);
+      const category = starforgedData.oracleCategories[index];
+      
+      if (category) {
         return (
-          <NavigationView title="Profile" onBack={goBack}>
+          <NavigationView title={category.Name} onBack={goBack}>
             <MenuGroup>
-              <MenuItem icon="👤" label="Name" value="John Doe" showChevron={false} />
-              <MenuItem icon="📧" label="Email" value="john@example.com" showChevron={false} />
-              <MenuItem icon="📞" label="Phone" value="+1 234 567 8900" showChevron={false} />
-            </MenuGroup>
-            <MenuGroup title="Account">
-              <MenuItem 
-                icon="🔑" 
-                label="Change Password" 
-                onClick={() => navigate('change-password')}
-              />
-              <MenuItem 
-                icon="🔐" 
-                label="Two-Factor Auth" 
-                onClick={() => navigate('2fa')}
-              />
-            </MenuGroup>
-          </NavigationView>
-        );
-
-      case 'appearance':
-        return (
-          <NavigationView title="Appearance" onBack={goBack}>
-            <MenuGroup title="Theme">
-              <MenuItem icon="🌙" label="Dark Mode" value="On" showChevron={false} />
-              <MenuItem icon="🎨" label="Accent Color" value="Blue" onClick={() => navigate('accent-color')} />
-            </MenuGroup>
-            <MenuGroup title="Display">
-              <MenuItem icon="🔤" label="Text Size" value="Medium" onClick={() => navigate('text-size')} />
-              <MenuItem icon="✨" label="Animations" value="On" showChevron={false} />
+              {category.Oracles?.map((oracle, oracleIndex) => (
+                <MenuItem 
+                  key={oracle['$id'] || oracleIndex}
+                  icon={getOracleIcon(category.Name)}
+                  label={oracle.Name}
+                  onClick={() => navigate(`oracle-${index}-${oracleIndex}`)}
+                />
+              )) || category.Categories?.map((subCategory, subIndex) => (
+                <MenuItem 
+                  key={subCategory['$id'] || subIndex}
+                  icon={getOracleIcon(subCategory.Name)}
+                  label={subCategory.Name}
+                  onClick={() => navigate(`oracle-sub-${index}-${subIndex}`)}
+                />
+              )) || <MenuItem icon="📄" label="No oracles available" showChevron={false} />}
             </MenuGroup>
           </NavigationView>
         );
-
-      case 'notifications':
-        return (
-          <NavigationView title="Notifications" onBack={goBack}>
-            <MenuGroup>
-              <MenuItem icon="🔔" label="Allow Notifications" value="On" showChevron={false} />
-              <MenuItem icon="🔊" label="Sound" value="Default" onClick={() => navigate('sound')} />
-              <MenuItem icon="📳" label="Vibration" value="On" showChevron={false} />
-            </MenuGroup>
-            <MenuGroup title="Types">
-              <MenuItem icon="💬" label="Messages" value="On" showChevron={false} />
-              <MenuItem icon="📬" label="Updates" value="On" showChevron={false} />
-              <MenuItem icon="⚠️" label="Alerts" value="On" showChevron={false} />
-            </MenuGroup>
-          </NavigationView>
-        );
-
-      case 'privacy':
-        return (
-          <NavigationView title="Privacy & Security" onBack={goBack}>
-            <MenuGroup title="Data">
-              <MenuItem icon="📊" label="Data Collection" onClick={() => navigate('data-collection')} />
-              <MenuItem icon="🍪" label="Cookies" onClick={() => navigate('cookies')} />
-              <MenuItem icon="📍" label="Location Services" value="While Using" showChevron={false} />
-            </MenuGroup>
-            <MenuGroup title="Security">
-              <MenuItem icon="🔒" label="App Lock" value="Off" onClick={() => navigate('app-lock')} />
-              <MenuItem icon="📱" label="Device Access" onClick={() => navigate('device-access')} />
-            </MenuGroup>
-          </NavigationView>
-        );
-
-      case 'library':
-        return (
-          <NavigationView title="Library" onBack={goBack}>
-            <MenuGroup title="Collections">
-              <MenuItem icon="📖" label="Books" value="45" onClick={() => navigate('books')} />
-              <MenuItem icon="🎵" label="Music" value="234" onClick={() => navigate('music')} />
-              <MenuItem icon="🎬" label="Videos" value="12" onClick={() => navigate('videos')} />
-              <MenuItem icon="🖼️" label="Photos" value="1,234" onClick={() => navigate('photos')} />
-            </MenuGroup>
-            <MenuGroup title="Management">
-              <MenuItem icon="☁️" label="Cloud Sync" value="On" showChevron={false} />
-              <MenuItem icon="💾" label="Storage" value="2.4 GB used" onClick={() => navigate('storage')} />
-            </MenuGroup>
-          </NavigationView>
-        );
-
-      case 'favorites':
-        return (
-          <NavigationView title="Favorites" onBack={goBack}>
-            <MenuGroup>
-              <MenuItem icon="⭐" label="Favorite Item 1" onClick={() => navigate('item-1')} />
-              <MenuItem icon="⭐" label="Favorite Item 2" onClick={() => navigate('item-2')} />
-              <MenuItem icon="⭐" label="Favorite Item 3" onClick={() => navigate('item-3')} />
-            </MenuGroup>
-          </NavigationView>
-        );
-
-      case 'downloads':
-        return (
-          <NavigationView title="Downloads" onBack={goBack}>
-            <MenuGroup title="Settings">
-              <MenuItem icon="📥" label="Download Location" value="Device" onClick={() => navigate('download-location')} />
-              <MenuItem icon="📶" label="Download Over Cellular" value="Off" showChevron={false} />
-              <MenuItem icon="🔋" label="Download While Charging Only" value="On" showChevron={false} />
-            </MenuGroup>
-            <MenuGroup title="Recent">
-              <MenuItem icon="📄" label="Document.pdf" value="2.4 MB" showChevron={false} />
-              <MenuItem icon="🖼️" label="Image.jpg" value="1.2 MB" showChevron={false} />
-            </MenuGroup>
-          </NavigationView>
-        );
-
-      case 'help':
-        return (
-          <NavigationView title="Help & Feedback" onBack={goBack}>
-            <MenuGroup>
-              <MenuItem icon="📖" label="Documentation" onClick={() => navigate('documentation')} />
-              <MenuItem icon="❓" label="FAQ" onClick={() => navigate('faq')} />
-              <MenuItem icon="💬" label="Contact Support" onClick={() => navigate('contact')} />
-              <MenuItem icon="🐛" label="Report a Bug" onClick={() => navigate('bug-report')} />
-            </MenuGroup>
-            <MenuGroup title="Community">
-              <MenuItem icon="👥" label="Forums" onClick={() => navigate('forums')} />
-              <MenuItem icon="💡" label="Feature Requests" onClick={() => navigate('feature-requests')} />
-            </MenuGroup>
-          </NavigationView>
-        );
-
-      case 'about':
-        return (
-          <NavigationView title="About" onBack={goBack}>
-            <MenuGroup>
-              <MenuItem icon="ℹ️" label="Version" value="1.0.0" showChevron={false} />
-              <MenuItem icon="🏢" label="Developer" value="Artemis Team" showChevron={false} />
-              <MenuItem icon="📅" label="Release Date" value="Jan 2026" showChevron={false} />
-            </MenuGroup>
-            <MenuGroup title="Legal">
-              <MenuItem icon="📄" label="Terms of Service" onClick={() => navigate('terms')} />
-              <MenuItem icon="🔒" label="Privacy Policy" onClick={() => navigate('privacy-policy')} />
-              <MenuItem icon="⚖️" label="Licenses" onClick={() => navigate('licenses')} />
-            </MenuGroup>
-          </NavigationView>
-        );
-
-      // All other views show a simple placeholder
-      default:
-        return (
-          <NavigationView title={viewName.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} onBack={goBack}>
-            <MenuGroup>
-              <MenuItem 
-                icon="📄" 
-                label={`${viewName} content goes here`} 
-                showChevron={false}
-              />
-            </MenuGroup>
-          </NavigationView>
-        );
+      }
     }
+
+    // Oracle Sub-Category Details
+    if (viewName.startsWith('oracle-sub-') && starforgedData) {
+      const parts = viewName.split('-');
+      const catIndex = parseInt(parts[2]);
+      const subIndex = parseInt(parts[3]);
+      const subCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex];
+      
+      if (subCategory) {
+        return (
+          <NavigationView title={subCategory.Name} onBack={goBack}>
+            <MenuGroup>
+              {subCategory.Oracles?.map((oracle, oracleIndex) => (
+                <MenuItem 
+                  key={oracle['$id'] || oracleIndex}
+                  icon={getOracleIcon(subCategory.Name)}
+                  label={oracle.Name}
+                  onClick={() => navigate(`oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`)}
+                />
+              )) || <MenuItem icon="📄" label="No oracles available" showChevron={false} />}
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Oracle Details (direct from category)
+    if (viewName.startsWith('oracle-') && viewName.split('-').length === 3 && !viewName.includes('sub') && !viewName.includes('detail') && starforgedData) {
+      const [, catIndex, oracleIndex] = viewName.split('-').map(Number);
+      const category = starforgedData.oracleCategories[catIndex];
+      const oracle = category?.Oracles?.[oracleIndex];
+      
+      if (oracle) {
+        return (
+          <NavigationView title={oracle.Name} onBack={goBack}>
+            <DetailCard
+              icon={getOracleIcon(category.Name)}
+              title={oracle.Name}
+              description={oracle.Description || 'Roll to consult this oracle.'}
+            />
+            
+            {oracle.Table && oracle.Table.length > 0 && (
+              <MenuGroup title="Oracle Table">
+                {oracle.Table.map((row, rowIndex) => (
+                  <MenuItem 
+                    key={rowIndex}
+                    icon="🎲"
+                    label={row.Result}
+                    value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
+                    showChevron={false}
+                  />
+                ))}
+              </MenuGroup>
+            )}
+          </NavigationView>
+        );
+      }
+    }
+
+    // Oracle Details (from sub-category)
+    if (viewName.startsWith('oracle-detail-') && starforgedData) {
+      const parts = viewName.split('-');
+      const catIndex = parseInt(parts[2]);
+      const subIndex = parseInt(parts[3]);
+      const oracleIndex = parseInt(parts[4]);
+      const subCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex];
+      const oracle = subCategory?.Oracles?.[oracleIndex];
+      
+      if (oracle) {
+        return (
+          <NavigationView title={oracle.Name} onBack={goBack}>
+            <DetailCard
+              icon={getOracleIcon(subCategory.Name)}
+              title={oracle.Name}
+              description={oracle.Description || 'Roll to consult this oracle.'}
+            />
+            
+            {oracle.Table && oracle.Table.length > 0 && (
+              <MenuGroup title="Oracle Table">
+                {oracle.Table.map((row, rowIndex) => (
+                  <MenuItem 
+                    key={rowIndex}
+                    icon="🎲"
+                    label={row.Result}
+                    value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
+                    showChevron={false}
+                  />
+                ))}
+              </MenuGroup>
+            )}
+          </NavigationView>
+        );
+      }
+    }
+
+    // All other views show a simple placeholder
+    return (
+      <NavigationView title={viewName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} onBack={goBack}>
+        <MenuGroup>
+          <MenuItem 
+            icon="📄" 
+            label="Content coming soon"
+            showChevron={false}
+          />
+        </MenuGroup>
+      </NavigationView>
+    );
   };
 
   return (
     <div className="app">
       <div className="app-content">
-        {/* Previous view - slides out */}
         {isTransitioning && previousView && (
           <div 
             className={`view-container ${direction === 'forward' ? 'slide-out-left' : 'slide-out-right'}`}
@@ -426,7 +619,6 @@ function App() {
           </div>
         )}
         
-        {/* Current view - slides in */}
         <div 
           className={`view-container ${isTransitioning ? (direction === 'forward' ? 'slide-in-right' : 'slide-in-left') : ''}`}
           key={currentView}
@@ -438,6 +630,57 @@ function App() {
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
     </div>
   );
+}
+
+// Helper functions for icons
+function getAssetIcon(assetTypeName) {
+  const iconMap = {
+    'Command Vehicle': '🚀',
+    'Module': '⚙️',
+    'Support Vehicle': '🛸',
+    'Path': '🛤️',
+    'Companion': '🤝',
+    'Deed': '🏆'
+  };
+  return iconMap[assetTypeName] || '📋';
+}
+
+function getMoveIcon(categoryName) {
+  const iconMap = {
+    'Session': '🎮',
+    'Adventure': '🗺️',
+    'Quest': '🎯',
+    'Connection': '🤝',
+    'Exploration': '🔍',
+    'Combat': '⚔️',
+    'Suffer': '💔',
+    'Recover': '💚',
+    'Threshold': '🚪',
+    'Legacy': '👑',
+    'Fate': '🎲',
+    'Scene Challenge': '🎬'
+  };
+  return iconMap[categoryName] || '📖';
+}
+
+function getOracleIcon(categoryName) {
+  const iconMap = {
+    'Character Creation': '👤',
+    'Characters': '👥',
+    'Core': '⭐',
+    'Creatures': '👾',
+    'Derelicts': '🛰️',
+    'Factions': '🏛️',
+    'Location Themes': '🌍',
+    'Misc': '🎲',
+    'Moves': '📖',
+    'Planets': '🪐',
+    'Settlements': '🏙️',
+    'Space': '🌌',
+    'Starships': '🚀',
+    'Vaults': '🔐'
+  };
+  return iconMap[categoryName] || '🔮';
 }
 
 export default App;

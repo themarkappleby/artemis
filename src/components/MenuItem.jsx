@@ -1,12 +1,15 @@
 import React from 'react';
 import './MenuItem.css';
 
-export const MenuItem = ({ icon, label, value, onClick, showChevron = true }) => {
+export const MenuItem = ({ icon, label, subtitle, value, onClick, showChevron = true }) => {
   return (
     <div className="menu-item" onClick={onClick}>
       <div className="menu-item-content">
         {icon && <div className="menu-item-icon">{icon}</div>}
-        <span className="menu-item-label">{label}</span>
+        <div className="menu-item-text">
+          <span className="menu-item-label">{label}</span>
+          {subtitle && <span className="menu-item-subtitle">{subtitle}</span>}
+        </div>
       </div>
       <div className="menu-item-end">
         {value && <span className="menu-item-value">{value}</span>}

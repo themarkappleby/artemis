@@ -21,6 +21,12 @@ html, body {
   background-color: #000000;
 }
 
+/* Allow text selection in detail cards */
+.detail-card {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* iOS-specific: Hide scrollbars but keep functionality */
 ::-webkit-scrollbar {
   display: none;
