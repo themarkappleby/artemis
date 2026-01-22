@@ -1,7 +1,15 @@
 import React from 'react';
 import './MenuItem.css';
 
-export const MenuItem = ({ icon, label, subtitle, value, onClick, showChevron = true }) => {
+export const MenuItem = ({ icon, label, subtitle, value, onClick, showChevron = true, isButton = false }) => {
+  if (isButton) {
+    return (
+      <div className="menu-item menu-item-button" onClick={onClick}>
+        <span className="menu-item-label-button">{label}</span>
+      </div>
+    );
+  }
+  
   return (
     <div className="menu-item" onClick={onClick}>
       <div className="menu-item-content">

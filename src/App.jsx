@@ -18,6 +18,7 @@ function App() {
   const [direction, setDirection] = useState(null);
   const [previousView, setPreviousView] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [oracleRolls, setOracleRolls] = useState({});
   
   const { data: starforgedData, loading } = useStarforged();
 
@@ -89,6 +90,28 @@ function App() {
         }, 350);
       }
     }
+  };
+
+  const rollOracle = (oracleKey, oracleTable) => {
+    if (!oracleTable || oracleTable.length === 0) return;
+    
+    // Roll d100 (1-100)
+    const roll = Math.floor(Math.random() * 100) + 1;
+    
+    // Find the matching result
+    const result = oracleTable.find(row => {
+      const floor = row.Floor || row.Chance || 1;
+      const ceiling = row.Ceiling || row.Chance || 100;
+      return roll >= floor && roll <= ceiling;
+    });
+    
+    setOracleRolls({
+      ...oracleRolls,
+      [oracleKey]: {
+        roll,
+        result: result?.Result || 'No result found'
+      }
+    });
   };
 
   const currentView = navigationStacks[activeTab][navigationStacks[activeTab].length - 1];
@@ -527,7 +550,7 @@ function App() {
     }
 
     // Oracle Sub-Category Details
-    if (viewName.startsWith('oracle-sub-') && starforgedData) {
+    if (viewName.startsWith('oracle-sub-') && !viewName.startsWith('oracle-sub-sub-') && starforgedData) {
       const parts = viewName.split('-');
       const catIndex = parseInt(parts[2]);
       const subIndex = parseInt(parts[3]);
@@ -544,6 +567,39 @@ function App() {
                   label={oracle.Name}
                   onClick={() => navigate(`oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`)}
                 />
+              )) || subCategory.Categories?.map((subSubCategory, subSubIndex) => (
+                <MenuItem 
+                  key={subSubCategory['$id'] || subSubIndex}
+                  icon={getOracleIcon(subSubCategory.Name)}
+                  label={subSubCategory.Name}
+                  onClick={() => navigate(`oracle-sub-sub-${catIndex}-${subIndex}-${subSubIndex}`)}
+                />
+              )) || <MenuItem icon="📄" label="No oracles available" showChevron={false} />}
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Oracle Sub-Sub-Category Details (deeper nesting)
+    if (viewName.startsWith('oracle-sub-sub-') && starforgedData) {
+      const parts = viewName.split('-');
+      const catIndex = parseInt(parts[3]);
+      const subIndex = parseInt(parts[4]);
+      const subSubIndex = parseInt(parts[5]);
+      const subSubCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex]?.Categories?.[subSubIndex];
+      
+      if (subSubCategory) {
+        return (
+          <NavigationView title={subSubCategory.Name} onBack={goBack}>
+            <MenuGroup>
+              {subSubCategory.Oracles?.map((oracle, oracleIndex) => (
+                <MenuItem 
+                  key={oracle['$id'] || oracleIndex}
+                  icon={getOracleIcon(subSubCategory.Name)}
+                  label={oracle.Name}
+                  onClick={() => navigate(`oracle-detail-deep-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`)}
+                />
               )) || <MenuItem icon="📄" label="No oracles available" showChevron={false} />}
             </MenuGroup>
           </NavigationView>
@@ -552,10 +608,12 @@ function App() {
     }
 
     // Oracle Details (direct from category)
-    if (viewName.startsWith('oracle-') && viewName.split('-').length === 3 && !viewName.includes('sub') && !viewName.includes('detail') && starforgedData) {
+    if (viewName.startsWith('oracle-') && viewName.split('-').length === 3 && !viewName.includes('sub') && !viewName.includes('detail') && !viewName.includes('table') && starforgedData) {
       const [, catIndex, oracleIndex] = viewName.split('-').map(Number);
       const category = starforgedData.oracleCategories[catIndex];
       const oracle = category?.Oracles?.[oracleIndex];
+      const oracleKey = `oracle-${catIndex}-${oracleIndex}`;
+      const rolledResult = oracleRolls[oracleKey];
       
       if (oracle) {
         return (
@@ -567,17 +625,33 @@ function App() {
             />
             
             {oracle.Table && oracle.Table.length > 0 && (
-              <MenuGroup title="Oracle Table">
-                {oracle.Table.map((row, rowIndex) => (
+              <>
+                <MenuGroup>
+                  {rolledResult && (
+                    <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                      <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                        {rolledResult.result}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                        Rolled: {rolledResult.roll}
+                      </div>
+                    </div>
+                  )}
                   <MenuItem 
-                    key={rowIndex}
-                    icon="🎲"
-                    label={row.Result}
-                    value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
-                    showChevron={false}
+                    label="Roll Oracle"
+                    onClick={() => rollOracle(oracleKey, oracle.Table)}
+                    isButton={true}
                   />
-                ))}
-              </MenuGroup>
+                </MenuGroup>
+                
+                <MenuGroup>
+                  <MenuItem 
+                    icon="📋"
+                    label="View Oracle Table"
+                    onClick={() => navigate(`oracle-table-${catIndex}-${oracleIndex}`)}
+                  />
+                </MenuGroup>
+              </>
             )}
           </NavigationView>
         );
@@ -585,13 +659,15 @@ function App() {
     }
 
     // Oracle Details (from sub-category)
-    if (viewName.startsWith('oracle-detail-') && starforgedData) {
+    if (viewName.startsWith('oracle-detail-') && !viewName.includes('table') && starforgedData) {
       const parts = viewName.split('-');
       const catIndex = parseInt(parts[2]);
       const subIndex = parseInt(parts[3]);
       const oracleIndex = parseInt(parts[4]);
       const subCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex];
       const oracle = subCategory?.Oracles?.[oracleIndex];
+      const oracleKey = `oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`;
+      const rolledResult = oracleRolls[oracleKey];
       
       if (oracle) {
         return (
@@ -603,18 +679,173 @@ function App() {
             />
             
             {oracle.Table && oracle.Table.length > 0 && (
-              <MenuGroup title="Oracle Table">
-                {oracle.Table.map((row, rowIndex) => (
+              <>
+                <MenuGroup>
+                  {rolledResult && (
+                    <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                      <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                        {rolledResult.result}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                        Rolled: {rolledResult.roll}
+                      </div>
+                    </div>
+                  )}
                   <MenuItem 
-                    key={rowIndex}
-                    icon="🎲"
-                    label={row.Result}
-                    value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
-                    showChevron={false}
+                    label="Roll Oracle"
+                    onClick={() => rollOracle(oracleKey, oracle.Table)}
+                    isButton={true}
                   />
-                ))}
-              </MenuGroup>
+                </MenuGroup>
+                
+                <MenuGroup>
+                  <MenuItem 
+                    icon="📋"
+                    label="View Oracle Table"
+                    onClick={() => navigate(`oracle-detail-table-${catIndex}-${subIndex}-${oracleIndex}`)}
+                  />
+                </MenuGroup>
+              </>
             )}
+          </NavigationView>
+        );
+      }
+    }
+
+    // Oracle Details (deeply nested - from sub-sub-category)
+    if (viewName.startsWith('oracle-detail-deep-') && !viewName.includes('table') && starforgedData) {
+      const parts = viewName.split('-');
+      const catIndex = parseInt(parts[3]);
+      const subIndex = parseInt(parts[4]);
+      const subSubIndex = parseInt(parts[5]);
+      const oracleIndex = parseInt(parts[6]);
+      const subSubCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex]?.Categories?.[subSubIndex];
+      const oracle = subSubCategory?.Oracles?.[oracleIndex];
+      const oracleKey = `oracle-detail-deep-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`;
+      const rolledResult = oracleRolls[oracleKey];
+      
+      if (oracle) {
+        return (
+          <NavigationView title={oracle.Name} onBack={goBack}>
+            <DetailCard
+              icon={getOracleIcon(subSubCategory.Name)}
+              title={oracle.Name}
+              description={oracle.Description || 'Roll to consult this oracle.'}
+            />
+            
+            {oracle.Table && oracle.Table.length > 0 && (
+              <>
+                <MenuGroup>
+                  {rolledResult && (
+                    <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                      <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                        {rolledResult.result}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                        Rolled: {rolledResult.roll}
+                      </div>
+                    </div>
+                  )}
+                  <MenuItem 
+                    label="Roll Oracle"
+                    onClick={() => rollOracle(oracleKey, oracle.Table)}
+                    isButton={true}
+                  />
+                </MenuGroup>
+                
+                <MenuGroup>
+                  <MenuItem 
+                    icon="📋"
+                    label="View Oracle Table"
+                    onClick={() => navigate(`oracle-detail-deep-table-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`)}
+                  />
+                </MenuGroup>
+              </>
+            )}
+          </NavigationView>
+        );
+      }
+    }
+
+    // Oracle Table (direct from category)
+    if (viewName.startsWith('oracle-table-') && viewName.split('-').length === 4 && starforgedData) {
+      const parts = viewName.split('-');
+      const catIndex = parseInt(parts[2]);
+      const oracleIndex = parseInt(parts[3]);
+      const category = starforgedData.oracleCategories[catIndex];
+      const oracle = category?.Oracles?.[oracleIndex];
+      
+      if (oracle?.Table) {
+        return (
+          <NavigationView title={`${oracle.Name} - Table`} onBack={goBack}>
+            <MenuGroup title="Oracle Table">
+              {oracle.Table.map((row, rowIndex) => (
+                <MenuItem 
+                  key={rowIndex}
+                  icon="🎲"
+                  label={row.Result}
+                  value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
+                  showChevron={false}
+                />
+              ))}
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Oracle Table (from sub-category)
+    if (viewName.startsWith('oracle-detail-table-') && starforgedData) {
+      const parts = viewName.split('-');
+      const catIndex = parseInt(parts[3]);
+      const subIndex = parseInt(parts[4]);
+      const oracleIndex = parseInt(parts[5]);
+      const subCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex];
+      const oracle = subCategory?.Oracles?.[oracleIndex];
+      
+      if (oracle?.Table) {
+        return (
+          <NavigationView title={`${oracle.Name} - Table`} onBack={goBack}>
+            <MenuGroup title="Oracle Table">
+              {oracle.Table.map((row, rowIndex) => (
+                <MenuItem 
+                  key={rowIndex}
+                  icon="🎲"
+                  label={row.Result}
+                  value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
+                  showChevron={false}
+                />
+              ))}
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Oracle Table (deeply nested - from sub-sub-category)
+    if (viewName.startsWith('oracle-detail-deep-table-') && starforgedData) {
+      const parts = viewName.split('-');
+      const catIndex = parseInt(parts[4]);
+      const subIndex = parseInt(parts[5]);
+      const subSubIndex = parseInt(parts[6]);
+      const oracleIndex = parseInt(parts[7]);
+      const subSubCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex]?.Categories?.[subSubIndex];
+      const oracle = subSubCategory?.Oracles?.[oracleIndex];
+      
+      if (oracle?.Table) {
+        return (
+          <NavigationView title={`${oracle.Name} - Table`} onBack={goBack}>
+            <MenuGroup title="Oracle Table">
+              {oracle.Table.map((row, rowIndex) => (
+                <MenuItem 
+                  key={rowIndex}
+                  icon="🎲"
+                  label={row.Result}
+                  value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
+                  showChevron={false}
+                />
+              ))}
+            </MenuGroup>
           </NavigationView>
         );
       }

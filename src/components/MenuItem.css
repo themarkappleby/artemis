@@ -81,3 +81,15 @@
   color: #636366;
   flex-shrink: 0;
 }
+
+/* Button style for action items */
+.menu-item-button {
+  justify-content: center;
+}
+
+.menu-item-label-button {
+  font-size: 17px;
+  color: #007AFF;
+  font-weight: 400;
+  text-align: center;
+}
