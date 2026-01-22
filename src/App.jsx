@@ -62,10 +62,32 @@ function App() {
 
   const handleTabChange = (tabId) => {
     if (tabId !== activeTab) {
+      // Switching to a different tab
       setActiveTab(tabId);
       setIsTransitioning(false);
       setPreviousView(null);
       setDirection(null);
+    } else {
+      // Clicking the active tab - go to home view if not already there
+      const homeView = navigationStacks[tabId][0];
+      const currentView = navigationStacks[tabId][navigationStacks[tabId].length - 1];
+      
+      if (currentView !== homeView && !isTransitioning) {
+        setDirection('back');
+        setPreviousView(currentView);
+        setIsTransitioning(true);
+        
+        setNavigationStacks({
+          ...navigationStacks,
+          [tabId]: [homeView]
+        });
+        
+        setTimeout(() => {
+          setIsTransitioning(false);
+          setPreviousView(null);
+          setDirection(null);
+        }, 350);
+      }
     }
   };
 
@@ -95,6 +117,29 @@ function App() {
     if (viewName === 'home') {
       return (
         <NavigationView title="The Forge">
+          <MenuGroup title="Regions">
+            <MenuItem 
+              icon="🌟" 
+              label="Terminus" 
+              onClick={() => navigate('region-terminus')}
+            />
+            <MenuItem 
+              icon="🌀" 
+              label="Outlands" 
+              onClick={() => navigate('region-outlands')}
+            />
+            <MenuItem 
+              icon="🌌" 
+              label="Expanse" 
+              onClick={() => navigate('region-expanse')}
+            />
+            <MenuItem 
+              icon="🕳️" 
+              label="Void" 
+              onClick={() => navigate('region-void')}
+            />
+          </MenuGroup>
+
           <MenuGroup title="Game Setup">
             <MenuItem 
               icon="🌌" 
@@ -105,24 +150,6 @@ function App() {
               icon="🎯" 
               label="Character Creation" 
               onClick={() => navigate('character-creation')}
-            />
-          </MenuGroup>
-
-          <MenuGroup title="Reference">
-            <MenuItem 
-              icon="📖" 
-              label="All Moves" 
-              onClick={() => navigate('all-moves-reference')}
-            />
-            <MenuItem 
-              icon="🎲" 
-              label="All Oracles" 
-              onClick={() => navigate('all-oracles-reference')}
-            />
-            <MenuItem 
-              icon="⚔️" 
-              label="All Assets" 
-              onClick={() => navigate('all-assets-reference')}
             />
           </MenuGroup>
 
