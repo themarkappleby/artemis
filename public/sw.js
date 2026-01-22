@@ -1,5 +1,5 @@
 // Service Worker for Artemis PWA
-const CACHE_NAME = 'artemis-v2';
+const CACHE_NAME = 'artemis-v3';
 const BASE_PATH = '/artemis/';
 
 // Install event - cache initial resources
