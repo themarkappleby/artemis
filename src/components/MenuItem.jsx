@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import './MenuItem.css';
 
 export const MenuItem = ({ icon, label, subtitle, value, onClick, showChevron = true, isButton = false, destructive = false }) => {
@@ -16,7 +17,7 @@ export const MenuItem = ({ icon, label, subtitle, value, onClick, showChevron = 
         {icon && <div className="menu-item-icon">{icon}</div>}
         <div className="menu-item-text">
           <span className="menu-item-label">{label}</span>
-          {subtitle && <span className="menu-item-subtitle">{subtitle}</span>}
+          {subtitle && <div className="menu-item-subtitle"><ReactMarkdown>{subtitle}</ReactMarkdown></div>}
         </div>
       </div>
       <div className="menu-item-end">

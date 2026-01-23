@@ -9,6 +9,9 @@
   transition: background-color 0.15s;
   min-height: 44px;
   gap: 8px;
+  -webkit-user-drag: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .menu-item:last-child {
@@ -55,13 +58,35 @@
 .menu-item-subtitle {
   font-size: 13px;
   color: #8e8e93;
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  line-height: 1.4;
   word-wrap: break-word;
+}
+
+.menu-item-subtitle p {
+  margin: 0;
+}
+
+.menu-item-subtitle p + p {
+  margin-top: 8px;
+}
+
+.menu-item-subtitle strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.menu-item-subtitle em {
+  font-style: italic;
+}
+
+.menu-item-subtitle ul,
+.menu-item-subtitle ol {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
+.menu-item-subtitle li {
+  margin: 2px 0;
 }
 
 .menu-item-end {

@@ -43,11 +43,17 @@ function App() {
       momentumReset: 2
     },
     assets: [
-      { typeIndex: 0, assetIndex: 0, enabledAbilities: [0] } // Starship Command Vehicle
+      { typeIndex: 0, assetIndex: 0, enabledAbilities: [0], inputs: {} } // Starship Command Vehicle
     ],
-    vows: [], // Array of { id, name, rank, ticks }
+    legacy: {
+      quests: 0,      // ticks for Quests legacy track
+      bonds: 0,       // ticks for Bonds legacy track
+      discoveries: 0  // ticks for Discoveries legacy track
+    },
+    vows: [],
     expeditions: [],
-    combatTracks: []
+    combatTracks: [],
+    connections: []
   });
 
   // Progress track state for new track creation
@@ -84,7 +90,7 @@ function App() {
     if (!exists) {
       setCharacter({
         ...character,
-        assets: [...character.assets, { typeIndex, assetIndex, enabledAbilities: [0] }]
+        assets: [...character.assets, { typeIndex, assetIndex, enabledAbilities: [0], inputs: {} }]
       });
     }
     // Navigate back to character home
@@ -122,6 +128,24 @@ function App() {
     });
   };
 
+  const updateAssetInput = (typeIndex, assetIndex, inputName, value) => {
+    setCharacter({
+      ...character,
+      assets: character.assets.map(a => {
+        if (a.typeIndex === typeIndex && a.assetIndex === assetIndex) {
+          return {
+            ...a,
+            inputs: {
+              ...a.inputs,
+              [inputName]: value
+            }
+          };
+        }
+        return a;
+      })
+    });
+  };
+
   // Progress track functions
   const addProgressTrack = (trackType) => {
     if (!newTrackName.trim()) return;
@@ -141,22 +165,8 @@ function App() {
     setNewTrackName('');
     setNewTrackRank('dangerous');
     
-    // Navigate to the newly created track's detail page
-    const trackTypeMap = {
-      vows: 'vow',
-      expeditions: 'expedition',
-      combatTracks: 'combat'
-    };
-    const viewPrefix = trackTypeMap[trackType];
-    
-    // Replace the current view stack to go from list -> detail
-    setNavigationStacks({
-      ...navigationStacks,
-      [activeTab]: [
-        ...navigationStacks[activeTab].slice(0, -1), // Remove the 'add-X' view
-        `${viewPrefix}-${newTrack.id}` // Add the detail view
-      ]
-    });
+    // Navigate back to the index view showing all tracks of this type
+    goBack();
   };
 
   const removeProgressTrack = (trackType, trackId) => {
@@ -195,6 +205,16 @@ function App() {
         }
         return track;
       })
+    });
+  };
+
+  const markLegacy = (legacyType) => {
+    setCharacter({
+      ...character,
+      legacy: {
+        ...character.legacy,
+        [legacyType]: Math.min(40, character.legacy[legacyType] + 8) // 2 boxes per mark (like dangerous)
+      }
     });
   };
 
@@ -502,16 +522,6 @@ function App() {
     if (viewName === 'character-home') {
       return (
         <NavigationView title="Character">
-          <div style={{ padding: '0 16px' }}>
-            <input
-              type="text"
-              className="character-name-input"
-              value={character.name}
-              onChange={(e) => setCharacter({ ...character, name: e.target.value })}
-              placeholder="Character Name"
-            />
-          </div>
-
           <MenuGroup title="Condition Meters">
             <div style={{ padding: '12px 0' }}>
               <MeterBar 
@@ -543,6 +553,7 @@ function App() {
               <MeterBar 
                 label="Momentum" 
                 value={character.conditions.momentum} 
+                minValue={-6}
                 maxValue={character.conditions.momentumMax}
                 color="#ff9500"
                 onChange={(val) => updateCondition('momentum', val)}
@@ -559,17 +570,28 @@ function App() {
             <StatBar 
               label="Reset" 
               value={character.conditions.momentumReset}
-              minValue={0}
+              minValue={-6}
               maxValue={10}
               onChange={(val) => updateCondition('momentumReset', val)}
             />
             <button 
               className="burn-momentum-button"
               onClick={() => updateCondition('momentum', character.conditions.momentumReset)}
+              disabled={character.conditions.momentum <= character.conditions.momentumReset}
             >
               Burn Momentum
             </button>
           </MenuGroup>
+
+          <div style={{ padding: '0 16px' }}>
+            <input
+              type="text"
+              className="character-name-input"
+              value={character.name}
+              onChange={(e) => setCharacter({ ...character, name: e.target.value })}
+              placeholder="Character Name"
+            />
+          </div>
 
           <MenuGroup title="Stats">
             <StatBar 
@@ -616,12 +638,14 @@ function App() {
                 const assetType = starforgedData?.assetTypes[ownedAsset.typeIndex];
                 const asset = assetType?.Assets?.[ownedAsset.assetIndex];
                 if (!asset) return null;
+                const enabledCount = ownedAsset.enabledAbilities?.length || 0;
+                const totalCount = asset.Abilities?.length || 0;
                 return (
                   <MenuItem 
                     key={`owned-${ownedAsset.typeIndex}-${ownedAsset.assetIndex}`}
                     icon={getAssetIcon(assetType.Name)}
                     label={asset.Name}
-                    value={assetType.Name}
+                    value={`${enabledCount}/${totalCount}`}
                     onClick={() => navigate(`owned-asset-${ownedAsset.typeIndex}-${ownedAsset.assetIndex}`)}
                   />
                 );
@@ -636,6 +660,12 @@ function App() {
 
           <MenuGroup title="Progress">
             <MenuItem 
+              icon="👑" 
+              label="Legacy" 
+              value="3"
+              onClick={() => navigate('legacy')}
+            />
+            <MenuItem 
               icon="🎯" 
               label="Vows" 
               value={character.vows.length.toString()}
@@ -649,9 +679,15 @@ function App() {
             />
             <MenuItem 
               icon="⚔️" 
-              label="Combat Tracks" 
+              label="Combat" 
               value={character.combatTracks.length.toString()}
               onClick={() => navigate('combat-tracks')}
+            />
+            <MenuItem 
+              icon="🤝" 
+              label="Connections" 
+              value={character.connections.length.toString()}
+              onClick={() => navigate('connections')}
             />
           </MenuGroup>
         </NavigationView>
@@ -733,7 +769,7 @@ function App() {
                 {asset.Abilities.map((ability, abilityIndex) => (
                   <MenuItem 
                     key={abilityIndex}
-                    icon="⭕"
+                    icon={<input type="checkbox" className="ability-checkbox" checked={false} readOnly />}
                     label={ability.Name || `Ability ${abilityIndex + 1}`}
                     subtitle={ability.Text || ''}
                     showChevron={false}
@@ -783,6 +819,22 @@ function App() {
               />
             )}
             
+            {asset.Inputs && asset.Inputs.length > 0 && (
+              <MenuGroup title="Inputs">
+                {asset.Inputs.map((input, inputIndex) => (
+                  <div key={inputIndex} style={{ padding: '12px 16px' }}>
+                    <input
+                      type="text"
+                      className="asset-input"
+                      value={ownedAsset.inputs?.[input.Name] || ''}
+                      onChange={(e) => updateAssetInput(typeIndex, assetIndex, input.Name, e.target.value)}
+                      placeholder={input.Name || `Input ${inputIndex + 1}`}
+                    />
+                  </div>
+                ))}
+              </MenuGroup>
+            )}
+            
             {asset.Abilities && asset.Abilities.length > 0 && (
               <MenuGroup title="Abilities">
                 {asset.Abilities.map((ability, abilityIndex) => {
@@ -790,7 +842,7 @@ function App() {
                   return (
                     <MenuItem 
                       key={abilityIndex}
-                      icon={isEnabled ? "✅" : "⭕"}
+                      icon={<input type="checkbox" className="ability-checkbox" checked={isEnabled} readOnly />}
                       label={ability.Name || `Ability ${abilityIndex + 1}`}
                       subtitle={ability.Text || ''}
                       onClick={() => toggleAssetAbility(typeIndex, assetIndex, abilityIndex)}
@@ -798,19 +850,6 @@ function App() {
                     />
                   );
                 })}
-              </MenuGroup>
-            )}
-            
-            {asset.Inputs && asset.Inputs.length > 0 && (
-              <MenuGroup title="Inputs">
-                {asset.Inputs.map((input, inputIndex) => (
-                  <MenuItem 
-                    key={inputIndex}
-                    icon="✏️"
-                    label={input.Name || `Input ${inputIndex + 1}`}
-                    showChevron={false}
-                  />
-                ))}
               </MenuGroup>
             )}
             
@@ -1321,6 +1360,44 @@ function App() {
 
     // PROGRESS TRACK VIEWS
     
+    // Legacy View
+    if (viewName === 'legacy') {
+      return (
+        <NavigationView title="Legacy" onBack={goBack}>
+          <MenuGroup>
+            <div style={{ padding: '12px 16px' }}>
+              <ProgressTrack
+                name="Quests"
+                rank="dangerous"
+                ticks={character.legacy.quests}
+                onMarkProgress={() => markLegacy('quests')}
+              />
+            </div>
+          </MenuGroup>
+          <MenuGroup>
+            <div style={{ padding: '12px 16px' }}>
+              <ProgressTrack
+                name="Bonds"
+                rank="dangerous"
+                ticks={character.legacy.bonds}
+                onMarkProgress={() => markLegacy('bonds')}
+              />
+            </div>
+          </MenuGroup>
+          <MenuGroup>
+            <div style={{ padding: '12px 16px' }}>
+              <ProgressTrack
+                name="Discoveries"
+                rank="dangerous"
+                ticks={character.legacy.discoveries}
+                onMarkProgress={() => markLegacy('discoveries')}
+              />
+            </div>
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+
     // Vows List
     if (viewName === 'vows') {
       return (
@@ -1334,17 +1411,32 @@ function App() {
               />
             </MenuGroup>
           ) : (
-            <MenuGroup>
-              {character.vows.map(vow => (
-                <MenuItem 
-                  key={vow.id}
-                  icon="🎯"
-                  label={vow.name}
-                  value={`${RANK_LABELS[vow.rank]} • ${Math.floor(vow.ticks / 4)}/10`}
-                  onClick={() => navigate(`vow-${vow.id}`)}
-                />
-              ))}
-            </MenuGroup>
+            character.vows.map(vow => (
+              <MenuGroup key={vow.id}>
+                <div style={{ padding: '12px 16px' }}>
+                  <ProgressTrack
+                    name={vow.name}
+                    rank={vow.rank}
+                    ticks={vow.ticks}
+                    onMarkProgress={() => markProgress('vows', vow.id)}
+                    onClearProgress={() => clearProgress('vows', vow.id)}
+                  />
+                </div>
+                <div className="track-actions">
+                  <MenuItem 
+                    label="Forsake"
+                    onClick={() => removeProgressTrack('vows', vow.id)}
+                    isButton={true}
+                    destructive={true}
+                  />
+                  <MenuItem 
+                    label="Fulfill"
+                    onClick={() => navigate(`fulfill-vow-${vow.id}`)}
+                    isButton={true}
+                  />
+                </div>
+              </MenuGroup>
+            ))
           )}
           <MenuGroup>
             <MenuItem 
@@ -1365,7 +1457,7 @@ function App() {
             <div style={{ padding: '12px 16px' }}>
               <input
                 type="text"
-                className="character-name-input"
+                className="asset-input"
                 style={{ marginBottom: '12px' }}
                 value={newTrackName}
                 onChange={(e) => setNewTrackName(e.target.value)}
@@ -1469,17 +1561,32 @@ function App() {
               />
             </MenuGroup>
           ) : (
-            <MenuGroup>
-              {character.expeditions.map(exp => (
-                <MenuItem 
-                  key={exp.id}
-                  icon="🗺️"
-                  label={exp.name}
-                  value={`${RANK_LABELS[exp.rank]} • ${Math.floor(exp.ticks / 4)}/10`}
-                  onClick={() => navigate(`expedition-${exp.id}`)}
-                />
-              ))}
-            </MenuGroup>
+            character.expeditions.map(expedition => (
+              <MenuGroup key={expedition.id}>
+                <div style={{ padding: '12px 16px' }}>
+                  <ProgressTrack
+                    name={expedition.name}
+                    rank={expedition.rank}
+                    ticks={expedition.ticks}
+                    onMarkProgress={() => markProgress('expeditions', expedition.id)}
+                    onClearProgress={() => clearProgress('expeditions', expedition.id)}
+                  />
+                </div>
+                <div className="track-actions">
+                  <MenuItem 
+                    label="Abandon"
+                    onClick={() => removeProgressTrack('expeditions', expedition.id)}
+                    isButton={true}
+                    destructive={true}
+                  />
+                  <MenuItem 
+                    label="Finish"
+                    onClick={() => navigate(`finish-expedition-${expedition.id}`)}
+                    isButton={true}
+                  />
+                </div>
+              </MenuGroup>
+            ))
           )}
           <MenuGroup>
             <MenuItem 
@@ -1500,7 +1607,7 @@ function App() {
             <div style={{ padding: '12px 16px' }}>
               <input
                 type="text"
-                className="character-name-input"
+                className="asset-input"
                 style={{ marginBottom: '12px' }}
                 value={newTrackName}
                 onChange={(e) => setNewTrackName(e.target.value)}
@@ -1546,8 +1653,6 @@ function App() {
                   onClearProgress={() => clearProgress('expeditions', expedition.id)}
                 />
               </div>
-            </MenuGroup>
-            <MenuGroup>
               <MenuItem 
                 label="Finish an Expedition"
                 onClick={() => navigate(`finish-expedition-${expedition.id}`)}
@@ -1604,17 +1709,32 @@ function App() {
               />
             </MenuGroup>
           ) : (
-            <MenuGroup>
-              {character.combatTracks.map(combat => (
-                <MenuItem 
-                  key={combat.id}
-                  icon="⚔️"
-                  label={combat.name}
-                  value={`${RANK_LABELS[combat.rank]} • ${Math.floor(combat.ticks / 4)}/10`}
-                  onClick={() => navigate(`combat-${combat.id}`)}
-                />
-              ))}
-            </MenuGroup>
+            character.combatTracks.map(combat => (
+              <MenuGroup key={combat.id}>
+                <div style={{ padding: '12px 16px' }}>
+                  <ProgressTrack
+                    name={combat.name}
+                    rank={combat.rank}
+                    ticks={combat.ticks}
+                    onMarkProgress={() => markProgress('combatTracks', combat.id)}
+                    onClearProgress={() => clearProgress('combatTracks', combat.id)}
+                  />
+                </div>
+                <div className="track-actions">
+                  <MenuItem 
+                    label="End"
+                    onClick={() => removeProgressTrack('combatTracks', combat.id)}
+                    isButton={true}
+                    destructive={true}
+                  />
+                  <MenuItem 
+                    label="Decisive"
+                    onClick={() => navigate(`decisive-action-${combat.id}`)}
+                    isButton={true}
+                  />
+                </div>
+              </MenuGroup>
+            ))
           )}
           <MenuGroup>
             <MenuItem 
@@ -1635,7 +1755,7 @@ function App() {
             <div style={{ padding: '12px 16px' }}>
               <input
                 type="text"
-                className="character-name-input"
+                className="asset-input"
                 style={{ marginBottom: '12px' }}
                 value={newTrackName}
                 onChange={(e) => setNewTrackName(e.target.value)}
@@ -1718,6 +1838,121 @@ function App() {
               <MenuItem 
                 label="Victory - Remove Combat"
                 onClick={() => removeProgressTrack('combatTracks', combat.id)}
+                isButton={true}
+              />
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Connections List
+    if (viewName === 'connections') {
+      return (
+        <NavigationView title="Connections" onBack={goBack}>
+          {character.connections.length === 0 ? (
+            <MenuGroup>
+              <MenuItem 
+                icon="📋" 
+                label="No connections yet" 
+                showChevron={false}
+              />
+            </MenuGroup>
+          ) : (
+            character.connections.map(connection => (
+              <MenuGroup key={connection.id}>
+                <div style={{ padding: '12px 16px' }}>
+                  <ProgressTrack
+                    name={connection.name}
+                    rank={connection.rank}
+                    ticks={connection.ticks}
+                    onMarkProgress={() => markProgress('connections', connection.id)}
+                    onClearProgress={() => clearProgress('connections', connection.id)}
+                  />
+                </div>
+                <div className="track-actions">
+                  <MenuItem 
+                    label="Abandon"
+                    onClick={() => removeProgressTrack('connections', connection.id)}
+                    isButton={true}
+                    destructive={true}
+                  />
+                  <MenuItem 
+                    label="Forge Bond"
+                    onClick={() => navigate(`forge-bond-${connection.id}`)}
+                    isButton={true}
+                  />
+                </div>
+              </MenuGroup>
+            ))
+          )}
+          <MenuGroup>
+            <MenuItem 
+              label="Make a Connection"
+              onClick={() => navigate('add-connection')}
+              isButton={true}
+            />
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+
+    // Add Connection
+    if (viewName === 'add-connection') {
+      return (
+        <NavigationView title="Make a Connection" onBack={goBack}>
+          <MenuGroup title="Connection Details">
+            <div style={{ padding: '12px 16px' }}>
+              <input
+                type="text"
+                className="asset-input"
+                style={{ marginBottom: '12px' }}
+                value={newTrackName}
+                onChange={(e) => setNewTrackName(e.target.value)}
+                placeholder="Who is this connection?"
+              />
+              <select
+                className="rank-select"
+                value={newTrackRank}
+                onChange={(e) => setNewTrackRank(e.target.value)}
+              >
+                <option value="troublesome">Troublesome</option>
+                <option value="dangerous">Dangerous</option>
+                <option value="formidable">Formidable</option>
+                <option value="extreme">Extreme</option>
+                <option value="epic">Epic</option>
+              </select>
+            </div>
+          </MenuGroup>
+          <MenuGroup>
+            <MenuItem 
+              label="Make a Connection"
+              onClick={() => addProgressTrack('connections')}
+              isButton={true}
+            />
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+
+    // Forge Bond
+    if (viewName.startsWith('forge-bond-')) {
+      const connectionId = parseInt(viewName.split('-')[2]);
+      const connection = character.connections.find(c => c.id === connectionId);
+      
+      if (connection) {
+        const progressScore = Math.floor(connection.ticks / 4);
+        return (
+          <NavigationView title="Forge a Bond" onBack={goBack}>
+            <DetailCard
+              icon="🤝"
+              title={connection.name}
+              description={`Progress Score: ${progressScore}\n\nRoll your challenge dice and compare to your progress score of ${progressScore}.\n\n• Strong Hit: Beat both dice\n• Weak Hit: Beat one die\n• Miss: Beat neither die`}
+            />
+            <MenuGroup>
+              <MenuItem 
+                label="Bond Forged - Remove Connection"
+                onClick={() => removeProgressTrack('connections', connection.id)}
                 isButton={true}
               />
             </MenuGroup>

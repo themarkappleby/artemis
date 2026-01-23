@@ -148,6 +148,36 @@ textarea {
 
 .character-name-input::placeholder {
   color: #8e8e93;
+  font-weight: 400;
+}
+
+/* Asset input field */
+.asset-input {
+  width: 100%;
+  padding: 10px 12px;
+  background-color: #2c2c2e;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 17px;
+  outline: none;
+}
+
+.asset-input:focus {
+  box-shadow: 0 0 0 2px #007AFF;
+}
+
+.asset-input::placeholder {
+  color: #636366;
+}
+
+/* Ability checkbox */
+.ability-checkbox {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #007AFF;
 }
 
 /* Burn Momentum button */
@@ -165,8 +195,28 @@ textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
-.burn-momentum-button:active {
+.burn-momentum-button:active:not(:disabled) {
   background-color: #2c2c2e;
+}
+
+.burn-momentum-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Track action buttons row */
+.track-actions {
+  display: flex;
+  border-top: 0.5px solid #38383a;
+}
+
+.track-actions .menu-item {
+  flex: 1;
+  border-bottom: none;
+}
+
+.track-actions .menu-item:last-child {
+  border-left: 0.5px solid #38383a;
 }
 
 /* Rank selection dropdown */

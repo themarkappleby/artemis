@@ -59,27 +59,19 @@ export const ProgressTrack = ({ name, rank, ticks = 0, onMarkProgress, onClearPr
     <div className="progress-track">
       <div className="progress-track-header">
         <span className="progress-track-name">{name}</span>
-        <span className="progress-track-score">{progressScore}/10</span>
+        <span className="progress-track-rank">{RANK_LABELS[rank]}</span>
       </div>
       
-      <div className="progress-track-boxes">
-        {[...Array(10)].map((_, i) => renderBox(i))}
-      </div>
-      
-      <div className="progress-track-controls">
+      <div className="progress-track-row">
+        <div className="progress-track-boxes">
+          {[...Array(10)].map((_, i) => renderBox(i))}
+        </div>
         <button 
-          className="progress-track-button progress-track-button-minus"
-          onClick={onClearProgress}
-          disabled={currentTicks === 0}
-        >
-          −
-        </button>
-        <button 
-          className="progress-track-button progress-track-button-mark"
+          className="progress-track-button progress-track-button-control"
           onClick={onMarkProgress}
           disabled={currentTicks >= maxTicks}
         >
-          Mark Progress
+          +
         </button>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import './MeterBar.css';
 
-export const MeterBar = ({ label, value, maxValue, onChange, color = '#007AFF', style }) => {
+export const MeterBar = ({ label, value, maxValue, minValue = 0, onChange, color = '#007AFF', style }) => {
   const handleIncrement = () => {
     if (value < maxValue && onChange) {
       onChange(value + 1);
@@ -9,10 +9,14 @@ export const MeterBar = ({ label, value, maxValue, onChange, color = '#007AFF', 
   };
 
   const handleDecrement = () => {
-    if (value > 0 && onChange) {
+    if (value > minValue && onChange) {
       onChange(value - 1);
     }
   };
+
+  // Calculate fill percentage based on range
+  const range = maxValue - minValue;
+  const fillPercent = ((value - minValue) / range) * 100;
 
   return (
     <div className="meter-bar" style={style}>
@@ -24,7 +28,7 @@ export const MeterBar = ({ label, value, maxValue, onChange, color = '#007AFF', 
         <div 
           className="meter-fill" 
           style={{ 
-            width: `${(value / maxValue) * 100}%`,
+            width: `${fillPercent}%`,
             backgroundColor: color 
           }}
         />
@@ -33,7 +37,7 @@ export const MeterBar = ({ label, value, maxValue, onChange, color = '#007AFF', 
         <button 
           className="meter-button decrement" 
           onClick={handleDecrement}
-          disabled={value <= 0}
+          disabled={value <= minValue}
         >
           −
         </button>
