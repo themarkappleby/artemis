@@ -267,6 +267,131 @@ function App() {
     }
   };
 
+  // Helper to get oracle table data (handles different data structures)
+  const getOracleTable = (oracle) => {
+    if (!oracle) return null;
+    // Check for direct Table property
+    if (oracle.Table && oracle.Table.length > 0) return oracle.Table;
+    // Check for Tables object (some oracles have multiple named tables)
+    if (oracle.Tables) {
+      const tableKeys = Object.keys(oracle.Tables);
+      if (tableKeys.length > 0) {
+        // Return the first available table
+        return oracle.Tables[tableKeys[0]]?.Table || null;
+      }
+    }
+    return null;
+  };
+
+  // Helper to find an oracle by its path (e.g., "Starforged/Oracles/Derelicts")
+  const findOracleByPath = (path) => {
+    if (!starforgedData || !path) return null;
+    
+    // Parse the path - format is typically "Starforged/Oracles/Category/Subcategory/Oracle"
+    const parts = path.split('/');
+    
+    // Search through oracle categories
+    for (const category of starforgedData.oracleCategories) {
+      // Check if category name matches any part of the path
+      if (path.toLowerCase().includes(category.Name?.toLowerCase())) {
+        // Check direct oracles in category
+        if (category.Oracles) {
+          for (const oracle of category.Oracles) {
+            if (path.includes(oracle['$id']) || path.toLowerCase().includes(oracle.Name?.toLowerCase().replace(/\s+/g, '_'))) {
+              return oracle;
+            }
+          }
+        }
+        // Check sub-categories
+        if (category.Categories) {
+          for (const subCat of category.Categories) {
+            if (path.toLowerCase().includes(subCat.Name?.toLowerCase().replace(/\s+/g, '_'))) {
+              if (subCat.Oracles) {
+                for (const oracle of subCat.Oracles) {
+                  if (path.includes(oracle['$id']) || path.toLowerCase().includes(oracle.Name?.toLowerCase().replace(/\s+/g, '_'))) {
+                    return oracle;
+                  }
+                }
+                // If no specific oracle matched, return the first oracle in the subcategory
+                if (subCat.Oracles.length > 0) {
+                  return subCat.Oracles[0];
+                }
+              }
+              // Check sub-sub-categories
+              if (subCat.Categories) {
+                for (const subSubCat of subCat.Categories) {
+                  if (subSubCat.Oracles) {
+                    for (const oracle of subSubCat.Oracles) {
+                      if (path.includes(oracle['$id']) || path.toLowerCase().includes(oracle.Name?.toLowerCase().replace(/\s+/g, '_'))) {
+                        return oracle;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        // If category matched but no specific oracle, return first oracle
+        if (category.Oracles && category.Oracles.length > 0) {
+          return category.Oracles[0];
+        }
+      }
+    }
+    return null;
+  };
+
+  // Helper to check if a result contains an oracle reference and extract it
+  const parseOracleReference = (resultText) => {
+    if (!resultText) return null;
+    // Match patterns like [▶Name](Path) or [>Name](Path)
+    const refMatch = resultText.match(/\[(?:▶|>)?\s*([^\]]+)\]\(([^)]+)\)/);
+    if (refMatch) {
+      return {
+        displayName: refMatch[1].trim(),
+        path: refMatch[2].trim()
+      };
+    }
+    return null;
+  };
+
+  // Roll on a single table and return the result
+  const rollOnTable = (table) => {
+    if (!table || table.length === 0) return null;
+    const roll = Math.floor(Math.random() * 100) + 1;
+    const result = table.find(row => {
+      const floor = row.Floor || row.Chance || 1;
+      const ceiling = row.Ceiling || row.Chance || 100;
+      return roll >= floor && roll <= ceiling;
+    });
+    return { roll, result: result?.Result || 'No result found' };
+  };
+
+  // Recursively resolve oracle references (max depth to prevent infinite loops)
+  const resolveOracleResult = (resultText, maxDepth = 5) => {
+    if (maxDepth <= 0) return resultText;
+    
+    const ref = parseOracleReference(resultText);
+    if (!ref) return resultText;
+    
+    // Find the referenced oracle
+    const referencedOracle = findOracleByPath(ref.path);
+    if (!referencedOracle) return resultText;
+    
+    // Get the table and roll on it
+    const table = getOracleTable(referencedOracle);
+    if (!table) return resultText;
+    
+    const rollResult = rollOnTable(table);
+    if (!rollResult) return resultText;
+    
+    // Check if this result also contains a reference
+    const resolvedResult = resolveOracleResult(rollResult.result, maxDepth - 1);
+    
+    // Return the resolved result (optionally with context)
+    return resolvedResult;
+  };
+
   const rollOracle = (oracleKey, oracleTable) => {
     if (!oracleTable || oracleTable.length === 0) return;
     
@@ -280,11 +405,16 @@ function App() {
       return roll >= floor && roll <= ceiling;
     });
     
+    const rawResult = result?.Result || 'No result found';
+    
+    // Check if result contains a reference and resolve it
+    const finalResult = resolveOracleResult(rawResult);
+    
     setOracleRolls({
       ...oracleRolls,
       [oracleKey]: {
         roll,
-        result: result?.Result || 'No result found'
+        result: finalResult
       }
     });
   };
@@ -927,6 +1057,7 @@ function App() {
       const oracle = category?.Oracles?.[oracleIndex];
       const oracleKey = `oracle-${catIndex}-${oracleIndex}`;
       const rolledResult = oracleRolls[oracleKey];
+      const oracleTable = getOracleTable(oracle);
       
       if (oracle) {
         return (
@@ -937,7 +1068,7 @@ function App() {
               description={oracle.Description || 'Roll to consult this oracle.'}
             />
             
-            {oracle.Table && oracle.Table.length > 0 && (
+            {oracleTable && (
               <>
                 <MenuGroup>
                   {rolledResult && (
@@ -952,7 +1083,7 @@ function App() {
                   )}
                   <MenuItem 
                     label="Roll Oracle"
-                    onClick={() => rollOracle(oracleKey, oracle.Table)}
+                    onClick={() => rollOracle(oracleKey, oracleTable)}
                     isButton={true}
                   />
                 </MenuGroup>
@@ -971,8 +1102,8 @@ function App() {
       }
     }
 
-    // Oracle Details (from sub-category)
-    if (viewName.startsWith('oracle-detail-') && !viewName.includes('table') && starforgedData) {
+    // Oracle Details (from sub-category) - exclude deep and table URLs
+    if (viewName.startsWith('oracle-detail-') && !viewName.startsWith('oracle-detail-deep-') && !viewName.startsWith('oracle-detail-table-') && starforgedData) {
       const parts = viewName.split('-');
       const catIndex = parseInt(parts[2]);
       const subIndex = parseInt(parts[3]);
@@ -981,6 +1112,7 @@ function App() {
       const oracle = subCategory?.Oracles?.[oracleIndex];
       const oracleKey = `oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`;
       const rolledResult = oracleRolls[oracleKey];
+      const oracleTable = getOracleTable(oracle);
       
       if (oracle) {
         return (
@@ -991,7 +1123,7 @@ function App() {
               description={oracle.Description || 'Roll to consult this oracle.'}
             />
             
-            {oracle.Table && oracle.Table.length > 0 && (
+            {oracleTable && (
               <>
                 <MenuGroup>
                   {rolledResult && (
@@ -1006,7 +1138,7 @@ function App() {
                   )}
                   <MenuItem 
                     label="Roll Oracle"
-                    onClick={() => rollOracle(oracleKey, oracle.Table)}
+                    onClick={() => rollOracle(oracleKey, oracleTable)}
                     isButton={true}
                   />
                 </MenuGroup>
@@ -1025,8 +1157,8 @@ function App() {
       }
     }
 
-    // Oracle Details (deeply nested - from sub-sub-category)
-    if (viewName.startsWith('oracle-detail-deep-') && !viewName.includes('table') && starforgedData) {
+    // Oracle Details (deeply nested - from sub-sub-category) - exclude table URLs
+    if (viewName.startsWith('oracle-detail-deep-') && !viewName.startsWith('oracle-detail-deep-table-') && starforgedData) {
       const parts = viewName.split('-');
       const catIndex = parseInt(parts[3]);
       const subIndex = parseInt(parts[4]);
@@ -1036,6 +1168,7 @@ function App() {
       const oracle = subSubCategory?.Oracles?.[oracleIndex];
       const oracleKey = `oracle-detail-deep-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`;
       const rolledResult = oracleRolls[oracleKey];
+      const oracleTable = getOracleTable(oracle);
       
       if (oracle) {
         return (
@@ -1046,7 +1179,7 @@ function App() {
               description={oracle.Description || 'Roll to consult this oracle.'}
             />
             
-            {oracle.Table && oracle.Table.length > 0 && (
+            {oracleTable && (
               <>
                 <MenuGroup>
                   {rolledResult && (
@@ -1061,7 +1194,7 @@ function App() {
                   )}
                   <MenuItem 
                     label="Roll Oracle"
-                    onClick={() => rollOracle(oracleKey, oracle.Table)}
+                    onClick={() => rollOracle(oracleKey, oracleTable)}
                     isButton={true}
                   />
                 </MenuGroup>
@@ -1087,12 +1220,13 @@ function App() {
       const oracleIndex = parseInt(parts[3]);
       const category = starforgedData.oracleCategories[catIndex];
       const oracle = category?.Oracles?.[oracleIndex];
+      const oracleTable = getOracleTable(oracle);
       
-      if (oracle?.Table) {
+      if (oracleTable) {
         return (
           <NavigationView title={`${oracle.Name} - Table`} onBack={goBack}>
             <MenuGroup title="Oracle Table">
-              {oracle.Table.map((row, rowIndex) => (
+              {oracleTable.map((row, rowIndex) => (
                 <MenuItem 
                   key={rowIndex}
                   icon="🎲"
@@ -1107,20 +1241,21 @@ function App() {
       }
     }
 
-    // Oracle Table (from sub-category)
-    if (viewName.startsWith('oracle-detail-table-') && starforgedData) {
+    // Oracle Table (from sub-category) - exclude deep URLs
+    if (viewName.startsWith('oracle-detail-table-') && !viewName.startsWith('oracle-detail-deep-table-') && starforgedData) {
       const parts = viewName.split('-');
       const catIndex = parseInt(parts[3]);
       const subIndex = parseInt(parts[4]);
       const oracleIndex = parseInt(parts[5]);
       const subCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex];
       const oracle = subCategory?.Oracles?.[oracleIndex];
+      const oracleTable = getOracleTable(oracle);
       
-      if (oracle?.Table) {
+      if (oracleTable) {
         return (
           <NavigationView title={`${oracle.Name} - Table`} onBack={goBack}>
             <MenuGroup title="Oracle Table">
-              {oracle.Table.map((row, rowIndex) => (
+              {oracleTable.map((row, rowIndex) => (
                 <MenuItem 
                   key={rowIndex}
                   icon="🎲"
@@ -1144,12 +1279,13 @@ function App() {
       const oracleIndex = parseInt(parts[7]);
       const subSubCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex]?.Categories?.[subSubIndex];
       const oracle = subSubCategory?.Oracles?.[oracleIndex];
+      const oracleTable = getOracleTable(oracle);
       
-      if (oracle?.Table) {
+      if (oracleTable) {
         return (
           <NavigationView title={`${oracle.Name} - Table`} onBack={goBack}>
             <MenuGroup title="Oracle Table">
-              {oracle.Table.map((row, rowIndex) => (
+              {oracleTable.map((row, rowIndex) => (
                 <MenuItem 
                   key={rowIndex}
                   icon="🎲"
