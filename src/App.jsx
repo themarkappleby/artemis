@@ -39,7 +39,10 @@ function App() {
       momentum: 2,
       momentumMax: 10,
       momentumReset: 2
-    }
+    },
+    assets: [
+      { typeIndex: 0, assetIndex: 0, enabledAbilities: [0] } // Starship Command Vehicle
+    ]
   });
   
   const { data: starforgedData, loading } = useStarforged();
@@ -61,6 +64,52 @@ function App() {
         ...character.conditions,
         [conditionName]: value
       }
+    });
+  };
+
+  const addAsset = (typeIndex, assetIndex) => {
+    // Check if asset already exists
+    const exists = character.assets.some(
+      a => a.typeIndex === typeIndex && a.assetIndex === assetIndex
+    );
+    if (!exists) {
+      setCharacter({
+        ...character,
+        assets: [...character.assets, { typeIndex, assetIndex, enabledAbilities: [0] }]
+      });
+    }
+    // Navigate back to character home
+    setNavigationStacks({
+      ...navigationStacks,
+      [activeTab]: ['character-home']
+    });
+  };
+
+  const removeAsset = (typeIndex, assetIndex) => {
+    setCharacter({
+      ...character,
+      assets: character.assets.filter(
+        a => !(a.typeIndex === typeIndex && a.assetIndex === assetIndex)
+      )
+    });
+    goBack();
+  };
+
+  const toggleAssetAbility = (typeIndex, assetIndex, abilityIndex) => {
+    setCharacter({
+      ...character,
+      assets: character.assets.map(a => {
+        if (a.typeIndex === typeIndex && a.assetIndex === assetIndex) {
+          const enabled = a.enabledAbilities.includes(abilityIndex);
+          return {
+            ...a,
+            enabledAbilities: enabled
+              ? a.enabledAbilities.filter(i => i !== abilityIndex)
+              : [...a.enabledAbilities, abilityIndex]
+          };
+        }
+        return a;
+      })
     });
   };
 
@@ -326,14 +375,33 @@ function App() {
           </MenuGroup>
 
           <MenuGroup title="Assets">
-            {starforgedData?.assetTypes.map((assetType, index) => (
+            {character.assets.length === 0 ? (
               <MenuItem 
-                key={assetType['$id'] || index}
-                icon={getAssetIcon(assetType.Name)}
-                label={assetType.Name}
-                onClick={() => navigate(`asset-type-${index}`)}
+                icon="📋" 
+                label="No assets yet" 
+                showChevron={false}
               />
-            ))}
+            ) : (
+              character.assets.map((ownedAsset, index) => {
+                const assetType = starforgedData?.assetTypes[ownedAsset.typeIndex];
+                const asset = assetType?.Assets?.[ownedAsset.assetIndex];
+                if (!asset) return null;
+                return (
+                  <MenuItem 
+                    key={`owned-${ownedAsset.typeIndex}-${ownedAsset.assetIndex}`}
+                    icon={getAssetIcon(assetType.Name)}
+                    label={asset.Name}
+                    value={assetType.Name}
+                    onClick={() => navigate(`owned-asset-${ownedAsset.typeIndex}-${ownedAsset.assetIndex}`)}
+                  />
+                );
+              })
+            )}
+            <MenuItem 
+              label="Add Asset"
+              onClick={() => navigate('add-asset')}
+              isButton={true}
+            />
           </MenuGroup>
 
           <MenuGroup title="Progress">
@@ -357,34 +425,64 @@ function App() {
       );
     }
 
-    // Asset Type Details
-    if (viewName.startsWith('asset-type-') && starforgedData) {
-      const index = parseInt(viewName.split('-')[2]);
+    // Add Asset - Browse Asset Types
+    if (viewName === 'add-asset' && starforgedData) {
+      return (
+        <NavigationView title="Add Asset" onBack={goBack}>
+          <MenuGroup title="Asset Types">
+            {starforgedData.assetTypes.map((assetType, index) => (
+              <MenuItem 
+                key={assetType['$id'] || index}
+                icon={getAssetIcon(assetType.Name)}
+                label={assetType.Name}
+                value={`${assetType.Assets?.length || 0} assets`}
+                onClick={() => navigate(`add-asset-type-${index}`)}
+              />
+            ))}
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+
+    // Add Asset - Browse Assets in Type
+    if (viewName.startsWith('add-asset-type-') && starforgedData) {
+      const index = parseInt(viewName.split('-')[3]);
       const assetType = starforgedData.assetTypes[index];
       
       if (assetType) {
         return (
           <NavigationView title={assetType.Name} onBack={goBack}>
             <MenuGroup>
-              {assetType.Assets?.map((asset, assetIndex) => (
-                <MenuItem 
-                  key={asset['$id'] || assetIndex}
-                  icon={getAssetIcon(assetType.Name)}
-                  label={asset.Name}
-                  onClick={() => navigate(`asset-${index}-${assetIndex}`)}
-                />
-              )) || <MenuItem icon="📄" label="No assets available" showChevron={false} />}
+              {assetType.Assets?.map((asset, assetIndex) => {
+                const isOwned = character.assets.some(
+                  a => a.typeIndex === index && a.assetIndex === assetIndex
+                );
+                return (
+                  <MenuItem 
+                    key={asset['$id'] || assetIndex}
+                    icon={getAssetIcon(assetType.Name)}
+                    label={asset.Name}
+                    value={isOwned ? 'Owned' : ''}
+                    onClick={() => navigate(`add-asset-${index}-${assetIndex}`)}
+                  />
+                );
+              }) || <MenuItem icon="📄" label="No assets available" showChevron={false} />}
             </MenuGroup>
           </NavigationView>
         );
       }
     }
 
-    // Individual Asset Details
-    if (viewName.startsWith('asset-') && viewName.split('-').length === 3 && starforgedData) {
-      const [, typeIndex, assetIndex] = viewName.split('-').map(Number);
+    // Add Asset - Asset Details with Add Button
+    if (viewName.startsWith('add-asset-') && viewName.split('-').length === 4 && starforgedData) {
+      const parts = viewName.split('-');
+      const typeIndex = parseInt(parts[2]);
+      const assetIndex = parseInt(parts[3]);
       const assetType = starforgedData.assetTypes[typeIndex];
       const asset = assetType?.Assets?.[assetIndex];
+      const isOwned = character.assets.some(
+        a => a.typeIndex === typeIndex && a.assetIndex === assetIndex
+      );
       
       if (asset) {
         return (
@@ -402,11 +500,71 @@ function App() {
                 {asset.Abilities.map((ability, abilityIndex) => (
                   <MenuItem 
                     key={abilityIndex}
-                    icon={ability.Enabled ? "✅" : "⭕"}
+                    icon="⭕"
                     label={ability.Name || `Ability ${abilityIndex + 1}`}
-                    onClick={() => navigate(`asset-ability-${typeIndex}-${assetIndex}-${abilityIndex}`)}
+                    subtitle={ability.Text || ''}
+                    showChevron={false}
                   />
                 ))}
+              </MenuGroup>
+            )}
+            
+            <MenuGroup>
+              {isOwned ? (
+                <MenuItem 
+                  label="Already Owned"
+                  showChevron={false}
+                />
+              ) : (
+                <MenuItem 
+                  label="Add to Character"
+                  onClick={() => addAsset(typeIndex, assetIndex)}
+                  isButton={true}
+                />
+              )}
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Owned Asset Details
+    if (viewName.startsWith('owned-asset-') && starforgedData) {
+      const parts = viewName.split('-');
+      const typeIndex = parseInt(parts[2]);
+      const assetIndex = parseInt(parts[3]);
+      const assetType = starforgedData.assetTypes[typeIndex];
+      const asset = assetType?.Assets?.[assetIndex];
+      const ownedAsset = character.assets.find(
+        a => a.typeIndex === typeIndex && a.assetIndex === assetIndex
+      );
+      
+      if (asset && ownedAsset) {
+        return (
+          <NavigationView title={asset.Name} onBack={goBack}>
+            {asset.Requirement && (
+              <DetailCard
+                icon={getAssetIcon(assetType.Name)}
+                title="Requirement"
+                description={asset.Requirement}
+              />
+            )}
+            
+            {asset.Abilities && asset.Abilities.length > 0 && (
+              <MenuGroup title="Abilities">
+                {asset.Abilities.map((ability, abilityIndex) => {
+                  const isEnabled = ownedAsset.enabledAbilities.includes(abilityIndex);
+                  return (
+                    <MenuItem 
+                      key={abilityIndex}
+                      icon={isEnabled ? "✅" : "⭕"}
+                      label={ability.Name || `Ability ${abilityIndex + 1}`}
+                      subtitle={ability.Text || ''}
+                      onClick={() => toggleAssetAbility(typeIndex, assetIndex, abilityIndex)}
+                      showChevron={false}
+                    />
+                  );
+                })}
               </MenuGroup>
             )}
             
@@ -422,29 +580,14 @@ function App() {
                 ))}
               </MenuGroup>
             )}
-          </NavigationView>
-        );
-      }
-    }
-
-    // Asset Ability Details
-    if (viewName.startsWith('asset-ability-') && starforgedData) {
-      const parts = viewName.split('-');
-      const typeIndex = parseInt(parts[2]);
-      const assetIndex = parseInt(parts[3]);
-      const abilityIndex = parseInt(parts[4]);
-      const assetType = starforgedData.assetTypes[typeIndex];
-      const asset = assetType?.Assets?.[assetIndex];
-      const ability = asset?.Abilities?.[abilityIndex];
-      
-      if (ability) {
-        return (
-          <NavigationView title={ability.Name || 'Ability'} onBack={goBack}>
-            <DetailCard
-              icon={getAssetIcon(assetType.Name)}
-              title={ability.Name || 'Ability'}
-              description={ability.Text || 'No description available.'}
-            />
+            
+            <MenuGroup>
+              <MenuItem 
+                label="Remove Asset"
+                onClick={() => removeAsset(typeIndex, assetIndex)}
+                isButton={true}
+              />
+            </MenuGroup>
           </NavigationView>
         );
       }
