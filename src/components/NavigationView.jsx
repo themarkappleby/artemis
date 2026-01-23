@@ -1,7 +1,23 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import './NavigationView.css';
 
-export const NavigationView = ({ title, onBack, children }) => {
+export const NavigationView = ({ title, onBack, children, scrollPosition, onScrollChange, viewKey }) => {
+  const contentRef = useRef(null);
+
+  // Restore scroll position when component mounts or viewKey changes
+  useEffect(() => {
+    if (contentRef.current && scrollPosition !== undefined) {
+      contentRef.current.scrollTop = scrollPosition;
+    }
+  }, [viewKey]);
+
+  // Save scroll position on scroll
+  const handleScroll = () => {
+    if (contentRef.current && onScrollChange) {
+      onScrollChange(contentRef.current.scrollTop);
+    }
+  };
+
   return (
     <div className="navigation-view">
       <div className="navigation-bar">
@@ -15,7 +31,11 @@ export const NavigationView = ({ title, onBack, children }) => {
         )}
         <h1 className="navigation-title">{title}</h1>
       </div>
-      <div className="navigation-content">
+      <div 
+        className="navigation-content" 
+        ref={contentRef}
+        onScroll={handleScroll}
+      >
         {children}
       </div>
     </div>

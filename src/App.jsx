@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationView } from './components/NavigationView';
 import { MenuGroup } from './components/MenuGroup';
 import { MenuItem } from './components/MenuItem';
@@ -22,6 +22,7 @@ function App() {
   const [previousView, setPreviousView] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [oracleRolls, setOracleRolls] = useState({});
+  const [scrollPositions, setScrollPositions] = useState({}); // Track scroll positions by tab-view key
   
   // Character state
   const [character, setCharacter] = useState({
@@ -420,6 +421,21 @@ function App() {
   };
 
   const currentView = navigationStacks[activeTab][navigationStacks[activeTab].length - 1];
+
+  // Helper to get scroll position key
+  const getScrollKey = (tab, view) => `${tab}-${view}`;
+  
+  // Helper to update scroll position for current view
+  const updateScrollPosition = (scrollTop) => {
+    const key = getScrollKey(activeTab, currentView);
+    setScrollPositions(prev => ({ ...prev, [key]: scrollTop }));
+  };
+  
+  // Helper to get scroll position for a view
+  const getScrollPosition = (view) => {
+    const key = getScrollKey(activeTab, view);
+    return scrollPositions[key] || 0;
+  };
 
   // Register service worker
   useEffect(() => {
@@ -1732,7 +1748,10 @@ function App() {
             className={`view-container ${direction === 'forward' ? 'slide-out-left' : 'slide-out-right'}`}
             key={`prev-${previousView}`}
           >
-            {renderViewContent(previousView)}
+            {React.cloneElement(renderViewContent(previousView), {
+              scrollPosition: getScrollPosition(previousView),
+              viewKey: `${activeTab}-${previousView}`
+            })}
           </div>
         )}
         
@@ -1740,7 +1759,11 @@ function App() {
           className={`view-container ${isTransitioning ? (direction === 'forward' ? 'slide-in-right' : 'slide-in-left') : ''}`}
           key={currentView}
         >
-          {renderViewContent(currentView)}
+          {React.cloneElement(renderViewContent(currentView), {
+            scrollPosition: getScrollPosition(currentView),
+            onScrollChange: updateScrollPosition,
+            viewKey: `${activeTab}-${currentView}`
+          })}
         </div>
       </div>
       
