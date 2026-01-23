@@ -496,39 +496,6 @@ function App() {
             />
           </div>
 
-          <MenuGroup title="Stats">
-            <StatBar 
-              label="Edge" 
-              value={character.stats.edge}
-              maxValue={5}
-              onChange={(val) => updateStat('edge', val)}
-            />
-            <StatBar 
-              label="Heart" 
-              value={character.stats.heart}
-              maxValue={5}
-              onChange={(val) => updateStat('heart', val)}
-            />
-            <StatBar 
-              label="Iron" 
-              value={character.stats.iron}
-              maxValue={5}
-              onChange={(val) => updateStat('iron', val)}
-            />
-            <StatBar 
-              label="Shadow" 
-              value={character.stats.shadow}
-              maxValue={5}
-              onChange={(val) => updateStat('shadow', val)}
-            />
-            <StatBar 
-              label="Wits" 
-              value={character.stats.wits}
-              maxValue={5}
-              onChange={(val) => updateStat('wits', val)}
-            />
-          </MenuGroup>
-
           <MenuGroup title="Condition Meters">
             <div style={{ padding: '12px 0' }}>
               <MeterBar 
@@ -588,6 +555,39 @@ function App() {
             </button>
           </MenuGroup>
 
+          <MenuGroup title="Stats">
+            <StatBar 
+              label="Edge" 
+              value={character.stats.edge}
+              maxValue={5}
+              onChange={(val) => updateStat('edge', val)}
+            />
+            <StatBar 
+              label="Heart" 
+              value={character.stats.heart}
+              maxValue={5}
+              onChange={(val) => updateStat('heart', val)}
+            />
+            <StatBar 
+              label="Iron" 
+              value={character.stats.iron}
+              maxValue={5}
+              onChange={(val) => updateStat('iron', val)}
+            />
+            <StatBar 
+              label="Shadow" 
+              value={character.stats.shadow}
+              maxValue={5}
+              onChange={(val) => updateStat('shadow', val)}
+            />
+            <StatBar 
+              label="Wits" 
+              value={character.stats.wits}
+              maxValue={5}
+              onChange={(val) => updateStat('wits', val)}
+            />
+          </MenuGroup>
+
           <MenuGroup title="Assets">
             {character.assets.length === 0 ? (
               <MenuItem 
@@ -622,16 +622,19 @@ function App() {
             <MenuItem 
               icon="🎯" 
               label="Vows" 
+              value={character.vows.length.toString()}
               onClick={() => navigate('vows')}
             />
             <MenuItem 
               icon="🗺️" 
               label="Expeditions" 
+              value={character.expeditions.length.toString()}
               onClick={() => navigate('expeditions')}
             />
             <MenuItem 
               icon="⚔️" 
               label="Combat Tracks" 
+              value={character.combatTracks.length.toString()}
               onClick={() => navigate('combat-tracks')}
             />
           </MenuGroup>
