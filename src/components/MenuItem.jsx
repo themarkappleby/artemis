@@ -1,10 +1,10 @@
 import React from 'react';
 import './MenuItem.css';
 
-export const MenuItem = ({ icon, label, subtitle, value, onClick, showChevron = true, isButton = false }) => {
+export const MenuItem = ({ icon, label, subtitle, value, onClick, showChevron = true, isButton = false, destructive = false }) => {
   if (isButton) {
     return (
-      <div className="menu-item menu-item-button" onClick={onClick}>
+      <div className={`menu-item menu-item-button ${destructive ? 'menu-item-destructive' : ''}`} onClick={onClick}>
         <span className="menu-item-label-button">{label}</span>
       </div>
     );

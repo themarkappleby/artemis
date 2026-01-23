@@ -5,6 +5,7 @@ import { MenuItem } from './components/MenuItem';
 import { DetailCard } from './components/DetailCard';
 import { StatBar } from './components/StatBar';
 import { MeterBar } from './components/MeterBar';
+import { ProgressTrack, RANK_TICKS, RANK_LABELS } from './components/ProgressTrack';
 import { TabBar } from './components/TabBar';
 import { useStarforged } from './hooks/useStarforged';
 import './App.css';
@@ -42,8 +43,15 @@ function App() {
     },
     assets: [
       { typeIndex: 0, assetIndex: 0, enabledAbilities: [0] } // Starship Command Vehicle
-    ]
+    ],
+    vows: [], // Array of { id, name, rank, ticks }
+    expeditions: [],
+    combatTracks: []
   });
+
+  // Progress track state for new track creation
+  const [newTrackName, setNewTrackName] = useState('');
+  const [newTrackRank, setNewTrackRank] = useState('dangerous');
   
   const { data: starforgedData, loading } = useStarforged();
   
@@ -109,6 +117,82 @@ function App() {
           };
         }
         return a;
+      })
+    });
+  };
+
+  // Progress track functions
+  const addProgressTrack = (trackType) => {
+    if (!newTrackName.trim()) return;
+    
+    const newTrack = {
+      id: Date.now(),
+      name: newTrackName.trim(),
+      rank: newTrackRank,
+      ticks: 0
+    };
+    
+    setCharacter({
+      ...character,
+      [trackType]: [...character[trackType], newTrack]
+    });
+    
+    setNewTrackName('');
+    setNewTrackRank('dangerous');
+    
+    // Navigate to the newly created track's detail page
+    const trackTypeMap = {
+      vows: 'vow',
+      expeditions: 'expedition',
+      combatTracks: 'combat'
+    };
+    const viewPrefix = trackTypeMap[trackType];
+    
+    // Replace the current view stack to go from list -> detail
+    setNavigationStacks({
+      ...navigationStacks,
+      [activeTab]: [
+        ...navigationStacks[activeTab].slice(0, -1), // Remove the 'add-X' view
+        `${viewPrefix}-${newTrack.id}` // Add the detail view
+      ]
+    });
+  };
+
+  const removeProgressTrack = (trackType, trackId) => {
+    setCharacter({
+      ...character,
+      [trackType]: character[trackType].filter(t => t.id !== trackId)
+    });
+    goBack();
+  };
+
+  const markProgress = (trackType, trackId) => {
+    setCharacter({
+      ...character,
+      [trackType]: character[trackType].map(track => {
+        if (track.id === trackId) {
+          const ticksToAdd = RANK_TICKS[track.rank];
+          return {
+            ...track,
+            ticks: Math.min(40, track.ticks + ticksToAdd)
+          };
+        }
+        return track;
+      })
+    });
+  };
+
+  const clearProgress = (trackType, trackId) => {
+    setCharacter({
+      ...character,
+      [trackType]: character[trackType].map(track => {
+        if (track.id === trackId) {
+          return {
+            ...track,
+            ticks: Math.max(0, track.ticks - 1)
+          };
+        }
+        return track;
       })
     });
   };
@@ -586,6 +670,7 @@ function App() {
                 label="Remove Asset"
                 onClick={() => removeAsset(typeIndex, assetIndex)}
                 isButton={true}
+                destructive={true}
               />
             </MenuGroup>
           </NavigationView>
@@ -1073,6 +1158,413 @@ function App() {
                   showChevron={false}
                 />
               ))}
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // PROGRESS TRACK VIEWS
+    
+    // Vows List
+    if (viewName === 'vows') {
+      return (
+        <NavigationView title="Vows" onBack={goBack}>
+          {character.vows.length === 0 ? (
+            <MenuGroup>
+              <MenuItem 
+                icon="📋" 
+                label="No vows yet" 
+                showChevron={false}
+              />
+            </MenuGroup>
+          ) : (
+            <MenuGroup>
+              {character.vows.map(vow => (
+                <MenuItem 
+                  key={vow.id}
+                  icon="🎯"
+                  label={vow.name}
+                  value={`${RANK_LABELS[vow.rank]} • ${Math.floor(vow.ticks / 4)}/10`}
+                  onClick={() => navigate(`vow-${vow.id}`)}
+                />
+              ))}
+            </MenuGroup>
+          )}
+          <MenuGroup>
+            <MenuItem 
+              label="Swear an Iron Vow"
+              onClick={() => navigate('add-vow')}
+              isButton={true}
+            />
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+
+    // Add Vow
+    if (viewName === 'add-vow') {
+      return (
+        <NavigationView title="Swear an Iron Vow" onBack={goBack}>
+          <MenuGroup title="Vow Details">
+            <div style={{ padding: '12px 16px' }}>
+              <input
+                type="text"
+                className="character-name-input"
+                style={{ marginBottom: '12px' }}
+                value={newTrackName}
+                onChange={(e) => setNewTrackName(e.target.value)}
+                placeholder="What do you vow to do?"
+              />
+              <select
+                className="rank-select"
+                value={newTrackRank}
+                onChange={(e) => setNewTrackRank(e.target.value)}
+              >
+                {Object.entries(RANK_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+          </MenuGroup>
+          <MenuGroup>
+            <MenuItem 
+              label="Swear this Vow"
+              onClick={() => addProgressTrack('vows')}
+              isButton={true}
+            />
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+
+    // Individual Vow
+    if (viewName.startsWith('vow-')) {
+      const vowId = parseInt(viewName.split('-')[1]);
+      const vow = character.vows.find(v => v.id === vowId);
+      
+      if (vow) {
+        return (
+          <NavigationView title={vow.name} onBack={goBack}>
+            <MenuGroup>
+              <div style={{ padding: '12px 16px' }}>
+                <ProgressTrack
+                  name={vow.name}
+                  rank={vow.rank}
+                  ticks={vow.ticks}
+                  onMarkProgress={() => markProgress('vows', vow.id)}
+                  onClearProgress={() => clearProgress('vows', vow.id)}
+                />
+              </div>
+            </MenuGroup>
+            <MenuGroup>
+              <MenuItem 
+                label="Fulfill Your Vow"
+                onClick={() => navigate(`fulfill-vow-${vow.id}`)}
+                isButton={true}
+              />
+              <MenuItem 
+                label="Forsake Your Vow"
+                onClick={() => removeProgressTrack('vows', vow.id)}
+                isButton={true}
+                destructive={true}
+              />
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Fulfill Vow (progress roll info)
+    if (viewName.startsWith('fulfill-vow-')) {
+      const vowId = parseInt(viewName.split('-')[2]);
+      const vow = character.vows.find(v => v.id === vowId);
+      
+      if (vow) {
+        const progressScore = Math.floor(vow.ticks / 4);
+        return (
+          <NavigationView title="Fulfill Your Vow" onBack={goBack}>
+            <DetailCard
+              icon="🎯"
+              title={vow.name}
+              description={`Progress Score: ${progressScore}\n\nRoll your challenge dice and compare to your progress score of ${progressScore}.\n\n• Strong Hit: Beat both dice\n• Weak Hit: Beat one die\n• Miss: Beat neither die`}
+            />
+            <MenuGroup>
+              <MenuItem 
+                label="Vow Complete - Remove"
+                onClick={() => removeProgressTrack('vows', vow.id)}
+                isButton={true}
+              />
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Expeditions List
+    if (viewName === 'expeditions') {
+      return (
+        <NavigationView title="Expeditions" onBack={goBack}>
+          {character.expeditions.length === 0 ? (
+            <MenuGroup>
+              <MenuItem 
+                icon="📋" 
+                label="No expeditions yet" 
+                showChevron={false}
+              />
+            </MenuGroup>
+          ) : (
+            <MenuGroup>
+              {character.expeditions.map(exp => (
+                <MenuItem 
+                  key={exp.id}
+                  icon="🗺️"
+                  label={exp.name}
+                  value={`${RANK_LABELS[exp.rank]} • ${Math.floor(exp.ticks / 4)}/10`}
+                  onClick={() => navigate(`expedition-${exp.id}`)}
+                />
+              ))}
+            </MenuGroup>
+          )}
+          <MenuGroup>
+            <MenuItem 
+              label="Undertake an Expedition"
+              onClick={() => navigate('add-expedition')}
+              isButton={true}
+            />
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+
+    // Add Expedition
+    if (viewName === 'add-expedition') {
+      return (
+        <NavigationView title="Undertake an Expedition" onBack={goBack}>
+          <MenuGroup title="Expedition Details">
+            <div style={{ padding: '12px 16px' }}>
+              <input
+                type="text"
+                className="character-name-input"
+                style={{ marginBottom: '12px' }}
+                value={newTrackName}
+                onChange={(e) => setNewTrackName(e.target.value)}
+                placeholder="Where are you going?"
+              />
+              <select
+                className="rank-select"
+                value={newTrackRank}
+                onChange={(e) => setNewTrackRank(e.target.value)}
+              >
+                {Object.entries(RANK_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+          </MenuGroup>
+          <MenuGroup>
+            <MenuItem 
+              label="Begin Expedition"
+              onClick={() => addProgressTrack('expeditions')}
+              isButton={true}
+            />
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+
+    // Individual Expedition
+    if (viewName.startsWith('expedition-')) {
+      const expId = parseInt(viewName.split('-')[1]);
+      const expedition = character.expeditions.find(e => e.id === expId);
+      
+      if (expedition) {
+        return (
+          <NavigationView title={expedition.name} onBack={goBack}>
+            <MenuGroup>
+              <div style={{ padding: '12px 16px' }}>
+                <ProgressTrack
+                  name={expedition.name}
+                  rank={expedition.rank}
+                  ticks={expedition.ticks}
+                  onMarkProgress={() => markProgress('expeditions', expedition.id)}
+                  onClearProgress={() => clearProgress('expeditions', expedition.id)}
+                />
+              </div>
+            </MenuGroup>
+            <MenuGroup>
+              <MenuItem 
+                label="Finish an Expedition"
+                onClick={() => navigate(`finish-expedition-${expedition.id}`)}
+                isButton={true}
+              />
+              <MenuItem 
+                label="Abandon Expedition"
+                onClick={() => removeProgressTrack('expeditions', expedition.id)}
+                isButton={true}
+                destructive={true}
+              />
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Finish Expedition
+    if (viewName.startsWith('finish-expedition-')) {
+      const expId = parseInt(viewName.split('-')[2]);
+      const expedition = character.expeditions.find(e => e.id === expId);
+      
+      if (expedition) {
+        const progressScore = Math.floor(expedition.ticks / 4);
+        return (
+          <NavigationView title="Finish an Expedition" onBack={goBack}>
+            <DetailCard
+              icon="🗺️"
+              title={expedition.name}
+              description={`Progress Score: ${progressScore}\n\nRoll your challenge dice and compare to your progress score of ${progressScore}.\n\n• Strong Hit: Beat both dice\n• Weak Hit: Beat one die\n• Miss: Beat neither die`}
+            />
+            <MenuGroup>
+              <MenuItem 
+                label="Expedition Complete - Remove"
+                onClick={() => removeProgressTrack('expeditions', expedition.id)}
+                isButton={true}
+              />
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Combat Tracks List
+    if (viewName === 'combat-tracks') {
+      return (
+        <NavigationView title="Combat Tracks" onBack={goBack}>
+          {character.combatTracks.length === 0 ? (
+            <MenuGroup>
+              <MenuItem 
+                icon="📋" 
+                label="No active combat" 
+                showChevron={false}
+              />
+            </MenuGroup>
+          ) : (
+            <MenuGroup>
+              {character.combatTracks.map(combat => (
+                <MenuItem 
+                  key={combat.id}
+                  icon="⚔️"
+                  label={combat.name}
+                  value={`${RANK_LABELS[combat.rank]} • ${Math.floor(combat.ticks / 4)}/10`}
+                  onClick={() => navigate(`combat-${combat.id}`)}
+                />
+              ))}
+            </MenuGroup>
+          )}
+          <MenuGroup>
+            <MenuItem 
+              label="Enter the Fray"
+              onClick={() => navigate('add-combat')}
+              isButton={true}
+            />
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+
+    // Add Combat Track
+    if (viewName === 'add-combat') {
+      return (
+        <NavigationView title="Enter the Fray" onBack={goBack}>
+          <MenuGroup title="Combat Details">
+            <div style={{ padding: '12px 16px' }}>
+              <input
+                type="text"
+                className="character-name-input"
+                style={{ marginBottom: '12px' }}
+                value={newTrackName}
+                onChange={(e) => setNewTrackName(e.target.value)}
+                placeholder="What is your objective?"
+              />
+              <select
+                className="rank-select"
+                value={newTrackRank}
+                onChange={(e) => setNewTrackRank(e.target.value)}
+              >
+                {Object.entries(RANK_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+          </MenuGroup>
+          <MenuGroup>
+            <MenuItem 
+              label="Begin Combat"
+              onClick={() => addProgressTrack('combatTracks')}
+              isButton={true}
+            />
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+
+    // Individual Combat Track
+    if (viewName.startsWith('combat-')) {
+      const combatId = parseInt(viewName.split('-')[1]);
+      const combat = character.combatTracks.find(c => c.id === combatId);
+      
+      if (combat) {
+        return (
+          <NavigationView title={combat.name} onBack={goBack}>
+            <MenuGroup>
+              <div style={{ padding: '12px 16px' }}>
+                <ProgressTrack
+                  name={combat.name}
+                  rank={combat.rank}
+                  ticks={combat.ticks}
+                  onMarkProgress={() => markProgress('combatTracks', combat.id)}
+                  onClearProgress={() => clearProgress('combatTracks', combat.id)}
+                />
+              </div>
+            </MenuGroup>
+            <MenuGroup>
+              <MenuItem 
+                label="Take Decisive Action"
+                onClick={() => navigate(`decisive-action-${combat.id}`)}
+                isButton={true}
+              />
+              <MenuItem 
+                label="End Combat"
+                onClick={() => removeProgressTrack('combatTracks', combat.id)}
+                isButton={true}
+                destructive={true}
+              />
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Take Decisive Action
+    if (viewName.startsWith('decisive-action-')) {
+      const combatId = parseInt(viewName.split('-')[2]);
+      const combat = character.combatTracks.find(c => c.id === combatId);
+      
+      if (combat) {
+        const progressScore = Math.floor(combat.ticks / 4);
+        return (
+          <NavigationView title="Take Decisive Action" onBack={goBack}>
+            <DetailCard
+              icon="⚔️"
+              title={combat.name}
+              description={`Progress Score: ${progressScore}\n\nRoll your challenge dice and compare to your progress score of ${progressScore}.\n\n• Strong Hit: Beat both dice\n• Weak Hit: Beat one die\n• Miss: Beat neither die`}
+            />
+            <MenuGroup>
+              <MenuItem 
+                label="Victory - Remove Combat"
+                onClick={() => removeProgressTrack('combatTracks', combat.id)}
+                isButton={true}
+              />
             </MenuGroup>
           </NavigationView>
         );

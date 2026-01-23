@@ -93,3 +93,8 @@
   font-weight: 400;
   text-align: center;
 }
+
+/* Destructive action style */
+.menu-item-destructive .menu-item-label-button {
+  color: #ff3b30;
+}
