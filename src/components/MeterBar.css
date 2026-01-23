@@ -1,0 +1,68 @@
+.meter-bar {
+  padding: 16px;
+  background-color: #1c1c1e;
+  border-radius: 10px;
+  margin-bottom: 0px;
+}
+
+.meter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.meter-label {
+  font-size: 15px;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.meter-value {
+  font-size: 15px;
+  color: #8e8e93;
+  font-weight: 500;
+}
+
+.meter-track {
+  height: 8px;
+  background-color: #2c2c2e;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.meter-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.meter-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.meter-button {
+  flex: 1;
+  height: 44px;
+  border-radius: 8px;
+  background-color: #2c2c2e;
+  border: none;
+  color: #007AFF;
+  font-size: 24px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.meter-button:active:not(:disabled) {
+  background-color: #3a3a3c;
+  transform: scale(0.98);
+}
+
+.meter-button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}

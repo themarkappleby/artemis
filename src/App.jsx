@@ -3,6 +3,8 @@ import { NavigationView } from './components/NavigationView';
 import { MenuGroup } from './components/MenuGroup';
 import { MenuItem } from './components/MenuItem';
 import { DetailCard } from './components/DetailCard';
+import { StatBar } from './components/StatBar';
+import { MeterBar } from './components/MeterBar';
 import { TabBar } from './components/TabBar';
 import { useStarforged } from './hooks/useStarforged';
 import './App.css';
@@ -20,7 +22,47 @@ function App() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [oracleRolls, setOracleRolls] = useState({});
   
+  // Character state
+  const [character, setCharacter] = useState({
+    name: '',
+    stats: {
+      edge: 1,
+      heart: 1,
+      iron: 1,
+      shadow: 1,
+      wits: 1
+    },
+    conditions: {
+      health: 5,
+      spirit: 5,
+      supply: 5,
+      momentum: 2,
+      momentumMax: 10,
+      momentumReset: 2
+    }
+  });
+  
   const { data: starforgedData, loading } = useStarforged();
+  
+  const updateStat = (statName, value) => {
+    setCharacter({
+      ...character,
+      stats: {
+        ...character.stats,
+        [statName]: value
+      }
+    });
+  };
+  
+  const updateCondition = (conditionName, value) => {
+    setCharacter({
+      ...character,
+      conditions: {
+        ...character.conditions,
+        [conditionName]: value
+      }
+    });
+  };
 
   const navigate = (view) => {
     if (isTransitioning) return;
@@ -163,54 +205,8 @@ function App() {
             />
           </MenuGroup>
 
-          <MenuGroup title="Game Setup">
-            <MenuItem 
-              icon="🌌" 
-              label="Setting Truths" 
-              onClick={() => navigate('setting-truths')}
-            />
-            <MenuItem 
-              icon="🎯" 
-              label="Character Creation" 
-              onClick={() => navigate('character-creation')}
-            />
-          </MenuGroup>
-
-          <MenuGroup title="Encounters">
-            <MenuItem 
-              icon="👾" 
-              label="Creatures" 
-              onClick={() => navigate('encounters-creatures')}
-            />
-            <MenuItem 
-              icon="🚀" 
-              label="Starships" 
-              onClick={() => navigate('encounters-starships')}
-            />
-          </MenuGroup>
-
-          <MenuGroup title="Tools">
-            <MenuItem 
-              icon="⚙️" 
-              label="Dice Roller" 
-              onClick={() => navigate('dice-roller')}
-            />
-            <MenuItem 
-              icon="📊" 
-              label="Progress Tracks" 
-              onClick={() => navigate('progress-tracks')}
-            />
-          </MenuGroup>
-        </NavigationView>
-      );
-    }
-
-    // Setting Truths
-    if (viewName === 'setting-truths' && starforgedData) {
-      return (
-        <NavigationView title="Setting Truths" onBack={goBack}>
-          <MenuGroup>
-            {starforgedData.settingTruths.map((truth, index) => (
+          <MenuGroup title="Truths">
+            {starforgedData?.settingTruths.map((truth, index) => (
               <MenuItem 
                 key={truth['$id'] || index}
                 icon="🌌" 
@@ -227,17 +223,106 @@ function App() {
     if (viewName === 'character-home') {
       return (
         <NavigationView title="Character">
+          <div style={{ padding: '0 16px' }}>
+            <input
+              type="text"
+              className="character-name-input"
+              value={character.name}
+              onChange={(e) => setCharacter({ ...character, name: e.target.value })}
+              placeholder="Character Name"
+            />
+          </div>
+
+          <MenuGroup title="Stats">
+            <StatBar 
+              label="Edge" 
+              value={character.stats.edge}
+              maxValue={5}
+              onChange={(val) => updateStat('edge', val)}
+            />
+            <StatBar 
+              label="Heart" 
+              value={character.stats.heart}
+              maxValue={5}
+              onChange={(val) => updateStat('heart', val)}
+            />
+            <StatBar 
+              label="Iron" 
+              value={character.stats.iron}
+              maxValue={5}
+              onChange={(val) => updateStat('iron', val)}
+            />
+            <StatBar 
+              label="Shadow" 
+              value={character.stats.shadow}
+              maxValue={5}
+              onChange={(val) => updateStat('shadow', val)}
+            />
+            <StatBar 
+              label="Wits" 
+              value={character.stats.wits}
+              maxValue={5}
+              onChange={(val) => updateStat('wits', val)}
+            />
+          </MenuGroup>
+
+          <MenuGroup title="Condition Meters">
+            <div style={{ padding: '12px 0' }}>
+              <MeterBar 
+                label="Health" 
+                value={character.conditions.health} 
+                maxValue={5}
+                color="#ff3b30"
+                onChange={(val) => updateCondition('health', val)}
+              />
+              <MeterBar 
+                label="Spirit" 
+                value={character.conditions.spirit} 
+                maxValue={5}
+                color="#007AFF"
+                onChange={(val) => updateCondition('spirit', val)}
+              />
+              <MeterBar 
+                label="Supply" 
+                value={character.conditions.supply} 
+                maxValue={5}
+                color="#34c759"
+                onChange={(val) => updateCondition('supply', val)}
+              />
+            </div>
+          </MenuGroup>
+
           <MenuGroup>
-            <MenuItem 
-              icon="👤" 
-              label="Character Sheet" 
-              onClick={() => navigate('character-sheet')}
+            <div style={{ paddingTop: '12px' }}>
+              <MeterBar 
+                label="Momentum" 
+                value={character.conditions.momentum} 
+                maxValue={character.conditions.momentumMax}
+                color="#ff9500"
+                onChange={(val) => updateCondition('momentum', val)}
+                style={{ marginBottom: 0 }}
+              />
+            </div>
+            <StatBar 
+              label="Max" 
+              value={character.conditions.momentumMax}
+              minValue={0}
+              maxValue={10}
+              onChange={(val) => updateCondition('momentumMax', val)}
             />
-            <MenuItem 
-              icon="💪" 
-              label="Stats & Conditions" 
-              onClick={() => navigate('stats-conditions')}
+            <StatBar 
+              label="Reset" 
+              value={character.conditions.momentumReset}
+              minValue={0}
+              maxValue={10}
+              onChange={(val) => updateCondition('momentumReset', val)}
             />
+            <button 
+              className="burn-momentum-button"
+              onClick={() => updateCondition('momentum', character.conditions.momentumReset)}
+            >
+              Burn Momentum
+            </button>
           </MenuGroup>
 
           <MenuGroup title="Assets">
