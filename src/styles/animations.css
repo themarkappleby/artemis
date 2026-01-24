@@ -1,0 +1,75 @@
+/* Forward navigation animations */
+.slide-in-right {
+  animation: slideInFromRight 0.35s cubic-bezier(0.42, 0.0, 0.58, 1.0) forwards;
+  z-index: 2;
+}
+
+.slide-out-left {
+  animation: slideOutToLeft 0.35s cubic-bezier(0.42, 0.0, 0.58, 1.0) forwards;
+  z-index: 1;
+}
+
+/* Back navigation animations */
+.slide-in-left {
+  animation: slideInFromLeft 0.35s cubic-bezier(0.42, 0.0, 0.58, 1.0) forwards;
+  z-index: 1;
+}
+
+.slide-out-right {
+  animation: slideOutToRight 0.35s cubic-bezier(0.42, 0.0, 0.58, 1.0) forwards;
+  z-index: 2;
+}
+
+/* Keyframe definitions */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToLeft {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Optimize animations for mobile */
+@media (prefers-reduced-motion: no-preference) {
+  .view-container {
+    will-change: transform, opacity;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .slide-in-right,
+  .slide-out-left,
+  .slide-in-left,
+  .slide-out-right {
+    animation: none;
+  }
+}

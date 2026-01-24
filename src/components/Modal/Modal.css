@@ -1,0 +1,135 @@
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background-color: #2c2c2e;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 340px;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-bottom: 0.5px solid #38383a;
+}
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.modal-footer {
+  display: flex;
+  border-top: 0.5px solid #38383a;
+}
+
+.modal-button {
+  flex: 1;
+  background: none;
+  border: none;
+  font-size: 17px;
+  cursor: pointer;
+  padding: 16px;
+  color: #007AFF;
+}
+
+.modal-button:active {
+  background-color: #3a3a3c;
+}
+
+.modal-cancel {
+  border-right: 0.5px solid #38383a;
+}
+
+.modal-create {
+  font-weight: 600;
+}
+
+.modal-create:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.modal-create:disabled:active {
+  background-color: transparent;
+}
+
+.modal-body {
+  padding: 16px;
+}
+
+.modal-field {
+  margin-bottom: 16px;
+}
+
+.modal-field:last-child {
+  margin-bottom: 0;
+}
+
+.modal-label {
+  display: block;
+  font-size: 13px;
+  color: #8e8e93;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 12px;
+  background-color: #1c1c1e;
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 17px;
+  outline: none;
+}
+
+.modal-input:focus {
+  box-shadow: 0 0 0 2px #007AFF;
+}
+
+.modal-input::placeholder {
+  color: #636366;
+}
+
+.modal-select {
+  width: 100%;
+  padding: 12px;
+  background-color: #1c1c1e;
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 17px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238e8e93' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  outline: none;
+}
+
+.modal-select option {
+  background-color: #1c1c1e;
+  color: #ffffff;
+}
