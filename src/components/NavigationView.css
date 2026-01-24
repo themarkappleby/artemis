@@ -46,6 +46,35 @@
   height: 21px;
 }
 
+.action-button {
+  position: absolute;
+  right: 8px;
+  bottom: 50%;
+  transform: translateY(50%);
+  background: none;
+  border: none;
+  color: #007AFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 8px;
+  transition: opacity 0.2s;
+}
+
+.action-button:active {
+  opacity: 0.5;
+}
+
+.action-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.action-button.active svg path {
+  fill: #007AFF;
+}
+
 .navigation-title {
   font-size: 17px;
   font-weight: 600;

@@ -77,6 +77,12 @@ function App() {
   const [rollAdds, setRollAdds] = useState(0);
   const [lastRoll, setLastRoll] = useState(null);
   
+  // Favorited moves state - store as "catIndex-moveIndex" strings
+  const [favoritedMoves, setFavoritedMoves] = useState([]);
+  const [editingFavorites, setEditingFavorites] = useState(false);
+  const [tempFavoriteOrder, setTempFavoriteOrder] = useState([]);
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  
   const { data: starforgedData, loading } = useStarforged();
   
   const updateStat = (statName, value) => {
@@ -337,6 +343,55 @@ function App() {
     });
     
     updateCondition('momentum', character.conditions.momentumReset);
+  };
+
+  const toggleFavoriteMove = (catIndex, moveIndex) => {
+    const moveId = `${catIndex}-${moveIndex}`;
+    setFavoritedMoves(prev => {
+      if (prev.includes(moveId)) {
+        return prev.filter(id => id !== moveId);
+      } else {
+        return [...prev, moveId];
+      }
+    });
+  };
+
+  const startEditingFavorites = () => {
+    setTempFavoriteOrder([...favoritedMoves]);
+    setEditingFavorites(true);
+  };
+
+  const saveFavoriteOrder = () => {
+    setFavoritedMoves(tempFavoriteOrder);
+    setEditingFavorites(false);
+    setTempFavoriteOrder([]);
+  };
+
+  const cancelEditingFavorites = () => {
+    setEditingFavorites(false);
+    setTempFavoriteOrder([]);
+    setDraggedIndex(null);
+  };
+
+  const handleDragStart = (index) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newOrder = [...tempFavoriteOrder];
+    const draggedItem = newOrder[draggedIndex];
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(index, 0, draggedItem);
+    
+    setTempFavoriteOrder(newOrder);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
   };
 
   const navigate = (view) => {
@@ -1008,15 +1063,86 @@ function App() {
 
     // MOVES TAB
     if (viewName === 'moves-home') {
+      // Get favorited moves data
+      const movesToDisplay = editingFavorites ? tempFavoriteOrder : favoritedMoves;
+      const favoriteMovesList = movesToDisplay.map(moveId => {
+        const [catIndex, moveIndex] = moveId.split('-').map(Number);
+        const category = starforgedData?.moveCategories[catIndex];
+        const move = category?.Moves?.[moveIndex];
+        return move ? { move, category, catIndex, moveIndex, moveId } : null;
+      }).filter(Boolean);
+
       return (
         <NavigationView title="Moves">
+          {favoriteMovesList.length > 0 && (
+            <MenuGroup title="Favorites">
+              {editingFavorites ? (
+                <>
+                  {favoriteMovesList.map(({ move, category, catIndex, moveIndex, moveId }, index) => (
+                    <div
+                      key={moveId}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        opacity: draggedIndex === index ? 0.5 : 1,
+                        transition: 'opacity 0.2s'
+                      }}
+                    >
+                      <div className="favorite-drag-handle">
+                        ☰
+                      </div>
+                      <MenuItem 
+                        icon={getMoveIcon(category.Name)}
+                        label={move.Name}
+                        subtitle={move.Trigger?.Text || ''}
+                        showChevron={false}
+                      />
+                    </div>
+                  ))}
+                  <div className="track-actions">
+                    <MenuItem
+                      label="Cancel"
+                      onClick={cancelEditingFavorites}
+                      isButton={true}
+                    />
+                    <MenuItem
+                      label="Save"
+                      onClick={saveFavoriteOrder}
+                      isButton={true}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {favoriteMovesList.map(({ move, category, catIndex, moveIndex }) => (
+                    <MenuItem 
+                      key={`${catIndex}-${moveIndex}`}
+                      icon={getMoveIcon(category.Name)}
+                      label={move.Name}
+                      subtitle={move.Trigger?.Text || ''}
+                      onClick={() => navigate(`move-${catIndex}-${moveIndex}`)}
+                    />
+                  ))}
+                  <MenuItem
+                    label="Edit Order"
+                    onClick={startEditingFavorites}
+                    isButton={true}
+                  />
+                </>
+              )}
+            </MenuGroup>
+          )}
           <MenuGroup title="Move Categories">
             {starforgedData?.moveCategories.map((category, index) => (
               <MenuItem 
                 key={category['$id'] || index}
                 icon={getMoveIcon(category.Name)}
                 label={category.Name}
-                value={`${category.Moves?.length || 0} moves`}
+                value={category.Moves?.length || 0}
                 onClick={() => navigate(`move-category-${index}`)}
               />
             ))}
@@ -1033,6 +1159,13 @@ function App() {
       if (category) {
         return (
           <NavigationView title={category.Name} onBack={goBack}>
+            {category.Description && (
+              <DetailCard
+                icon={getMoveIcon(category.Name)}
+                title={category.Name}
+                description={category.Description}
+              />
+            )}
             <MenuGroup>
               {category.Moves?.map((move, moveIndex) => (
                 <MenuItem 
@@ -1057,9 +1190,16 @@ function App() {
       if (move) {
         const category = starforgedData.moveCategories[catIndex];
         const moveText = move.Text || 'No move text available.';
+        const moveId = `${catIndex}-${moveIndex}`;
+        const isFavorited = favoritedMoves.includes(moveId);
         
         return (
-          <NavigationView title={move.Name} onBack={goBack}>
+          <NavigationView 
+            title={move.Name} 
+            onBack={goBack}
+            actionIcon={isFavorited}
+            onAction={() => toggleFavoriteMove(catIndex, moveIndex)}
+          >
             <DetailCard
               icon={getMoveIcon(category.Name)}
               title={move.Name}
@@ -1152,6 +1292,7 @@ function App() {
                 key={category['$id'] || index}
                 icon={getOracleIcon(category.Name)}
                 label={category.Name}
+                value={countOracles(category)}
                 onClick={() => navigate(`oracle-category-${index}`)}
               />
             ))}
@@ -2489,6 +2630,20 @@ function getOracleIcon(categoryName) {
     'Vaults': '🔐'
   };
   return iconMap[categoryName] || '🔮';
+}
+
+function countOracles(category) {
+  // Count direct oracles only
+  if (category.Oracles) {
+    return category.Oracles.length;
+  }
+  
+  // If no direct oracles, count subcategories
+  if (category.Categories) {
+    return category.Categories.length;
+  }
+  
+  return 0;
 }
 
 export default App;
