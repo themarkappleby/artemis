@@ -1228,32 +1228,69 @@ function App() {
                     {lastRoll.burned && <span className="roll-burned-badge">Burned</span>}
                   </div>
                   <div className="roll-dice-row">
-                    <div className="roll-action-side">
-                      <div className="roll-action-score-display">{lastRoll.actionScore}</div>
-                    </div>
-                    <div className="roll-vs-text">vs</div>
-                    <div className="roll-challenge-side">
-                      <div className={`roll-challenge-die ${lastRoll.actionScore > lastRoll.challenge1 ? 'beaten' : ''}`}>
-                        {lastRoll.challenge1}
-                      </div>
-                      <div className={`roll-challenge-die ${lastRoll.actionScore > lastRoll.challenge2 ? 'beaten' : ''}`}>
-                        {lastRoll.challenge2}
-                      </div>
-                    </div>
+                    {[
+                      { value: lastRoll.actionScore, type: 'action' },
+                      { value: lastRoll.challenge1, type: 'challenge' },
+                      { value: lastRoll.challenge2, type: 'challenge' }
+                    ]
+                      .sort((a, b) => {
+                        if (a.value !== b.value) return a.value - b.value;
+                        // Ties: challenge dice beat action (challenge goes right)
+                        if (a.type === 'challenge' && b.type !== 'challenge') return 1;
+                        if (b.type === 'challenge' && a.type !== 'challenge') return -1;
+                        return 0;
+                      })
+                      .map((die, i) => (
+                        <div
+                          key={i}
+                          className={
+                            die.type === 'action' ? `roll-action-score-display roll-action-${lastRoll.outcome}` :
+                            'roll-challenge-die'
+                          }
+                        >
+                          {die.value}
+                        </div>
+                      ))
+                    }
                   </div>
                 </div>
               </div>
 
               {wouldImprove && (
                 <MenuGroup title="Momentum">
-                  <div className="momentum-option-content">
-                    <span className="momentum-value">{character.conditions.momentum}</span>
-                    <span className="momentum-arrow">→</span>
-                    <span className={`momentum-result momentum-result-${burnOutcome}`}>
-                      {burnOutcome === 'strong' && 'Strong Hit'}
-                      {burnOutcome === 'weak' && 'Weak Hit'}
-                      {burnOutcome === 'miss' && 'Miss'}
-                    </span>
+                  <div className="momentum-preview-content">
+                    <div className="momentum-outcome-row">
+                      <span className={`momentum-outcome-banner momentum-outcome-${burnOutcome}`}>
+                        {burnOutcome === 'strong' && 'Strong Hit'}
+                        {burnOutcome === 'weak' && 'Weak Hit'}
+                      </span>
+                      {lastRoll.isMatch && <span className="momentum-match-badge">Match</span>}
+                    </div>
+                    <div className="momentum-dice-row">
+                      {[
+                        { value: character.conditions.momentum, type: 'action' },
+                        { value: lastRoll.challenge1, type: 'challenge' },
+                        { value: lastRoll.challenge2, type: 'challenge' }
+                      ]
+                        .sort((a, b) => {
+                          if (a.value !== b.value) return a.value - b.value;
+                          if (a.type === 'challenge' && b.type !== 'challenge') return 1;
+                          if (b.type === 'challenge' && a.type !== 'challenge') return -1;
+                          return 0;
+                        })
+                        .map((die, i) => (
+                          <div
+                            key={i}
+                            className={
+                              die.type === 'action' ? `momentum-action-display momentum-action-${burnOutcome}` :
+                              'momentum-challenge-die'
+                            }
+                          >
+                            {die.value}
+                          </div>
+                        ))
+                      }
+                    </div>
                   </div>
                   <MenuItem
                     label="Burn Momentum"
