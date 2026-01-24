@@ -3,7 +3,7 @@ import { NavigationView } from '../../components/NavigationView';
 import { MenuGroup } from '../../components/MenuGroup';
 import { MenuItem } from '../../components/MenuItem';
 import { DetailCard } from '../../components/DetailCard';
-import { getOracleIcon, countOracles } from '../../utils/icons';
+import { getOracleIcon, getOracleIconBg, countOracles, getGenericIconBg } from '../../utils/icons';
 import './OracleTab.css';
 
 export const OracleTab = ({
@@ -116,6 +116,7 @@ export const OracleTab = ({
                     </div>
                     <MenuItem 
                       icon={getOracleIcon(data.category.Name)}
+                      iconBg={getOracleIconBg(data.category.Name)}
                       label={data.oracle.Name}
                       showChevron={false}
                     />
@@ -140,6 +141,7 @@ export const OracleTab = ({
                   <MenuItem 
                     key={data.oracleId}
                     icon={getOracleIcon(data.category.Name)}
+                    iconBg={getOracleIconBg(data.category.Name)}
                     label={data.oracle.Name}
                     onClick={() => navigate(getOracleViewName(data.oracleId, data.type))}
                   />
@@ -158,6 +160,7 @@ export const OracleTab = ({
             <MenuItem 
               key={category['$id'] || index}
               icon={getOracleIcon(category.Name)}
+              iconBg={getOracleIconBg(category.Name)}
               label={category.Name}
               value={countOracles(category)}
               onClick={() => navigate(`oracle-category-${index}`)}
@@ -181,6 +184,7 @@ export const OracleTab = ({
               <MenuItem 
                 key={oracle['$id'] || oracleIndex}
                 icon={getOracleIcon(category.Name)}
+                iconBg={getOracleIconBg(category.Name)}
                 label={oracle.Name}
                 onClick={() => navigate(`oracle-${index}-${oracleIndex}`)}
               />
@@ -188,10 +192,11 @@ export const OracleTab = ({
               <MenuItem 
                 key={subCategory['$id'] || subIndex}
                 icon={getOracleIcon(subCategory.Name)}
+                iconBg={getOracleIconBg(subCategory.Name)}
                 label={subCategory.Name}
                 onClick={() => navigate(`oracle-sub-${index}-${subIndex}`)}
               />
-            )) || <MenuItem icon="📄" label="No oracles available" showChevron={false} />}
+            )) || <MenuItem icon="📄" iconBg={getGenericIconBg('📄')} label="No oracles available" showChevron={false} />}
           </MenuGroup>
         </NavigationView>
       );
@@ -213,6 +218,7 @@ export const OracleTab = ({
               <MenuItem 
                 key={oracle['$id'] || oracleIndex}
                 icon={getOracleIcon(subCategory.Name)}
+                iconBg={getOracleIconBg(subCategory.Name)}
                 label={oracle.Name}
                 onClick={() => navigate(`oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`)}
               />
@@ -220,10 +226,11 @@ export const OracleTab = ({
               <MenuItem 
                 key={subSubCategory['$id'] || subSubIndex}
                 icon={getOracleIcon(subSubCategory.Name)}
+                iconBg={getOracleIconBg(subSubCategory.Name)}
                 label={subSubCategory.Name}
                 onClick={() => navigate(`oracle-sub-sub-${catIndex}-${subIndex}-${subSubIndex}`)}
               />
-            )) || <MenuItem icon="📄" label="No oracles available" showChevron={false} />}
+            )) || <MenuItem icon="📄" iconBg={getGenericIconBg('📄')} label="No oracles available" showChevron={false} />}
           </MenuGroup>
         </NavigationView>
       );
@@ -246,10 +253,11 @@ export const OracleTab = ({
               <MenuItem 
                 key={oracle['$id'] || oracleIndex}
                 icon={getOracleIcon(subSubCategory.Name)}
+                iconBg={getOracleIconBg(subSubCategory.Name)}
                 label={oracle.Name}
                 onClick={() => navigate(`oracle-detail-deep-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`)}
               />
-            )) || <MenuItem icon="📄" label="No oracles available" showChevron={false} />}
+            )) || <MenuItem icon="📄" iconBg={getGenericIconBg('📄')} label="No oracles available" showChevron={false} />}
           </MenuGroup>
         </NavigationView>
       );
@@ -277,6 +285,7 @@ export const OracleTab = ({
         >
           <DetailCard
             icon={getOracleIcon(category.Name)}
+            iconBg={getOracleIconBg(category.Name)}
             title={oracle.Name}
             description={oracle.Description || 'Roll to consult this oracle.'}
           />
@@ -304,6 +313,7 @@ export const OracleTab = ({
               <MenuGroup>
                 <MenuItem 
                   icon="📋"
+                  iconBg={getGenericIconBg('📋')}
                   label="View Oracle Table"
                   onClick={() => navigate(`oracle-table-${catIndex}-${oracleIndex}`)}
                 />
@@ -339,6 +349,7 @@ export const OracleTab = ({
         >
           <DetailCard
             icon={getOracleIcon(subCategory.Name)}
+            iconBg={getOracleIconBg(subCategory.Name)}
             title={oracle.Name}
             description={oracle.Description || 'Roll to consult this oracle.'}
           />
@@ -366,6 +377,7 @@ export const OracleTab = ({
               <MenuGroup>
                 <MenuItem 
                   icon="📋"
+                  iconBg={getGenericIconBg('📋')}
                   label="View Oracle Table"
                   onClick={() => navigate(`oracle-detail-table-${catIndex}-${subIndex}-${oracleIndex}`)}
                 />
@@ -402,6 +414,7 @@ export const OracleTab = ({
         >
           <DetailCard
             icon={getOracleIcon(subSubCategory.Name)}
+            iconBg={getOracleIconBg(subSubCategory.Name)}
             title={oracle.Name}
             description={oracle.Description || 'Roll to consult this oracle.'}
           />
@@ -429,6 +442,7 @@ export const OracleTab = ({
               <MenuGroup>
                 <MenuItem 
                   icon="📋"
+                  iconBg={getGenericIconBg('📋')}
                   label="View Oracle Table"
                   onClick={() => navigate(`oracle-detail-deep-table-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`)}
                 />
@@ -457,6 +471,7 @@ export const OracleTab = ({
               <MenuItem 
                 key={rowIndex}
                 icon="🎲"
+                iconBg={getGenericIconBg('🎲')}
                 label={row.Result}
                 value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
                 showChevron={false}
@@ -486,6 +501,7 @@ export const OracleTab = ({
               <MenuItem 
                 key={rowIndex}
                 icon="🎲"
+                iconBg={getGenericIconBg('🎲')}
                 label={row.Result}
                 value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
                 showChevron={false}
@@ -516,6 +532,7 @@ export const OracleTab = ({
               <MenuItem 
                 key={rowIndex}
                 icon="🎲"
+                iconBg={getGenericIconBg('🎲')}
                 label={row.Result}
                 value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
                 showChevron={false}

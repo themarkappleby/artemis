@@ -2,7 +2,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import './MenuItem.css';
 
-export const MenuItem = ({ icon, label, subtitle, value, onClick, showChevron = true, isButton = false, destructive = false, muted = false }) => {
+export const MenuItem = ({ icon, iconBg, label, subtitle, value, onClick, showChevron = true, isButton = false, destructive = false, muted = false }) => {
   if (isButton) {
     return (
       <div className={`menu-item menu-item-button ${destructive ? 'menu-item-destructive' : ''}`} onClick={onClick}>
@@ -14,7 +14,14 @@ export const MenuItem = ({ icon, label, subtitle, value, onClick, showChevron = 
   return (
     <div className={`menu-item ${muted ? 'menu-item-muted' : ''}`} onClick={onClick}>
       <div className="menu-item-content">
-        {icon && <div className="menu-item-icon">{icon}</div>}
+        {icon && (
+          <div 
+            className="menu-item-icon" 
+            style={iconBg ? { backgroundColor: iconBg } : undefined}
+          >
+            {icon}
+          </div>
+        )}
         <div className="menu-item-text">
           <span className="menu-item-label">{label}</span>
           {subtitle && <div className="menu-item-subtitle"><ReactMarkdown>{subtitle}</ReactMarkdown></div>}

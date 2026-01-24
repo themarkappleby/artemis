@@ -4,7 +4,7 @@ import { MenuGroup } from '../../components/MenuGroup';
 import { MenuItem } from '../../components/MenuItem';
 import { DetailCard } from '../../components/DetailCard';
 import { Modal, ModalField, ModalButton } from '../../components/Modal/Modal';
-import { getRegionIcon, getRegionLabel } from '../../utils/icons';
+import { getRegionIcon, getRegionIconBg, getRegionLabel, getGenericIconBg } from '../../utils/icons';
 import './ExploreTab.css';
 
 export const ExploreTab = ({ 
@@ -70,6 +70,7 @@ export const ExploreTab = ({
                 <MenuItem 
                   key={sector.id}
                   icon={getRegionIcon(sector.region)}
+                  iconBg={getRegionIconBg(sector.region)}
                   label={sector.name}
                   value={getRegionLabel(sector.region)}
                   onClick={() => navigate(`sector-${sector.id}`)}
@@ -95,6 +96,7 @@ export const ExploreTab = ({
                 <MenuItem 
                   key={faction.id}
                   icon="🏛️"
+                  iconBg={getGenericIconBg('🏛️')}
                   label={faction.name}
                   onClick={() => navigate(`faction-${faction.id}`)}
                 />
@@ -112,6 +114,7 @@ export const ExploreTab = ({
               <MenuItem 
                 key={truth['$id'] || index}
                 icon="🌌" 
+                iconBg={getGenericIconBg('🌌')}
                 label={truth.Name || `Truth ${index + 1}`}
                 onClick={() => navigate(`setting-truth-${index}`)}
               />
@@ -214,6 +217,7 @@ export const ExploreTab = ({
             <MenuItem 
               label={`Region: ${getRegionLabel(sector.region)}`}
               icon={getRegionIcon(sector.region)}
+              iconBg={getRegionIconBg(sector.region)}
               showChevron={false}
             />
           </MenuGroup>
@@ -252,6 +256,7 @@ export const ExploreTab = ({
         <NavigationView title={truth.Name} onBack={goBack} {...scrollProps}>
           <DetailCard
             icon="🌌"
+            iconBg={getGenericIconBg('🌌')}
             title={truth.Name}
             description={truth.Description || ''}
           />

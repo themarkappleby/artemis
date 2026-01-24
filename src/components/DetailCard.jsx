@@ -3,10 +3,17 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import './DetailCard.css';
 
-export const DetailCard = ({ icon, title, description }) => {
+export const DetailCard = ({ icon, iconBg, title, description }) => {
   return (
     <div className="detail-card">
-      {icon && <div className="detail-card-icon">{icon}</div>}
+      {icon && (
+        <div 
+          className="detail-card-icon"
+          style={iconBg ? { backgroundColor: iconBg } : undefined}
+        >
+          {icon}
+        </div>
+      )}
       {title && <h2 className="detail-card-title">{title}</h2>}
       {description && (
         <div className="detail-card-description">

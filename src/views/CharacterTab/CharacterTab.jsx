@@ -6,7 +6,7 @@ import { DetailCard } from '../../components/DetailCard';
 import { StatBar } from '../../components/StatBar';
 import { MeterBar } from '../../components/MeterBar';
 import { ProgressTrack, RANK_LABELS } from '../../components/ProgressTrack';
-import { getAssetIcon } from '../../utils/icons';
+import { getAssetIcon, getAssetIconBg, getStatIcon, getStatIconBg, getProgressIconBg, getGenericIconBg } from '../../utils/icons';
 import '../../styles/forms.css';
 import './CharacterTab.css';
 
@@ -105,30 +105,40 @@ export const CharacterTab = ({
 
         <MenuGroup title="Stats">
           <StatBar 
+            icon={getStatIcon('edge')}
+            iconBg={getStatIconBg('edge')}
             label="Edge" 
             value={character.stats.edge}
             maxValue={5}
             onChange={(val) => updateStat('edge', val)}
           />
           <StatBar 
+            icon={getStatIcon('heart')}
+            iconBg={getStatIconBg('heart')}
             label="Heart" 
             value={character.stats.heart}
             maxValue={5}
             onChange={(val) => updateStat('heart', val)}
           />
           <StatBar 
+            icon={getStatIcon('iron')}
+            iconBg={getStatIconBg('iron')}
             label="Iron" 
             value={character.stats.iron}
             maxValue={5}
             onChange={(val) => updateStat('iron', val)}
           />
           <StatBar 
+            icon={getStatIcon('shadow')}
+            iconBg={getStatIconBg('shadow')}
             label="Shadow" 
             value={character.stats.shadow}
             maxValue={5}
             onChange={(val) => updateStat('shadow', val)}
           />
           <StatBar 
+            icon={getStatIcon('wits')}
+            iconBg={getStatIconBg('wits')}
             label="Wits" 
             value={character.stats.wits}
             maxValue={5}
@@ -154,6 +164,7 @@ export const CharacterTab = ({
                 <MenuItem 
                   key={`owned-${ownedAsset.typeIndex}-${ownedAsset.assetIndex}`}
                   icon={getAssetIcon(assetType.Name)}
+                  iconBg={getAssetIconBg(assetType.Name)}
                   label={asset.Name}
                   value={`${enabledCount}/${totalCount}`}
                   onClick={() => navigate(`owned-asset-${ownedAsset.typeIndex}-${ownedAsset.assetIndex}`)}
@@ -171,30 +182,35 @@ export const CharacterTab = ({
         <MenuGroup title="Progress">
           <MenuItem 
             icon="👑" 
+            iconBg={getProgressIconBg('legacy')}
             label="Legacy" 
             value="3"
             onClick={() => navigate('legacy')}
           />
           <MenuItem 
             icon="🎯" 
+            iconBg={getProgressIconBg('vows')}
             label="Vows" 
             value={character.vows.length.toString()}
             onClick={() => navigate('vows')}
           />
           <MenuItem 
             icon="🗺️" 
+            iconBg={getProgressIconBg('expeditions')}
             label="Expeditions" 
             value={character.expeditions.length.toString()}
             onClick={() => navigate('expeditions')}
           />
           <MenuItem 
             icon="⚔️" 
+            iconBg={getProgressIconBg('combat')}
             label="Combat" 
             value={character.combatTracks.length.toString()}
             onClick={() => navigate('combat-tracks')}
           />
           <MenuItem 
             icon="🤝" 
+            iconBg={getProgressIconBg('connections')}
             label="Connections" 
             value={character.connections.length.toString()}
             onClick={() => navigate('connections')}
@@ -213,6 +229,7 @@ export const CharacterTab = ({
             <MenuItem 
               key={assetType['$id'] || index}
               icon={getAssetIcon(assetType.Name)}
+              iconBg={getAssetIconBg(assetType.Name)}
               label={assetType.Name}
               value={`${assetType.Assets?.length || 0} assets`}
               onClick={() => navigate(`add-asset-type-${index}`)}
@@ -240,12 +257,13 @@ export const CharacterTab = ({
                 <MenuItem 
                   key={asset['$id'] || assetIndex}
                   icon={getAssetIcon(assetType.Name)}
+                  iconBg={getAssetIconBg(assetType.Name)}
                   label={asset.Name}
                   value={isOwned ? 'Owned' : ''}
                   onClick={() => navigate(`add-asset-${index}-${assetIndex}`)}
                 />
               );
-            }) || <MenuItem icon="📄" label="No assets available" showChevron={false} />}
+            }) || <MenuItem icon="📄" iconBg={getGenericIconBg('📄')} label="No assets available" showChevron={false} />}
           </MenuGroup>
         </NavigationView>
       );
@@ -269,6 +287,7 @@ export const CharacterTab = ({
           {asset.Requirement && (
             <DetailCard
               icon={getAssetIcon(assetType.Name)}
+              iconBg={getAssetIconBg(assetType.Name)}
               title="Requirement"
               description={asset.Requirement}
             />
@@ -327,6 +346,7 @@ export const CharacterTab = ({
           {asset.Requirement && (
             <DetailCard
               icon={getAssetIcon(assetType.Name)}
+              iconBg={getAssetIconBg(assetType.Name)}
               title="Requirement"
               description={asset.Requirement}
             />
@@ -522,6 +542,7 @@ export const CharacterTab = ({
         <NavigationView title="Fulfill Your Vow" onBack={goBack} {...scrollProps}>
           <DetailCard
             icon="🎯"
+            iconBg={getProgressIconBg('vows')}
             title={vow.name}
             description={`Progress Score: ${progressScore}\n\nRoll your challenge dice and compare to your progress score of ${progressScore}.\n\n• Strong Hit: Beat both dice\n• Weak Hit: Beat one die\n• Miss: Beat neither die`}
           />
@@ -639,6 +660,7 @@ export const CharacterTab = ({
         <NavigationView title="Finish an Expedition" onBack={goBack} {...scrollProps}>
           <DetailCard
             icon="🗺️"
+            iconBg={getProgressIconBg('expeditions')}
             title={expedition.name}
             description={`Progress Score: ${progressScore}\n\nRoll your challenge dice and compare to your progress score of ${progressScore}.\n\n• Strong Hit: Beat both dice\n• Weak Hit: Beat one die\n• Miss: Beat neither die`}
           />
@@ -756,6 +778,7 @@ export const CharacterTab = ({
         <NavigationView title="Take Decisive Action" onBack={goBack} {...scrollProps}>
           <DetailCard
             icon="⚔️"
+            iconBg={getProgressIconBg('combat')}
             title={combat.name}
             description={`Progress Score: ${progressScore}\n\nRoll your challenge dice and compare to your progress score of ${progressScore}.\n\n• Strong Hit: Beat both dice\n• Weak Hit: Beat one die\n• Miss: Beat neither die`}
           />
@@ -875,6 +898,7 @@ export const CharacterTab = ({
         <NavigationView title="Forge a Bond" onBack={goBack} {...scrollProps}>
           <DetailCard
             icon="🤝"
+            iconBg={getProgressIconBg('connections')}
             title={connection.name}
             description={`Progress Score: ${progressScore}\n\nRoll your challenge dice and compare to your progress score of ${progressScore}.\n\n• Strong Hit: Beat both dice\n• Weak Hit: Beat one die\n• Miss: Beat neither die`}
           />

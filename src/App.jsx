@@ -15,6 +15,7 @@ import { CharacterTab } from './views/CharacterTab/CharacterTab';
 import { MovesTab } from './views/MovesTab/MovesTab';
 import { OracleTab } from './views/OracleTab/OracleTab';
 import { RollTab } from './views/RollTab/RollTab';
+import { getGenericIconBg } from './utils/icons';
 import './App.css';
 import './styles/animations.css';
 
@@ -117,7 +118,7 @@ function App() {
       return (
         <NavigationView title="Loading..." {...scrollProps}>
           <MenuGroup>
-            <MenuItem icon="⏳" label="Loading Starforged data..." showChevron={false} />
+            <MenuItem icon="⏳" iconBg={getGenericIconBg('⏳')} label="Loading Starforged data..." showChevron={false} />
           </MenuGroup>
         </NavigationView>
       );

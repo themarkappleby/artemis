@@ -3,7 +3,7 @@ import { NavigationView } from '../../components/NavigationView';
 import { MenuGroup } from '../../components/MenuGroup';
 import { MenuItem } from '../../components/MenuItem';
 import { DetailCard } from '../../components/DetailCard';
-import { getMoveIcon } from '../../utils/icons';
+import { getMoveIcon, getMoveIconBg, getGenericIconBg } from '../../utils/icons';
 import './MovesTab.css';
 
 export const MovesTab = ({
@@ -60,6 +60,7 @@ export const MovesTab = ({
                     </div>
                     <MenuItem 
                       icon={getMoveIcon(category.Name)}
+                      iconBg={getMoveIconBg(category.Name)}
                       label={move.Name}
                       subtitle={move.Trigger?.Text || ''}
                       showChevron={false}
@@ -85,6 +86,7 @@ export const MovesTab = ({
                   <MenuItem 
                     key={`${catIndex}-${moveIndex}`}
                     icon={getMoveIcon(category.Name)}
+                    iconBg={getMoveIconBg(category.Name)}
                     label={move.Name}
                     subtitle={move.Trigger?.Text || ''}
                     onClick={() => navigate(`move-${catIndex}-${moveIndex}`)}
@@ -104,6 +106,7 @@ export const MovesTab = ({
             <MenuItem 
               key={category['$id'] || index}
               icon={getMoveIcon(category.Name)}
+              iconBg={getMoveIconBg(category.Name)}
               label={category.Name}
               value={category.Moves?.length || 0}
               onClick={() => navigate(`move-category-${index}`)}
@@ -125,6 +128,7 @@ export const MovesTab = ({
           {category.Description && (
             <DetailCard
               icon={getMoveIcon(category.Name)}
+              iconBg={getMoveIconBg(category.Name)}
               title={category.Name}
               description={category.Description}
             />
@@ -134,11 +138,12 @@ export const MovesTab = ({
               <MenuItem 
                 key={move['$id'] || moveIndex}
                 icon={getMoveIcon(category.Name)}
+                iconBg={getMoveIconBg(category.Name)}
                 label={move.Name}
                 subtitle={move.Trigger?.Text || ''}
                 onClick={() => navigate(`move-${index}-${moveIndex}`)}
               />
-            )) || <MenuItem icon="📄" label="No moves available" showChevron={false} />}
+            )) || <MenuItem icon="📄" iconBg={getGenericIconBg('📄')} label="No moves available" showChevron={false} />}
           </MenuGroup>
         </NavigationView>
       );
@@ -165,6 +170,7 @@ export const MovesTab = ({
         >
           <DetailCard
             icon={getMoveIcon(category.Name)}
+            iconBg={getMoveIconBg(category.Name)}
             title={move.Name}
             description={moveText}
           />
@@ -173,6 +179,7 @@ export const MovesTab = ({
             <MenuGroup>
               <MenuItem 
                 icon="📊" 
+                iconBg={getGenericIconBg('📊')}
                 label="Progress Move" 
                 showChevron={false}
               />
@@ -184,6 +191,7 @@ export const MovesTab = ({
               {move.Outcomes['Strong Hit'] && (
                 <MenuItem 
                   icon="💪" 
+                  iconBg={getGenericIconBg('💪')}
                   label="Strong Hit" 
                   onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-strong`)}
                 />
@@ -191,6 +199,7 @@ export const MovesTab = ({
               {move.Outcomes['Weak Hit'] && (
                 <MenuItem 
                   icon="👍" 
+                  iconBg={getGenericIconBg('👍')}
                   label="Weak Hit" 
                   onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-weak`)}
                 />
@@ -198,6 +207,7 @@ export const MovesTab = ({
               {move.Outcomes.Miss && (
                 <MenuItem 
                   icon="❌" 
+                  iconBg={getGenericIconBg('❌')}
                   label="Miss" 
                   onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-miss`)}
                 />
@@ -237,6 +247,7 @@ export const MovesTab = ({
         <NavigationView title={`${move.Name} - ${outcomeTitle}`} onBack={goBack} {...scrollProps}>
           <DetailCard
             icon={getMoveIcon(category.Name)}
+            iconBg={getMoveIconBg(category.Name)}
             title={outcomeTitle}
             description={outcomeText}
           />
