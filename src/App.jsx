@@ -721,13 +721,6 @@ function App() {
               maxValue={10}
               onChange={(val) => updateCondition('momentumReset', val)}
             />
-            <button 
-              className="burn-momentum-button"
-              onClick={() => updateCondition('momentum', character.conditions.momentumReset)}
-              disabled={character.conditions.momentum <= character.conditions.momentumReset}
-            >
-              Burn Momentum
-            </button>
           </MenuGroup>
 
           <div style={{ padding: '0 16px' }}>
