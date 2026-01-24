@@ -14,12 +14,145 @@ export const OracleTab = ({
   oracleRolls,
   getOracleTable,
   rollOracle,
+  favoritedOracles = [],
+  editingOracleFavorites,
+  tempOracleFavoriteOrder,
+  oracleDraggedIndex,
+  toggleFavoriteOracle,
+  startEditingOracleFavorites,
+  saveOracleFavoriteOrder,
+  cancelEditingOracleFavorites,
+  handleOracleDragStart,
+  handleOracleDragOver,
+  handleOracleDragEnd,
+  isOracleFavorited,
   scrollProps = {}
 }) => {
+  // Helper to resolve oracle data from favoriteId
+  const getOracleFromId = (oracleId) => {
+    if (!starforgedData) return null;
+    
+    // Direct from category: oracle-{catIndex}-{oracleIndex}
+    if (oracleId.startsWith('oracle-') && !oracleId.includes('detail')) {
+      const parts = oracleId.split('-');
+      const catIndex = parseInt(parts[1]);
+      const oracleIndex = parseInt(parts[2]);
+      const category = starforgedData.oracleCategories[catIndex];
+      const oracle = category?.Oracles?.[oracleIndex];
+      return oracle ? { oracle, category, oracleId, catIndex, oracleIndex, type: 'direct' } : null;
+    }
+    
+    // From sub-category: oracle-detail-{catIndex}-{subIndex}-{oracleIndex}
+    if (oracleId.startsWith('oracle-detail-') && !oracleId.includes('deep')) {
+      const parts = oracleId.split('-');
+      const catIndex = parseInt(parts[2]);
+      const subIndex = parseInt(parts[3]);
+      const oracleIndex = parseInt(parts[4]);
+      const subCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex];
+      const oracle = subCategory?.Oracles?.[oracleIndex];
+      return oracle ? { oracle, category: subCategory, oracleId, catIndex, subIndex, oracleIndex, type: 'sub' } : null;
+    }
+    
+    // Deeply nested: oracle-detail-deep-{catIndex}-{subIndex}-{subSubIndex}-{oracleIndex}
+    if (oracleId.startsWith('oracle-detail-deep-')) {
+      const parts = oracleId.split('-');
+      const catIndex = parseInt(parts[3]);
+      const subIndex = parseInt(parts[4]);
+      const subSubIndex = parseInt(parts[5]);
+      const oracleIndex = parseInt(parts[6]);
+      const subSubCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex]?.Categories?.[subSubIndex];
+      const oracle = subSubCategory?.Oracles?.[oracleIndex];
+      return oracle ? { oracle, category: subSubCategory, oracleId, catIndex, subIndex, subSubIndex, oracleIndex, type: 'deep' } : null;
+    }
+    
+    return null;
+  };
+
+  // Helper to get navigation view name from oracleId
+  const getOracleViewName = (oracleId, type) => {
+    if (type === 'direct') {
+      return oracleId; // oracle-{catIndex}-{oracleIndex}
+    }
+    if (type === 'sub') {
+      // oracle-detail-{catIndex}-{subIndex}-{oracleIndex}
+      return oracleId;
+    }
+    if (type === 'deep') {
+      // oracle-detail-deep-{catIndex}-{subIndex}-{subSubIndex}-{oracleIndex}
+      return oracleId;
+    }
+    return oracleId;
+  };
   // Oracle Home
   if (viewName === 'oracle-home') {
+    const oraclesToDisplay = editingOracleFavorites ? tempOracleFavoriteOrder : favoritedOracles;
+    const favoriteOraclesList = oraclesToDisplay.map(oracleId => {
+      const oracleData = getOracleFromId(oracleId);
+      return oracleData;
+    }).filter(Boolean);
+
     return (
       <NavigationView title="Oracle" {...scrollProps}>
+        {favoriteOraclesList.length > 0 && (
+          <MenuGroup title="Favorites">
+            {editingOracleFavorites ? (
+              <>
+                {favoriteOraclesList.map((data, index) => (
+                  <div
+                    key={data.oracleId}
+                    draggable
+                    onDragStart={() => handleOracleDragStart(index)}
+                    onDragOver={(e) => handleOracleDragOver(e, index)}
+                    onDragEnd={handleOracleDragEnd}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      opacity: oracleDraggedIndex === index ? 0.5 : 1,
+                      transition: 'opacity 0.2s'
+                    }}
+                  >
+                    <div className="favorite-drag-handle">
+                      ☰
+                    </div>
+                    <MenuItem 
+                      icon={getOracleIcon(data.category.Name)}
+                      label={data.oracle.Name}
+                      showChevron={false}
+                    />
+                  </div>
+                ))}
+                <div className="track-actions">
+                  <MenuItem
+                    label="Cancel"
+                    onClick={cancelEditingOracleFavorites}
+                    isButton={true}
+                  />
+                  <MenuItem
+                    label="Save"
+                    onClick={saveOracleFavoriteOrder}
+                    isButton={true}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {favoriteOraclesList.map((data) => (
+                  <MenuItem 
+                    key={data.oracleId}
+                    icon={getOracleIcon(data.category.Name)}
+                    label={data.oracle.Name}
+                    onClick={() => navigate(getOracleViewName(data.oracleId, data.type))}
+                  />
+                ))}
+                <MenuItem
+                  label="Edit Order"
+                  onClick={startEditingOracleFavorites}
+                  isButton={true}
+                />
+              </>
+            )}
+          </MenuGroup>
+        )}
         <MenuGroup title="Oracle Categories">
           {starforgedData?.oracleCategories.map((category, index) => (
             <MenuItem 
@@ -131,10 +264,17 @@ export const OracleTab = ({
     const oracleKey = `oracle-${catIndex}-${oracleIndex}`;
     const rolledResult = oracleRolls[oracleKey];
     const oracleTable = getOracleTable(oracle);
+    const oracleIsFavorited = isOracleFavorited(oracleKey);
 
     if (oracle) {
       return (
-        <NavigationView title={oracle.Name} onBack={goBack} {...scrollProps}>
+        <NavigationView 
+          title={oracle.Name} 
+          onBack={goBack}
+          actionIcon={oracleIsFavorited}
+          onAction={() => toggleFavoriteOracle(oracleKey)}
+          {...scrollProps}
+        >
           <DetailCard
             icon={getOracleIcon(category.Name)}
             title={oracle.Name}
@@ -186,10 +326,17 @@ export const OracleTab = ({
     const oracleKey = `oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`;
     const rolledResult = oracleRolls[oracleKey];
     const oracleTable = getOracleTable(oracle);
+    const oracleIsFavorited = isOracleFavorited(oracleKey);
 
     if (oracle) {
       return (
-        <NavigationView title={oracle.Name} onBack={goBack} {...scrollProps}>
+        <NavigationView 
+          title={oracle.Name} 
+          onBack={goBack}
+          actionIcon={oracleIsFavorited}
+          onAction={() => toggleFavoriteOracle(oracleKey)}
+          {...scrollProps}
+        >
           <DetailCard
             icon={getOracleIcon(subCategory.Name)}
             title={oracle.Name}
@@ -242,10 +389,17 @@ export const OracleTab = ({
     const oracleKey = `oracle-detail-deep-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`;
     const rolledResult = oracleRolls[oracleKey];
     const oracleTable = getOracleTable(oracle);
+    const oracleIsFavorited = isOracleFavorited(oracleKey);
 
     if (oracle) {
       return (
-        <NavigationView title={oracle.Name} onBack={goBack} {...scrollProps}>
+        <NavigationView 
+          title={oracle.Name} 
+          onBack={goBack}
+          actionIcon={oracleIsFavorited}
+          onAction={() => toggleFavoriteOracle(oracleKey)}
+          {...scrollProps}
+        >
           <DetailCard
             icon={getOracleIcon(subSubCategory.Name)}
             title={oracle.Name}

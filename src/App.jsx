@@ -9,6 +9,7 @@ import { useNavigation } from './hooks/useNavigation';
 import { useOracle } from './hooks/useOracle';
 import { useRoll } from './hooks/useRoll';
 import { useFavoriteMoves } from './hooks/useFavoriteMoves';
+import { useFavoriteOracles } from './hooks/useFavoriteOracles';
 import { ExploreTab } from './views/ExploreTab/ExploreTab';
 import { CharacterTab } from './views/CharacterTab/CharacterTab';
 import { MovesTab } from './views/MovesTab/MovesTab';
@@ -86,6 +87,21 @@ function App() {
     handleDragEnd,
     isFavorited
   } = useFavoriteMoves();
+
+  const {
+    favoritedOracles,
+    editingOracleFavorites,
+    tempOracleFavoriteOrder,
+    oracleDraggedIndex,
+    toggleFavoriteOracle,
+    startEditingOracleFavorites,
+    saveOracleFavoriteOrder,
+    cancelEditingOracleFavorites,
+    handleOracleDragStart,
+    handleOracleDragOver,
+    handleOracleDragEnd,
+    isOracleFavorited
+  } = useFavoriteOracles();
 
   // Register service worker
   useEffect(() => {
@@ -190,6 +206,18 @@ function App() {
           oracleRolls={oracleRolls}
           getOracleTable={getOracleTable}
           rollOracle={rollOracle}
+          favoritedOracles={favoritedOracles}
+          editingOracleFavorites={editingOracleFavorites}
+          tempOracleFavoriteOrder={tempOracleFavoriteOrder}
+          oracleDraggedIndex={oracleDraggedIndex}
+          toggleFavoriteOracle={toggleFavoriteOracle}
+          startEditingOracleFavorites={startEditingOracleFavorites}
+          saveOracleFavoriteOrder={saveOracleFavoriteOrder}
+          cancelEditingOracleFavorites={cancelEditingOracleFavorites}
+          handleOracleDragStart={handleOracleDragStart}
+          handleOracleDragOver={handleOracleDragOver}
+          handleOracleDragEnd={handleOracleDragEnd}
+          isOracleFavorited={isOracleFavorited}
           scrollProps={scrollProps}
         />
       );

@@ -1,2 +1,24 @@
 /* OracleTab specific styles */
-/* Currently empty - styles are inherited from global and component styles */
+
+/* Favorite editing styles */
+.favorite-drag-handle {
+  padding: 0 12px;
+  font-size: 20px;
+  color: #8e8e93;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.favorite-drag-handle:active {
+  cursor: grabbing;
+}
+
+[draggable="true"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+[draggable="true"]:active .favorite-drag-handle {
+  cursor: grabbing;
+}
