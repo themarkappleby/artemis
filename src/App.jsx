@@ -1217,36 +1217,34 @@ function App() {
           {lastRoll && (
             <>
               <div className="roll-results">
-                <div className={`roll-outcome-banner roll-outcome-${lastRoll.outcome}`}>
-                  <span className="roll-outcome-text">
-                    {lastRoll.outcome === 'strong' && 'Strong Hit'}
-                    {lastRoll.outcome === 'weak' && 'Weak Hit'}
-                    {lastRoll.outcome === 'miss' && 'Miss'}
-                  </span>
-                  {lastRoll.isMatch && <span className="roll-match-badge">Match</span>}
-                  {lastRoll.burned && <span className="roll-burned-badge">Burned</span>}
-                </div>
-
                 <div className="roll-dice-display">
-                  <div className="roll-action-side">
-                    <div className="roll-action-score-display">{lastRoll.actionScore}</div>
-                    <div className="roll-action-breakdown">
-                      {lastRoll.actionDie} + {lastRoll.statValue}{lastRoll.adds > 0 ? ` + ${lastRoll.adds}` : ''}
-                    </div>
+                  <div className={`roll-outcome-banner roll-outcome-${lastRoll.outcome}`}>
+                    <span className="roll-outcome-text">
+                      {lastRoll.outcome === 'strong' && 'Strong Hit'}
+                      {lastRoll.outcome === 'weak' && 'Weak Hit'}
+                      {lastRoll.outcome === 'miss' && 'Miss'}
+                    </span>
+                    {lastRoll.isMatch && <span className="roll-match-badge">Match</span>}
+                    {lastRoll.burned && <span className="roll-burned-badge">Burned</span>}
                   </div>
-                  <div className="roll-vs-divider">vs</div>
-                  <div className="roll-challenge-side">
-                    <div className={`roll-challenge-die ${lastRoll.actionScore > lastRoll.challenge1 ? 'beaten' : ''}`}>
-                      {lastRoll.challenge1}
+                  <div className="roll-dice-row">
+                    <div className="roll-action-side">
+                      <div className="roll-action-score-display">{lastRoll.actionScore}</div>
                     </div>
-                    <div className={`roll-challenge-die ${lastRoll.actionScore > lastRoll.challenge2 ? 'beaten' : ''}`}>
-                      {lastRoll.challenge2}
+                    <div className="roll-vs-text">vs</div>
+                    <div className="roll-challenge-side">
+                      <div className={`roll-challenge-die ${lastRoll.actionScore > lastRoll.challenge1 ? 'beaten' : ''}`}>
+                        {lastRoll.challenge1}
+                      </div>
+                      <div className={`roll-challenge-die ${lastRoll.actionScore > lastRoll.challenge2 ? 'beaten' : ''}`}>
+                        {lastRoll.challenge2}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {canBurnMomentum && (
+              {wouldImprove && (
                 <MenuGroup title="Momentum">
                   <div className="momentum-option-content">
                     <span className="momentum-value">{character.conditions.momentum}</span>

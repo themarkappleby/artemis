@@ -461,14 +461,6 @@ textarea {
   margin: 0 16px 20px;
 }
 
-.roll-outcome-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
 .roll-outcome-text {
   font-size: 28px;
   font-weight: 700;
@@ -499,11 +491,37 @@ textarea {
 .roll-dice-display {
   background-color: #1c1c1e;
   border-radius: 12px;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.roll-outcome-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  width: 100%;
+  box-sizing: border-box;
+  border-bottom: 1px solid #38383a;
+}
+
+.roll-dice-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.roll-vs-text {
+  font-size: 14px;
+  color: #636366;
+  text-transform: uppercase;
+  font-weight: 600;
 }
 
 .roll-action-side {
@@ -524,18 +542,6 @@ textarea {
   font-size: 32px;
   font-weight: 700;
   color: #ffffff;
-}
-
-.roll-action-breakdown {
-  font-size: 13px;
-  color: #8e8e93;
-}
-
-.roll-vs-divider {
-  font-size: 14px;
-  color: #636366;
-  text-transform: uppercase;
-  font-weight: 600;
 }
 
 .roll-challenge-side {
