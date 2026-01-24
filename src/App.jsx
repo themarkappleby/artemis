@@ -178,6 +178,7 @@ function App() {
           navigate={navigate}
           goBack={goBack}
           starforgedData={starforgedData}
+          character={character}
           favoritedMoves={favoritedMoves}
           editingFavorites={editingFavorites}
           tempFavoriteOrder={tempFavoriteOrder}
@@ -190,6 +191,15 @@ function App() {
           handleDragOver={handleDragOver}
           handleDragEnd={handleDragEnd}
           isFavorited={isFavorited}
+          rollStat={rollStat}
+          setRollStat={setRollStat}
+          rollAdds={rollAdds}
+          setRollAdds={setRollAdds}
+          lastRoll={lastRoll}
+          makeActionRoll={makeActionRoll}
+          burnMomentum={burnMomentum}
+          wouldImprove={wouldImprove}
+          getBurnOutcome={getBurnOutcome}
           scrollProps={scrollProps}
         />
       );

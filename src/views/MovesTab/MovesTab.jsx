@@ -3,14 +3,16 @@ import { NavigationView } from '../../components/NavigationView';
 import { MenuGroup } from '../../components/MenuGroup';
 import { MenuItem } from '../../components/MenuItem';
 import { DetailCard } from '../../components/DetailCard';
-import { getMoveIcon, getMoveIconBg, getGenericIconBg } from '../../utils/icons';
+import { getMoveIcon, getMoveIconBg, getGenericIconBg, getStatIcon, getStatIconBg } from '../../utils/icons';
 import './MovesTab.css';
+import '../RollTab/RollTab.css';
 
 export const MovesTab = ({
   viewName,
   navigate,
   goBack,
   starforgedData,
+  character,
   favoritedMoves,
   editingFavorites,
   tempFavoriteOrder,
@@ -23,6 +25,15 @@ export const MovesTab = ({
   handleDragOver,
   handleDragEnd,
   isFavorited,
+  rollStat,
+  setRollStat,
+  rollAdds,
+  setRollAdds,
+  lastRoll,
+  makeActionRoll,
+  burnMomentum,
+  wouldImprove,
+  getBurnOutcome,
   scrollProps = {}
 }) => {
   // Moves Home
@@ -157,8 +168,17 @@ export const MovesTab = ({
 
     if (move) {
       const category = starforgedData.moveCategories[catIndex];
-      const moveText = move.Text || 'No move text available.';
       const moveIsFavorited = isFavorited(catIndex, moveIndex);
+      const triggerText = move.Trigger?.Text || '';
+      const triggerOptions = move.Trigger?.Options || [];
+      const hasRollableOptions = triggerOptions.length > 0 && triggerOptions[0].Using;
+      const burnOutcome = getBurnOutcome?.();
+
+      // Helper to roll with a specific stat
+      const rollWithStat = (stat) => {
+        setRollStat(stat.toLowerCase());
+        setTimeout(() => makeActionRoll(), 0);
+      };
 
       return (
         <NavigationView 
@@ -168,11 +188,12 @@ export const MovesTab = ({
           onAction={() => toggleFavoriteMove(catIndex, moveIndex)}
           {...scrollProps}
         >
+          {/* Trigger Section */}
           <DetailCard
             icon={getMoveIcon(category.Name)}
             iconBg={getMoveIconBg(category.Name)}
             title={move.Name}
-            description={moveText}
+            description={triggerText}
           />
 
           {move['Progress Move'] && (
@@ -181,35 +202,173 @@ export const MovesTab = ({
                 icon="📊" 
                 iconBg={getGenericIconBg('📊')}
                 label="Progress Move" 
+                subtitle="Roll your progress score against the challenge dice"
                 showChevron={false}
               />
             </MenuGroup>
           )}
 
+          {/* Rollable Trigger Options */}
+          {hasRollableOptions && (
+            <MenuGroup title="Roll Options">
+              {triggerOptions.map((option, optIndex) => {
+                const stat = option.Using?.[0];
+                if (!stat) return null;
+                const statLower = stat.toLowerCase();
+                const statValue = character?.stats?.[statLower] || 0;
+                const statCapitalized = stat.charAt(0).toUpperCase() + stat.slice(1).toLowerCase();
+                return (
+                  <MenuItem 
+                    key={optIndex}
+                    icon={getStatIcon(statLower)}
+                    iconBg={getStatIconBg(statLower)}
+                    label={option.Text}
+                    value={`+${statValue} (${statCapitalized})`}
+                    onClick={() => rollWithStat(stat)}
+                  />
+                );
+              })}
+            </MenuGroup>
+          )}
+
+          {/* Roll Results */}
+          {lastRoll && (
+            <>
+              <div className="roll-results">
+                <div className="roll-dice-display">
+                  <div className={`roll-outcome-banner roll-outcome-${lastRoll.outcome}`}>
+                    <span className="roll-outcome-text">
+                      {lastRoll.outcome === 'strong' && 'Strong Hit'}
+                      {lastRoll.outcome === 'weak' && 'Weak Hit'}
+                      {lastRoll.outcome === 'miss' && 'Miss'}
+                    </span>
+                    {lastRoll.isMatch && <span className="roll-match-badge">Match</span>}
+                    {lastRoll.burned && <span className="roll-burned-badge">Burned</span>}
+                  </div>
+                  <div className="roll-dice-row">
+                    {[
+                      { value: lastRoll.actionScore, type: 'action' },
+                      { value: lastRoll.challenge1, type: 'challenge' },
+                      { value: lastRoll.challenge2, type: 'challenge' }
+                    ]
+                      .sort((a, b) => {
+                        if (a.value !== b.value) return a.value - b.value;
+                        if (a.type === 'challenge' && b.type !== 'challenge') return 1;
+                        if (b.type === 'challenge' && a.type !== 'challenge') return -1;
+                        return 0;
+                      })
+                      .map((die, i) => (
+                        <div
+                          key={i}
+                          className={
+                            die.type === 'action' ? `roll-action-score-display roll-action-${lastRoll.outcome}` :
+                            'roll-challenge-die'
+                          }
+                        >
+                          {die.value}
+                        </div>
+                      ))
+                    }
+                  </div>
+                </div>
+              </div>
+
+              {/* Show corresponding outcome text */}
+              {move.Outcomes && (
+                <MenuGroup title="Result">
+                  {lastRoll.outcome === 'strong' && move.Outcomes['Strong Hit'] && (
+                    <MenuItem 
+                      label="Strong Hit"
+                      subtitle={move.Outcomes['Strong Hit'].Text}
+                      showChevron={false}
+                    />
+                  )}
+                  {lastRoll.outcome === 'weak' && move.Outcomes['Weak Hit'] && (
+                    <MenuItem 
+                      label="Weak Hit"
+                      subtitle={move.Outcomes['Weak Hit'].Text}
+                      showChevron={false}
+                    />
+                  )}
+                  {lastRoll.outcome === 'miss' && move.Outcomes.Miss && (
+                    <MenuItem 
+                      label="Miss"
+                      subtitle={move.Outcomes.Miss.Text}
+                      showChevron={false}
+                    />
+                  )}
+                </MenuGroup>
+              )}
+
+              {/* Burn Momentum Option */}
+              {wouldImprove?.() && (
+                <MenuGroup title="Momentum">
+                  <div className="momentum-preview-content">
+                    <div className="momentum-outcome-row">
+                      <span className={`momentum-outcome-banner momentum-outcome-${burnOutcome}`}>
+                        {burnOutcome === 'strong' && 'Strong Hit'}
+                        {burnOutcome === 'weak' && 'Weak Hit'}
+                      </span>
+                      {lastRoll.isMatch && <span className="momentum-match-badge">Match</span>}
+                    </div>
+                    <div className="momentum-dice-row">
+                      {[
+                        { value: character.conditions.momentum, type: 'action' },
+                        { value: lastRoll.challenge1, type: 'challenge' },
+                        { value: lastRoll.challenge2, type: 'challenge' }
+                      ]
+                        .sort((a, b) => {
+                          if (a.value !== b.value) return a.value - b.value;
+                          if (a.type === 'challenge' && b.type !== 'challenge') return 1;
+                          if (b.type === 'challenge' && a.type !== 'challenge') return -1;
+                          return 0;
+                        })
+                        .map((die, i) => (
+                          <div
+                            key={i}
+                            className={
+                              die.type === 'action' ? `momentum-action-display momentum-action-${burnOutcome}` :
+                              'momentum-challenge-die'
+                            }
+                          >
+                            {die.value}
+                          </div>
+                        ))
+                      }
+                    </div>
+                  </div>
+                  <MenuItem
+                    label={`Burn Momentum (${character.conditions.momentum})`}
+                    onClick={burnMomentum}
+                    isButton={true}
+                  />
+                </MenuGroup>
+              )}
+            </>
+          )}
+
+          {/* Outcomes Reference Section */}
           {move.Outcomes && (
-            <MenuGroup title="Outcomes">
+            <MenuGroup title="Outcomes Reference">
               {move.Outcomes['Strong Hit'] && (
                 <MenuItem 
-                  icon="💪" 
-                  iconBg={getGenericIconBg('💪')}
                   label="Strong Hit" 
-                  onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-strong`)}
+                  subtitle={move.Outcomes['Strong Hit'].Text}
+                  showChevron={false}
                 />
               )}
               {move.Outcomes['Weak Hit'] && (
                 <MenuItem 
-                  icon="👍" 
-                  iconBg={getGenericIconBg('👍')}
                   label="Weak Hit" 
-                  onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-weak`)}
+                  subtitle={move.Outcomes['Weak Hit'].Text}
+                  showChevron={false}
                 />
               )}
               {move.Outcomes.Miss && (
                 <MenuItem 
-                  icon="❌" 
-                  iconBg={getGenericIconBg('❌')}
                   label="Miss" 
-                  onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-miss`)}
+                  subtitle={move.Outcomes.Miss.Text}
+                  showChevron={false}
                 />
               )}
             </MenuGroup>
