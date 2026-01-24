@@ -247,3 +247,358 @@ textarea {
   color: #ffffff;
 }
 
+/* Modal styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background-color: #2c2c2e;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 340px;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-bottom: 0.5px solid #38383a;
+}
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.modal-footer {
+  display: flex;
+  border-top: 0.5px solid #38383a;
+}
+
+.modal-button {
+  flex: 1;
+  background: none;
+  border: none;
+  font-size: 17px;
+  cursor: pointer;
+  padding: 16px;
+  color: #007AFF;
+}
+
+.modal-button:active {
+  background-color: #3a3a3c;
+}
+
+.modal-cancel {
+  border-right: 0.5px solid #38383a;
+}
+
+.modal-create {
+  font-weight: 600;
+}
+
+.modal-create:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.modal-create:disabled:active {
+  background-color: transparent;
+}
+
+.modal-body {
+  padding: 16px;
+}
+
+.modal-field {
+  margin-bottom: 16px;
+}
+
+.modal-field:last-child {
+  margin-bottom: 0;
+}
+
+.modal-label {
+  display: block;
+  font-size: 13px;
+  color: #8e8e93;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 12px;
+  background-color: #1c1c1e;
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 17px;
+  outline: none;
+}
+
+.modal-input:focus {
+  box-shadow: 0 0 0 2px #007AFF;
+}
+
+.modal-input::placeholder {
+  color: #636366;
+}
+
+.modal-select {
+  width: 100%;
+  padding: 12px;
+  background-color: #1c1c1e;
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 17px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238e8e93' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  outline: none;
+}
+
+.modal-select option {
+  background-color: #1c1c1e;
+  color: #ffffff;
+}
+
+/* Roll interface styles */
+.roll-config {
+  padding: 16px 16px 0;
+}
+
+.roll-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.roll-stat-button {
+  background-color: #1c1c1e;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.roll-stat-button.active {
+  background-color: #007AFF;
+}
+
+.roll-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #007AFF;
+}
+
+.roll-stat-name {
+  font-size: 12px;
+  color: #007AFF;
+  text-transform: uppercase;
+}
+
+.roll-stat-button.active .roll-stat-value,
+.roll-stat-button.active .roll-stat-name {
+  color: #ffffff;
+}
+
+.roll-adds-container {
+  background-color: #1c1c1e;
+  border: none;
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.roll-adds-label {
+  font-size: 20px;
+  color: #007AFF;
+  font-weight: 600;
+}
+
+.roll-adds-input {
+  width: 48px;
+  background: none;
+  border: none;
+  color: #007AFF;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+}
+
+.roll-results {
+  margin: 0 16px 20px;
+}
+
+.roll-outcome-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.roll-outcome-text {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.roll-outcome-banner.roll-outcome-strong .roll-outcome-text {
+  color: #34c759;
+}
+
+.roll-outcome-banner.roll-outcome-weak .roll-outcome-text {
+  color: #ff9f0a;
+}
+
+.roll-outcome-banner.roll-outcome-miss .roll-outcome-text {
+  color: #ff3b30;
+}
+
+.roll-match-badge,
+.roll-burned-badge {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background-color: #636366;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.roll-dice-display {
+  background-color: #1c1c1e;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.roll-action-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.roll-action-score-display {
+  width: 64px;
+  height: 64px;
+  background-color: #007AFF;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.roll-action-breakdown {
+  font-size: 13px;
+  color: #8e8e93;
+}
+
+.roll-vs-divider {
+  font-size: 14px;
+  color: #636366;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.roll-challenge-side {
+  display: flex;
+  gap: 8px;
+}
+
+.roll-challenge-die {
+  width: 56px;
+  height: 56px;
+  background-color: #ff3b30;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.roll-challenge-die.beaten {
+  background-color: #34c759;
+}
+
+.momentum-option-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #38383a;
+}
+
+.momentum-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ff9500;
+}
+
+.momentum-arrow {
+  font-size: 18px;
+  color: #636366;
+}
+
+.momentum-result {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.momentum-result-strong {
+  background-color: rgba(52, 199, 89, 0.2);
+  color: #34c759;
+}
+
+.momentum-result-weak {
+  background-color: rgba(255, 159, 10, 0.2);
+  color: #ff9f0a;
+}
+
+.momentum-result-miss {
+  background-color: rgba(255, 59, 48, 0.2);
+  color: #ff3b30;
+}
+

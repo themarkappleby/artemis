@@ -5,8 +5,9 @@ export const TabBar = ({ activeTab, onTabChange }) => {
   const tabs = [
     { id: 'explore', label: 'The Forge', icon: '🧭' },
     { id: 'character', label: 'Character', icon: '⚔️' },
-    { id: 'moves', label: 'Moves', icon: '🎲' },
-    { id: 'oracle', label: 'Oracle', icon: '🔮' }
+    { id: 'moves', label: 'Moves', icon: '📖' },
+    { id: 'oracle', label: 'Oracle', icon: '🔮' },
+    { id: 'roll', label: 'Roll', icon: '🎲' }
   ];
 
   return (

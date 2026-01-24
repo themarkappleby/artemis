@@ -16,7 +16,8 @@ function App() {
     explore: ['home'],
     character: ['character-home'],
     moves: ['moves-home'],
-    oracle: ['oracle-home']
+    oracle: ['oracle-home'],
+    roll: ['roll-home']
   });
   const [direction, setDirection] = useState(null);
   const [previousView, setPreviousView] = useState(null);
@@ -59,6 +60,22 @@ function App() {
   // Progress track state for new track creation
   const [newTrackName, setNewTrackName] = useState('');
   const [newTrackRank, setNewTrackRank] = useState('dangerous');
+  
+  // Sectors state
+  const [sectors, setSectors] = useState([]);
+  const [showSectorModal, setShowSectorModal] = useState(false);
+  const [newSectorName, setNewSectorName] = useState('');
+  const [newSectorRegion, setNewSectorRegion] = useState('terminus');
+  
+  // Factions state
+  const [factions, setFactions] = useState([]);
+  const [showFactionModal, setShowFactionModal] = useState(false);
+  const [newFactionName, setNewFactionName] = useState('');
+  
+  // Roll state
+  const [rollStat, setRollStat] = useState('edge');
+  const [rollAdds, setRollAdds] = useState(0);
+  const [lastRoll, setLastRoll] = useState(null);
   
   const { data: starforgedData, loading } = useStarforged();
   
@@ -216,6 +233,110 @@ function App() {
         [legacyType]: Math.min(40, character.legacy[legacyType] + 8) // 2 boxes per mark (like dangerous)
       }
     });
+  };
+
+  const createSector = () => {
+    if (!newSectorName.trim()) return;
+    
+    const newSector = {
+      id: Date.now(),
+      name: newSectorName.trim(),
+      region: newSectorRegion
+    };
+    
+    setSectors([...sectors, newSector]);
+    setNewSectorName('');
+    setNewSectorRegion('terminus');
+    setShowSectorModal(false);
+  };
+
+  const createFaction = () => {
+    if (!newFactionName.trim()) return;
+    
+    const newFaction = {
+      id: Date.now(),
+      name: newFactionName.trim()
+    };
+    
+    setFactions([...factions, newFaction]);
+    setNewFactionName('');
+    setShowFactionModal(false);
+  };
+
+  const getRegionIcon = (region) => {
+    const icons = {
+      terminus: '🌟',
+      outlands: '🌀',
+      expanse: '🌌',
+      void: '🕳️'
+    };
+    return icons[region] || '🌟';
+  };
+
+  const getRegionLabel = (region) => {
+    const labels = {
+      terminus: 'Terminus',
+      outlands: 'Outlands',
+      expanse: 'Expanse',
+      void: 'Void'
+    };
+    return labels[region] || region;
+  };
+
+  const makeActionRoll = () => {
+    const actionDie = Math.floor(Math.random() * 6) + 1;
+    const statValue = character.stats[rollStat];
+    const adds = parseInt(rollAdds) || 0;
+    const actionScore = Math.min(10, actionDie + statValue + adds);
+    
+    const challenge1 = Math.floor(Math.random() * 10) + 1;
+    const challenge2 = Math.floor(Math.random() * 10) + 1;
+    
+    let outcome = '';
+    if (actionScore > challenge1 && actionScore > challenge2) {
+      outcome = 'strong';
+    } else if (actionScore > challenge1 || actionScore > challenge2) {
+      outcome = 'weak';
+    } else {
+      outcome = 'miss';
+    }
+    
+    const isMatch = challenge1 === challenge2;
+    
+    setLastRoll({
+      actionDie,
+      stat: rollStat,
+      statValue,
+      adds,
+      actionScore,
+      challenge1,
+      challenge2,
+      outcome,
+      isMatch
+    });
+  };
+
+  const burnMomentum = () => {
+    if (!lastRoll || character.conditions.momentum <= character.conditions.momentumReset) return;
+    
+    const newActionScore = character.conditions.momentum;
+    let outcome = '';
+    if (newActionScore > lastRoll.challenge1 && newActionScore > lastRoll.challenge2) {
+      outcome = 'strong';
+    } else if (newActionScore > lastRoll.challenge1 || newActionScore > lastRoll.challenge2) {
+      outcome = 'weak';
+    } else {
+      outcome = 'miss';
+    }
+    
+    setLastRoll({
+      ...lastRoll,
+      actionScore: newActionScore,
+      outcome,
+      burned: true
+    });
+    
+    updateCondition('momentum', character.conditions.momentumReset);
   };
 
   const navigate = (view) => {
@@ -481,26 +602,52 @@ function App() {
     if (viewName === 'home') {
       return (
         <NavigationView title="The Forge">
-          <MenuGroup title="Regions">
+          <MenuGroup title="Sectors">
+            {sectors.length === 0 ? (
+              <MenuItem 
+                label="No sectors yet" 
+                showChevron={false}
+                muted={true}
+              />
+            ) : (
+              sectors.map(sector => (
+                <MenuItem 
+                  key={sector.id}
+                  icon={getRegionIcon(sector.region)}
+                  label={sector.name}
+                  value={getRegionLabel(sector.region)}
+                  onClick={() => navigate(`sector-${sector.id}`)}
+                />
+              ))
+            )}
             <MenuItem 
-              icon="🌟" 
-              label="Terminus" 
-              onClick={() => navigate('region-terminus')}
+              label="Create Sector"
+              onClick={() => setShowSectorModal(true)}
+              isButton={true}
             />
+          </MenuGroup>
+
+          <MenuGroup title="Factions">
+            {factions.length === 0 ? (
+              <MenuItem 
+                label="No factions yet" 
+                showChevron={false}
+                muted={true}
+              />
+            ) : (
+              factions.map(faction => (
+                <MenuItem 
+                  key={faction.id}
+                  icon="🏛️"
+                  label={faction.name}
+                  onClick={() => navigate(`faction-${faction.id}`)}
+                />
+              ))
+            )}
             <MenuItem 
-              icon="🌀" 
-              label="Outlands" 
-              onClick={() => navigate('region-outlands')}
-            />
-            <MenuItem 
-              icon="🌌" 
-              label="Expanse" 
-              onClick={() => navigate('region-expanse')}
-            />
-            <MenuItem 
-              icon="🕳️" 
-              label="Void" 
-              onClick={() => navigate('region-void')}
+              label="Create Faction"
+              onClick={() => setShowFactionModal(true)}
+              isButton={true}
             />
           </MenuGroup>
 
@@ -629,9 +776,9 @@ function App() {
           <MenuGroup title="Assets">
             {character.assets.length === 0 ? (
               <MenuItem 
-                icon="📋" 
                 label="No assets yet" 
                 showChevron={false}
+                muted={true}
               />
             ) : (
               character.assets.map((ownedAsset, index) => {
@@ -1016,6 +1163,109 @@ function App() {
               />
             ))}
           </MenuGroup>
+        </NavigationView>
+      );
+    }
+
+    // ROLL TAB
+    if (viewName === 'roll-home') {
+      const canBurnMomentum = lastRoll && !lastRoll.burned && lastRoll.outcome !== 'strong' && character.conditions.momentum > character.conditions.momentumReset;
+      const burnOutcome = canBurnMomentum ? (
+        character.conditions.momentum > lastRoll.challenge1 && character.conditions.momentum > lastRoll.challenge2 ? 'strong' :
+        character.conditions.momentum > lastRoll.challenge1 || character.conditions.momentum > lastRoll.challenge2 ? 'weak' : 'miss'
+      ) : null;
+      const wouldImprove = canBurnMomentum && (
+        (lastRoll.outcome === 'miss' && burnOutcome !== 'miss') ||
+        (lastRoll.outcome === 'weak' && burnOutcome === 'strong')
+      );
+
+      return (
+        <NavigationView title="Roll">
+          <div className="roll-config">
+            <div className="roll-stat-grid">
+              {['edge', 'heart', 'iron', 'shadow', 'wits'].map(stat => (
+                <button
+                  key={stat}
+                  className={`roll-stat-button ${rollStat === stat ? 'active' : ''}`}
+                  onClick={() => setRollStat(stat)}
+                >
+                  <span className="roll-stat-value">{character.stats[stat]}</span>
+                  <span className="roll-stat-name">{stat.charAt(0).toUpperCase() + stat.slice(1)}</span>
+                </button>
+              ))}
+              <div className="roll-adds-container">
+                <span className="roll-adds-label">+</span>
+                <input
+                  type="number"
+                  className="roll-adds-input"
+                  value={rollAdds}
+                  onChange={(e) => setRollAdds(e.target.value)}
+                  min="0"
+                  max="10"
+                />
+              </div>
+            </div>
+          </div>
+          <MenuGroup>
+            <MenuItem
+              label="Roll"
+              onClick={makeActionRoll}
+              isButton={true}
+            />
+          </MenuGroup>
+
+          {lastRoll && (
+            <>
+              <div className="roll-results">
+                <div className={`roll-outcome-banner roll-outcome-${lastRoll.outcome}`}>
+                  <span className="roll-outcome-text">
+                    {lastRoll.outcome === 'strong' && 'Strong Hit'}
+                    {lastRoll.outcome === 'weak' && 'Weak Hit'}
+                    {lastRoll.outcome === 'miss' && 'Miss'}
+                  </span>
+                  {lastRoll.isMatch && <span className="roll-match-badge">Match</span>}
+                  {lastRoll.burned && <span className="roll-burned-badge">Burned</span>}
+                </div>
+
+                <div className="roll-dice-display">
+                  <div className="roll-action-side">
+                    <div className="roll-action-score-display">{lastRoll.actionScore}</div>
+                    <div className="roll-action-breakdown">
+                      {lastRoll.actionDie} + {lastRoll.statValue}{lastRoll.adds > 0 ? ` + ${lastRoll.adds}` : ''}
+                    </div>
+                  </div>
+                  <div className="roll-vs-divider">vs</div>
+                  <div className="roll-challenge-side">
+                    <div className={`roll-challenge-die ${lastRoll.actionScore > lastRoll.challenge1 ? 'beaten' : ''}`}>
+                      {lastRoll.challenge1}
+                    </div>
+                    <div className={`roll-challenge-die ${lastRoll.actionScore > lastRoll.challenge2 ? 'beaten' : ''}`}>
+                      {lastRoll.challenge2}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {canBurnMomentum && (
+                <MenuGroup title="Momentum">
+                  <div className="momentum-option-content">
+                    <span className="momentum-value">{character.conditions.momentum}</span>
+                    <span className="momentum-arrow">→</span>
+                    <span className={`momentum-result momentum-result-${burnOutcome}`}>
+                      {burnOutcome === 'strong' && 'Strong Hit'}
+                      {burnOutcome === 'weak' && 'Weak Hit'}
+                      {burnOutcome === 'miss' && 'Miss'}
+                    </span>
+                  </div>
+                  <MenuItem
+                    label="Burn Momentum"
+                    onClick={burnMomentum}
+                    isButton={true}
+                  />
+                </MenuGroup>
+              )}
+            </>
+          )}
         </NavigationView>
       );
     }
@@ -1405,9 +1655,9 @@ function App() {
           {character.vows.length === 0 ? (
             <MenuGroup>
               <MenuItem 
-                icon="📋" 
                 label="No vows yet" 
                 showChevron={false}
+                muted={true}
               />
             </MenuGroup>
           ) : (
@@ -1555,9 +1805,9 @@ function App() {
           {character.expeditions.length === 0 ? (
             <MenuGroup>
               <MenuItem 
-                icon="📋" 
                 label="No expeditions yet" 
                 showChevron={false}
+                muted={true}
               />
             </MenuGroup>
           ) : (
@@ -1703,9 +1953,9 @@ function App() {
           {character.combatTracks.length === 0 ? (
             <MenuGroup>
               <MenuItem 
-                icon="📋" 
                 label="No active combat" 
                 showChevron={false}
+                muted={true}
               />
             </MenuGroup>
           ) : (
@@ -1853,9 +2103,9 @@ function App() {
           {character.connections.length === 0 ? (
             <MenuGroup>
               <MenuItem 
-                icon="📋" 
                 label="No connections yet" 
                 showChevron={false}
+                muted={true}
               />
             </MenuGroup>
           ) : (
@@ -1961,14 +2211,84 @@ function App() {
       }
     }
 
+    // Sector Detail View
+    if (viewName.startsWith('sector-')) {
+      const sectorId = parseInt(viewName.split('-')[1]);
+      const sector = sectors.find(s => s.id === sectorId);
+      
+      if (sector) {
+        return (
+          <NavigationView title={sector.name} onBack={goBack}>
+            <MenuGroup>
+              <MenuItem 
+                label={`Region: ${getRegionLabel(sector.region)}`}
+                icon={getRegionIcon(sector.region)}
+                showChevron={false}
+              />
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Faction Detail View
+    if (viewName.startsWith('faction-')) {
+      const factionId = parseInt(viewName.split('-')[1]);
+      const faction = factions.find(f => f.id === factionId);
+      
+      if (faction) {
+        return (
+          <NavigationView title={faction.name} onBack={goBack}>
+            <MenuGroup>
+              <MenuItem 
+                label="Faction details coming soon"
+                showChevron={false}
+                muted={true}
+              />
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+    }
+
+    // Setting Truth Detail View
+    if (viewName.startsWith('setting-truth-') && starforgedData) {
+      const truthIndex = parseInt(viewName.split('-')[2]);
+      const truth = starforgedData.settingTruths[truthIndex];
+      
+      if (truth) {
+        return (
+          <NavigationView title={truth.Name} onBack={goBack}>
+            <DetailCard
+              icon="🌌"
+              title={truth.Name}
+              description={truth.Description || ''}
+            />
+            {truth.Options && truth.Options.length > 0 && (
+              <MenuGroup title="Options">
+                {truth.Options.map((option, optionIndex) => (
+                  <MenuItem 
+                    key={optionIndex}
+                    label={option.Name || `Option ${optionIndex + 1}`}
+                    subtitle={option.Description || ''}
+                    showChevron={false}
+                  />
+                ))}
+              </MenuGroup>
+            )}
+          </NavigationView>
+        );
+      }
+    }
+
     // All other views show a simple placeholder
     return (
       <NavigationView title={viewName.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} onBack={goBack}>
         <MenuGroup>
           <MenuItem 
-            icon="📄" 
             label="Content coming soon"
             showChevron={false}
+            muted={true}
           />
         </MenuGroup>
       </NavigationView>
@@ -2003,6 +2323,91 @@ function App() {
       </div>
       
       <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
+      
+      {/* Create Sector Modal */}
+      {showSectorModal && (
+        <div className="modal-overlay" onClick={() => setShowSectorModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">New Sector</h2>
+            </div>
+            <div className="modal-body">
+              <div className="modal-field">
+                <label className="modal-label">Name</label>
+                <input
+                  type="text"
+                  className="modal-input"
+                  value={newSectorName}
+                  onChange={(e) => setNewSectorName(e.target.value)}
+                  placeholder="Enter sector name..."
+                  autoFocus
+                />
+              </div>
+              <div className="modal-field">
+                <label className="modal-label">Region</label>
+                <select
+                  className="modal-select"
+                  value={newSectorRegion}
+                  onChange={(e) => setNewSectorRegion(e.target.value)}
+                >
+                  <option value="terminus">🌟 Terminus</option>
+                  <option value="outlands">🌀 Outlands</option>
+                  <option value="expanse">🌌 Expanse</option>
+                  <option value="void">🕳️ Void</option>
+                </select>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="modal-button modal-cancel" onClick={() => setShowSectorModal(false)}>
+                Cancel
+              </button>
+              <button 
+                className="modal-button modal-create" 
+                onClick={createSector}
+                disabled={!newSectorName.trim()}
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Create Faction Modal */}
+      {showFactionModal && (
+        <div className="modal-overlay" onClick={() => setShowFactionModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">New Faction</h2>
+            </div>
+            <div className="modal-body">
+              <div className="modal-field">
+                <label className="modal-label">Name</label>
+                <input
+                  type="text"
+                  className="modal-input"
+                  value={newFactionName}
+                  onChange={(e) => setNewFactionName(e.target.value)}
+                  placeholder="Enter faction name..."
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="modal-button modal-cancel" onClick={() => setShowFactionModal(false)}>
+                Cancel
+              </button>
+              <button 
+                className="modal-button modal-create" 
+                onClick={createFaction}
+                disabled={!newFactionName.trim()}
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

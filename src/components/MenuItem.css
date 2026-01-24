@@ -123,3 +123,16 @@
 .menu-item-destructive .menu-item-label-button {
   color: #ff3b30;
 }
+
+/* Muted/empty state style */
+.menu-item-muted {
+  cursor: default;
+}
+
+.menu-item-muted:active {
+  background-color: #1c1c1e;
+}
+
+.menu-item-muted .menu-item-label {
+  color: #8e8e93;
+}
