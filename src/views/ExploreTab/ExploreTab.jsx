@@ -7,6 +7,34 @@ import { Modal, ModalField, ModalButton } from '../../components/Modal/Modal';
 import { getRegionIcon, getRegionIconBg, getRegionLabel, getGenericIconBg } from '../../utils/icons';
 import './ExploreTab.css';
 
+// Helper to find move indices from a Starforged link
+const findMoveFromLink = (link, starforgedData) => {
+  if (!link || !link.startsWith('Starforged/Moves/') || !starforgedData) {
+    return null;
+  }
+
+  const parts = link.split('/');
+  if (parts.length < 4) return null;
+
+  const categoryName = parts[2];
+  const moveName = parts[3].replace(/_/g, ' ');
+
+  const catIndex = starforgedData.moveCategories?.findIndex(
+    cat => cat.Name === categoryName
+  );
+
+  if (catIndex === -1 || catIndex === undefined) return null;
+
+  const category = starforgedData.moveCategories[catIndex];
+  const moveIndex = category.Moves?.findIndex(
+    move => move.Name === moveName || move.Name.replace(/\s/g, '_') === parts[3]
+  );
+
+  if (moveIndex === -1 || moveIndex === undefined) return null;
+
+  return { catIndex, moveIndex };
+};
+
 export const ExploreTab = ({ 
   viewName, 
   navigate, 
@@ -252,6 +280,13 @@ export const ExploreTab = ({
     const truth = starforgedData.settingTruths[truthIndex];
 
     if (truth) {
+      const handleLinkClick = (href) => {
+        const moveIndices = findMoveFromLink(href, starforgedData);
+        if (moveIndices) {
+          navigate(`move-${moveIndices.catIndex}-${moveIndices.moveIndex}`);
+        }
+      };
+
       return (
         <NavigationView title={truth.Name} onBack={goBack} {...scrollProps}>
           <DetailCard
@@ -259,6 +294,7 @@ export const ExploreTab = ({
             iconBg={getGenericIconBg('🌌')}
             title={truth.Name}
             description={truth.Description || ''}
+            onLinkClick={handleLinkClick}
           />
           {truth.Options && truth.Options.length > 0 && (
             <MenuGroup title="Options">

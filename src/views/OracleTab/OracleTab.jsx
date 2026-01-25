@@ -6,6 +6,34 @@ import { DetailCard } from '../../components/DetailCard';
 import { getOracleIcon, getOracleIconBg, countOracles, getGenericIconBg } from '../../utils/icons';
 import './OracleTab.css';
 
+// Helper to find move indices from a Starforged link
+const findMoveFromLink = (link, starforgedData) => {
+  if (!link || !link.startsWith('Starforged/Moves/') || !starforgedData) {
+    return null;
+  }
+
+  const parts = link.split('/');
+  if (parts.length < 4) return null;
+
+  const categoryName = parts[2];
+  const moveName = parts[3].replace(/_/g, ' ');
+
+  const catIndex = starforgedData.moveCategories?.findIndex(
+    cat => cat.Name === categoryName
+  );
+
+  if (catIndex === -1 || catIndex === undefined) return null;
+
+  const category = starforgedData.moveCategories[catIndex];
+  const moveIndex = category.Moves?.findIndex(
+    move => move.Name === moveName || move.Name.replace(/\s/g, '_') === parts[3]
+  );
+
+  if (moveIndex === -1 || moveIndex === undefined) return null;
+
+  return { catIndex, moveIndex };
+};
+
 export const OracleTab = ({
   viewName,
   navigate,
@@ -275,6 +303,13 @@ export const OracleTab = ({
     const oracleIsFavorited = isOracleFavorited(oracleKey);
 
     if (oracle) {
+      const handleLinkClick = (href) => {
+        const moveIndices = findMoveFromLink(href, starforgedData);
+        if (moveIndices) {
+          navigate(`move-${moveIndices.catIndex}-${moveIndices.moveIndex}`);
+        }
+      };
+
       return (
         <NavigationView 
           title={oracle.Name} 
@@ -288,6 +323,7 @@ export const OracleTab = ({
             iconBg={getOracleIconBg(category.Name)}
             title={oracle.Name}
             description={oracle.Description || 'Roll to consult this oracle.'}
+            onLinkClick={handleLinkClick}
           />
 
           {oracleTable && (
@@ -339,6 +375,13 @@ export const OracleTab = ({
     const oracleIsFavorited = isOracleFavorited(oracleKey);
 
     if (oracle) {
+      const handleLinkClick = (href) => {
+        const moveIndices = findMoveFromLink(href, starforgedData);
+        if (moveIndices) {
+          navigate(`move-${moveIndices.catIndex}-${moveIndices.moveIndex}`);
+        }
+      };
+
       return (
         <NavigationView 
           title={oracle.Name} 
@@ -352,6 +395,7 @@ export const OracleTab = ({
             iconBg={getOracleIconBg(subCategory.Name)}
             title={oracle.Name}
             description={oracle.Description || 'Roll to consult this oracle.'}
+            onLinkClick={handleLinkClick}
           />
 
           {oracleTable && (
@@ -404,6 +448,13 @@ export const OracleTab = ({
     const oracleIsFavorited = isOracleFavorited(oracleKey);
 
     if (oracle) {
+      const handleLinkClick = (href) => {
+        const moveIndices = findMoveFromLink(href, starforgedData);
+        if (moveIndices) {
+          navigate(`move-${moveIndices.catIndex}-${moveIndices.moveIndex}`);
+        }
+      };
+
       return (
         <NavigationView 
           title={oracle.Name} 
@@ -417,6 +468,7 @@ export const OracleTab = ({
             iconBg={getOracleIconBg(subSubCategory.Name)}
             title={oracle.Name}
             description={oracle.Description || 'Roll to consult this oracle.'}
+            onLinkClick={handleLinkClick}
           />
 
           {oracleTable && (

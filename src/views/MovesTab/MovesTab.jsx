@@ -18,6 +18,37 @@ const getMoveDisplayText = (move) => {
   return move.Text || '';
 };
 
+// Helper to find move indices from a Starforged link (e.g., "Starforged/Moves/Session/End_a_Session")
+const findMoveFromLink = (link, starforgedData) => {
+  if (!link || !link.startsWith('Starforged/Moves/') || !starforgedData) {
+    return null;
+  }
+
+  // Parse the link: Starforged/Moves/{CategoryName}/{MoveName}
+  const parts = link.split('/');
+  if (parts.length < 4) return null;
+
+  const categoryName = parts[2];
+  const moveName = parts[3].replace(/_/g, ' '); // Replace underscores with spaces
+
+  // Find the category index
+  const catIndex = starforgedData.moveCategories?.findIndex(
+    cat => cat.Name === categoryName
+  );
+
+  if (catIndex === -1 || catIndex === undefined) return null;
+
+  // Find the move index within the category
+  const category = starforgedData.moveCategories[catIndex];
+  const moveIndex = category.Moves?.findIndex(
+    move => move.Name === moveName || move.Name.replace(/\s/g, '_') === parts[3]
+  );
+
+  if (moveIndex === -1 || moveIndex === undefined) return null;
+
+  return { catIndex, moveIndex };
+};
+
 export const MovesTab = ({
   viewName,
   navigate,
@@ -147,6 +178,13 @@ export const MovesTab = ({
     const category = starforgedData.moveCategories[index];
 
     if (category) {
+      const handleLinkClick = (href) => {
+        const moveIndices = findMoveFromLink(href, starforgedData);
+        if (moveIndices) {
+          navigate(`move-${moveIndices.catIndex}-${moveIndices.moveIndex}`);
+        }
+      };
+
       return (
         <NavigationView title={category.Name} onBack={goBack} {...scrollProps}>
           {category.Description && (
@@ -155,6 +193,7 @@ export const MovesTab = ({
               iconBg={getMoveIconBg(category.Name)}
               title={category.Name}
               description={category.Description}
+              onLinkClick={handleLinkClick}
             />
           )}
           <MenuGroup>
@@ -186,6 +225,13 @@ export const MovesTab = ({
       const triggerOptions = move.Trigger?.Options || [];
       const hasRollableOptions = triggerOptions.length > 0 && triggerOptions[0].Using;
 
+      const handleLinkClick = (href) => {
+        const moveIndices = findMoveFromLink(href, starforgedData);
+        if (moveIndices) {
+          navigate(`move-${moveIndices.catIndex}-${moveIndices.moveIndex}`);
+        }
+      };
+
       return (
         <NavigationView 
           title={move.Name} 
@@ -200,6 +246,7 @@ export const MovesTab = ({
             iconBg={getMoveIconBg(category.Name)}
             title={move.Name}
             description={triggerText}
+            onLinkClick={handleLinkClick}
           />
 
           {move['Progress Move'] && (
@@ -223,12 +270,13 @@ export const MovesTab = ({
                 const statLower = stat.toLowerCase();
                 const statValue = character?.stats?.[statLower] || 0;
                 const statCapitalized = stat.charAt(0).toUpperCase() + stat.slice(1).toLowerCase();
+                const optionLabel = option.Text || `Using ${statCapitalized}`;
                 return (
                   <MenuItem 
                     key={optIndex}
                     icon={getStatIcon(statLower)}
                     iconBg={getStatIconBg(statLower)}
-                    label={option.Text}
+                    label={optionLabel}
                     value={`+${statValue} (${statCapitalized})`}
                     onClick={() => {
                       // Set stat and generate roll before navigation
@@ -253,21 +301,21 @@ export const MovesTab = ({
                 <MenuItem 
                   label="Strong Hit" 
                   subtitle={move.Outcomes['Strong Hit'].Text}
-                  onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-strong`)}
+                  showChevron={false}
                 />
               )}
               {move.Outcomes['Weak Hit'] && (
                 <MenuItem 
                   label="Weak Hit" 
                   subtitle={move.Outcomes['Weak Hit'].Text}
-                  onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-weak`)}
+                  showChevron={false}
                 />
               )}
               {move.Outcomes.Miss && (
                 <MenuItem 
                   label="Miss" 
                   subtitle={move.Outcomes.Miss.Text}
-                  onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-miss`)}
+                  showChevron={false}
                 />
               )}
             </MenuGroup>
@@ -288,6 +336,25 @@ export const MovesTab = ({
     if (move) {
       const category = starforgedData.moveCategories[catIndex];
       const burnOutcome = getBurnOutcome?.();
+
+      // Custom link component for roll outcomes
+      const LinkRenderer = ({ href, children }) => {
+        const handleClick = (e) => {
+          if (href && href.startsWith('Starforged/Moves/')) {
+            e.preventDefault();
+            const moveIndices = findMoveFromLink(href, starforgedData);
+            if (moveIndices) {
+              navigate(`move-${moveIndices.catIndex}-${moveIndices.moveIndex}`);
+            }
+          }
+        };
+
+        return (
+          <a href={href} onClick={handleClick}>
+            {children}
+          </a>
+        );
+      };
 
       return (
         <NavigationView 
@@ -340,7 +407,10 @@ export const MovesTab = ({
                     <div className="roll-outcome-text-display">
                       {lastRoll.outcome === 'strong' && move.Outcomes['Strong Hit'] && (
                         <>
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{ a: LinkRenderer }}
+                          >
                             {move.Outcomes['Strong Hit'].Text}
                           </ReactMarkdown>
                           {lastRoll.payThePrice && (
@@ -353,7 +423,10 @@ export const MovesTab = ({
                       )}
                       {lastRoll.outcome === 'weak' && move.Outcomes['Weak Hit'] && (
                         <>
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{ a: LinkRenderer }}
+                          >
                             {move.Outcomes['Weak Hit'].Text}
                           </ReactMarkdown>
                           {lastRoll.payThePrice && (
@@ -366,7 +439,10 @@ export const MovesTab = ({
                       )}
                       {lastRoll.outcome === 'miss' && move.Outcomes.Miss && (
                         <>
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{ a: LinkRenderer }}
+                          >
                             {move.Outcomes.Miss.Text}
                           </ReactMarkdown>
                           {lastRoll.payThePrice && (
@@ -423,17 +499,26 @@ export const MovesTab = ({
                     {move.Outcomes && (
                       <div className="momentum-outcome-text-display">
                         {burnOutcome === 'strong' && move.Outcomes['Strong Hit'] && (
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{ a: LinkRenderer }}
+                          >
                             {move.Outcomes['Strong Hit'].Text}
                           </ReactMarkdown>
                         )}
                         {burnOutcome === 'weak' && move.Outcomes['Weak Hit'] && (
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{ a: LinkRenderer }}
+                          >
                             {move.Outcomes['Weak Hit'].Text}
                           </ReactMarkdown>
                         )}
                         {burnOutcome === 'miss' && move.Outcomes.Miss && (
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkGfm]}
+                            components={{ a: LinkRenderer }}
+                          >
                             {move.Outcomes.Miss.Text}
                           </ReactMarkdown>
                         )}
@@ -452,43 +537,6 @@ export const MovesTab = ({
               )}
             </>
           )}
-        </NavigationView>
-      );
-    }
-  }
-
-  // Move Outcome Details
-  if (viewName.startsWith('move-outcome-') && starforgedData) {
-    const parts = viewName.split('-');
-    const catIndex = parseInt(parts[2]);
-    const moveIndex = parseInt(parts[3]);
-    const outcomeType = parts[4];
-    const move = starforgedData.moveCategories[catIndex]?.Moves?.[moveIndex];
-
-    if (move?.Outcomes) {
-      const category = starforgedData.moveCategories[catIndex];
-      let outcomeText = '';
-      let outcomeTitle = '';
-
-      if (outcomeType === 'strong' && move.Outcomes['Strong Hit']) {
-        outcomeText = move.Outcomes['Strong Hit'].Text || '';
-        outcomeTitle = 'Strong Hit';
-      } else if (outcomeType === 'weak' && move.Outcomes['Weak Hit']) {
-        outcomeText = move.Outcomes['Weak Hit'].Text || '';
-        outcomeTitle = 'Weak Hit';
-      } else if (outcomeType === 'miss' && move.Outcomes.Miss) {
-        outcomeText = move.Outcomes.Miss.Text || '';
-        outcomeTitle = 'Miss';
-      }
-
-      return (
-        <NavigationView title={`${move.Name} - ${outcomeTitle}`} onBack={goBack} {...scrollProps}>
-          <DetailCard
-            icon={getMoveIcon(category.Name)}
-            iconBg={getMoveIconBg(category.Name)}
-            title={outcomeTitle}
-            description={outcomeText}
-          />
         </NavigationView>
       );
     }
