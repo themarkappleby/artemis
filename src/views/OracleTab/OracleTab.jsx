@@ -303,8 +303,12 @@ export const OracleTab = ({
     const oracleIsFavorited = isOracleFavorited(oracleKey);
 
     // Check if this is a multi-column oracle
-    const hasMultiColumns = oracle?.Display?.Table?.['Result columns'];
-    const isMultiColumnOracle = hasMultiColumns && hasMultiColumns.length > 1;
+    const hasMultiResultColumns = oracle?.Display?.Table?.['Result columns'];
+    const isMultiResultColumnOracle = hasMultiResultColumns && hasMultiResultColumns.length > 1;
+    
+    // Check if this has multiple roll columns (like Basic Form with Space/Interior/Land/etc)
+    const hasMultiRollColumns = oracle?.Display?.Table?.['Roll columns'];
+    const isMultiRollColumnOracle = hasMultiRollColumns && hasMultiRollColumns.length > 1;
 
     if (oracle) {
       const handleLinkClick = (href) => {
@@ -330,14 +334,54 @@ export const OracleTab = ({
             onLinkClick={handleLinkClick}
           />
 
-          {isMultiColumnOracle ? (
-            // Display separate roll cards for each column
+          {isMultiResultColumnOracle ? (
+            // Display separate roll cards for each result column (like Name)
             <>
               {oracle.Display.Table['Result columns'].map((column, colIndex) => {
                 const columnOracleId = column['Use content from'];
                 const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
                 const columnTable = getOracleTable(columnOracle);
                 const columnKey = `${oracleKey}-col-${colIndex}`;
+                const columnResult = oracleRolls[columnKey];
+                const columnLabel = column.Label.replace(/_/g, ' ');
+
+                return (
+                  <MenuGroup key={colIndex} title={columnLabel}>
+                    {columnResult && (
+                      <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                        <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                          {columnResult.result}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                          Rolled: {columnResult.roll}
+                        </div>
+                      </div>
+                    )}
+                    <MenuItem 
+                      label={`Roll ${columnLabel}`}
+                      onClick={() => rollOracle(columnKey, columnTable)}
+                      isButton={true}
+                    />
+                  </MenuGroup>
+                );
+              })}
+              <MenuGroup>
+                <MenuItem 
+                  icon="📋"
+                  iconBg={getGenericIconBg('📋')}
+                  label="View Oracle Table"
+                  onClick={() => navigate(`oracle-table-${catIndex}-${oracleIndex}`)}
+                />
+              </MenuGroup>
+            </>
+          ) : isMultiRollColumnOracle ? (
+            // Display separate roll cards for each roll column (like Basic Form)
+            <>
+              {oracle.Display.Table['Roll columns'].map((column, colIndex) => {
+                const columnOracleId = column['Use content from'];
+                const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+                const columnTable = getOracleTable(columnOracle);
+                const columnKey = `${oracleKey}-rollcol-${colIndex}`;
                 const columnResult = oracleRolls[columnKey];
                 const columnLabel = column.Label.replace(/_/g, ' ');
 
@@ -419,8 +463,12 @@ export const OracleTab = ({
     const oracleIsFavorited = isOracleFavorited(oracleKey);
 
     // Check if this is a multi-column oracle (like Name)
-    const hasMultiColumns = oracle?.Display?.Table?.['Result columns'];
-    const isMultiColumnOracle = hasMultiColumns && hasMultiColumns.length > 1;
+    const hasMultiResultColumns = oracle?.Display?.Table?.['Result columns'];
+    const isMultiResultColumnOracle = hasMultiResultColumns && hasMultiResultColumns.length > 1;
+    
+    // Check if this has multiple roll columns (like Basic Form with Space/Interior/Land/etc)
+    const hasMultiRollColumns = oracle?.Display?.Table?.['Roll columns'];
+    const isMultiRollColumnOracle = hasMultiRollColumns && hasMultiRollColumns.length > 1;
 
     if (oracle) {
       const handleLinkClick = (href) => {
@@ -446,14 +494,54 @@ export const OracleTab = ({
             onLinkClick={handleLinkClick}
           />
 
-          {isMultiColumnOracle ? (
-            // Display separate roll cards for each column
+          {isMultiResultColumnOracle ? (
+            // Display separate roll cards for each result column (like Name)
             <>
               {oracle.Display.Table['Result columns'].map((column, colIndex) => {
                 const columnOracleId = column['Use content from'];
                 const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
                 const columnTable = getOracleTable(columnOracle);
                 const columnKey = `${oracleKey}-col-${colIndex}`;
+                const columnResult = oracleRolls[columnKey];
+                const columnLabel = column.Label.replace(/_/g, ' ');
+
+                return (
+                  <MenuGroup key={colIndex} title={columnLabel}>
+                    {columnResult && (
+                      <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                        <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                          {columnResult.result}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                          Rolled: {columnResult.roll}
+                        </div>
+                      </div>
+                    )}
+                    <MenuItem 
+                      label={`Roll ${columnLabel}`}
+                      onClick={() => rollOracle(columnKey, columnTable)}
+                      isButton={true}
+                    />
+                  </MenuGroup>
+                );
+              })}
+              <MenuGroup>
+                <MenuItem 
+                  icon="📋"
+                  iconBg={getGenericIconBg('📋')}
+                  label="View Oracle Table"
+                  onClick={() => navigate(`oracle-detail-table-${catIndex}-${subIndex}-${oracleIndex}`)}
+                />
+              </MenuGroup>
+            </>
+          ) : isMultiRollColumnOracle ? (
+            // Display separate roll cards for each roll column (like Basic Form)
+            <>
+              {oracle.Display.Table['Roll columns'].map((column, colIndex) => {
+                const columnOracleId = column['Use content from'];
+                const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+                const columnTable = getOracleTable(columnOracle);
+                const columnKey = `${oracleKey}-rollcol-${colIndex}`;
                 const columnResult = oracleRolls[columnKey];
                 const columnLabel = column.Label.replace(/_/g, ' ');
 
@@ -536,8 +624,12 @@ export const OracleTab = ({
     const oracleIsFavorited = isOracleFavorited(oracleKey);
 
     // Check if this is a multi-column oracle
-    const hasMultiColumns = oracle?.Display?.Table?.['Result columns'];
-    const isMultiColumnOracle = hasMultiColumns && hasMultiColumns.length > 1;
+    const hasMultiResultColumns = oracle?.Display?.Table?.['Result columns'];
+    const isMultiResultColumnOracle = hasMultiResultColumns && hasMultiResultColumns.length > 1;
+    
+    // Check if this has multiple roll columns (like Basic Form with Space/Interior/Land/etc)
+    const hasMultiRollColumns = oracle?.Display?.Table?.['Roll columns'];
+    const isMultiRollColumnOracle = hasMultiRollColumns && hasMultiRollColumns.length > 1;
 
     if (oracle) {
       const handleLinkClick = (href) => {
@@ -563,14 +655,54 @@ export const OracleTab = ({
             onLinkClick={handleLinkClick}
           />
 
-          {isMultiColumnOracle ? (
-            // Display separate roll cards for each column
+          {isMultiResultColumnOracle ? (
+            // Display separate roll cards for each result column (like Name)
             <>
               {oracle.Display.Table['Result columns'].map((column, colIndex) => {
                 const columnOracleId = column['Use content from'];
                 const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
                 const columnTable = getOracleTable(columnOracle);
                 const columnKey = `${oracleKey}-col-${colIndex}`;
+                const columnResult = oracleRolls[columnKey];
+                const columnLabel = column.Label.replace(/_/g, ' ');
+
+                return (
+                  <MenuGroup key={colIndex} title={columnLabel}>
+                    {columnResult && (
+                      <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                        <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                          {columnResult.result}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                          Rolled: {columnResult.roll}
+                        </div>
+                      </div>
+                    )}
+                    <MenuItem 
+                      label={`Roll ${columnLabel}`}
+                      onClick={() => rollOracle(columnKey, columnTable)}
+                      isButton={true}
+                    />
+                  </MenuGroup>
+                );
+              })}
+              <MenuGroup>
+                <MenuItem 
+                  icon="📋"
+                  iconBg={getGenericIconBg('📋')}
+                  label="View Oracle Table"
+                  onClick={() => navigate(`oracle-detail-deep-table-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`)}
+                />
+              </MenuGroup>
+            </>
+          ) : isMultiRollColumnOracle ? (
+            // Display separate roll cards for each roll column (like Basic Form)
+            <>
+              {oracle.Display.Table['Roll columns'].map((column, colIndex) => {
+                const columnOracleId = column['Use content from'];
+                const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+                const columnTable = getOracleTable(columnOracle);
+                const columnKey = `${oracleKey}-rollcol-${colIndex}`;
                 const columnResult = oracleRolls[columnKey];
                 const columnLabel = column.Label.replace(/_/g, ' ');
 
@@ -648,11 +780,14 @@ export const OracleTab = ({
     const oracleTable = getOracleTable(oracle);
 
     // Check if this is a multi-column oracle
-    const hasMultiColumns = oracle?.Display?.Table?.['Result columns'];
-    const isMultiColumnOracle = hasMultiColumns && hasMultiColumns.length > 1;
+    const hasMultiResultColumns = oracle?.Display?.Table?.['Result columns'];
+    const isMultiResultColumnOracle = hasMultiResultColumns && hasMultiResultColumns.length > 1;
+    
+    const hasMultiRollColumns = oracle?.Display?.Table?.['Roll columns'];
+    const isMultiRollColumnOracle = hasMultiRollColumns && hasMultiRollColumns.length > 1;
 
-    if (isMultiColumnOracle) {
-      // Handle multi-column display
+    if (isMultiResultColumnOracle) {
+      // Handle multi result-column display (like Name)
       const columns = oracle.Display.Table['Result columns'];
       const columnTables = columns.map(col => {
         const columnOracleId = col['Use content from'];
@@ -667,6 +802,41 @@ export const OracleTab = ({
         <NavigationView title={`${oracle.Name} - Table`} onBack={goBack} {...scrollProps}>
           <div style={{ padding: '12px', color: '#8e8e93', fontSize: '13px', borderBottom: '0.5px solid #38383a' }}>
             Roll once to get results from all columns, or roll separately for each column.
+          </div>
+          {columnTables.map((columnData, colIndex) => (
+            <MenuGroup key={colIndex} title={columnData.label}>
+              {columnData.table.map((row, rowIndex) => (
+                <MenuItem 
+                  key={rowIndex}
+                  icon="🎲"
+                  iconBg={getGenericIconBg('🎲')}
+                  label={row.Result}
+                  value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
+                  showChevron={false}
+                />
+              ))}
+            </MenuGroup>
+          ))}
+        </NavigationView>
+      );
+    }
+
+    if (isMultiRollColumnOracle) {
+      // Handle multi roll-column display (like Basic Form)
+      const columns = oracle.Display.Table['Roll columns'];
+      const columnTables = columns.map(col => {
+        const columnOracleId = col['Use content from'];
+        const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+        return {
+          label: col.Label.replace(/_/g, ' '),
+          table: getOracleTable(columnOracle) || []
+        };
+      });
+
+      return (
+        <NavigationView title={`${oracle.Name} - Table`} onBack={goBack} {...scrollProps}>
+          <div style={{ padding: '12px', color: '#8e8e93', fontSize: '13px', borderBottom: '0.5px solid #38383a' }}>
+            Each column represents a different environment or context for rolling.
           </div>
           {columnTables.map((columnData, colIndex) => (
             <MenuGroup key={colIndex} title={columnData.label}>
@@ -717,11 +887,14 @@ export const OracleTab = ({
     const oracleTable = getOracleTable(oracle);
 
     // Check if this is a multi-column oracle
-    const hasMultiColumns = oracle?.Display?.Table?.['Result columns'];
-    const isMultiColumnOracle = hasMultiColumns && hasMultiColumns.length > 1;
+    const hasMultiResultColumns = oracle?.Display?.Table?.['Result columns'];
+    const isMultiResultColumnOracle = hasMultiResultColumns && hasMultiResultColumns.length > 1;
+    
+    const hasMultiRollColumns = oracle?.Display?.Table?.['Roll columns'];
+    const isMultiRollColumnOracle = hasMultiRollColumns && hasMultiRollColumns.length > 1;
 
-    if (isMultiColumnOracle) {
-      // Handle multi-column display
+    if (isMultiResultColumnOracle) {
+      // Handle multi result-column display (like Name)
       const columns = oracle.Display.Table['Result columns'];
       const columnTables = columns.map(col => {
         const columnOracleId = col['Use content from'];
@@ -732,13 +905,45 @@ export const OracleTab = ({
         };
       });
 
-      // Get the maximum number of rows (should be 100 for standard oracles)
-      const maxRows = Math.max(...columnTables.map(ct => ct.table.length));
-
       return (
         <NavigationView title={`${oracle.Name} - Table`} onBack={goBack} {...scrollProps}>
           <div style={{ padding: '12px', color: '#8e8e93', fontSize: '13px', borderBottom: '0.5px solid #38383a' }}>
             Roll once to get results from all columns, or roll separately for each column.
+          </div>
+          {columnTables.map((columnData, colIndex) => (
+            <MenuGroup key={colIndex} title={columnData.label}>
+              {columnData.table.map((row, rowIndex) => (
+                <MenuItem 
+                  key={rowIndex}
+                  icon="🎲"
+                  iconBg={getGenericIconBg('🎲')}
+                  label={row.Result}
+                  value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
+                  showChevron={false}
+                />
+              ))}
+            </MenuGroup>
+          ))}
+        </NavigationView>
+      );
+    }
+
+    if (isMultiRollColumnOracle) {
+      // Handle multi roll-column display (like Basic Form)
+      const columns = oracle.Display.Table['Roll columns'];
+      const columnTables = columns.map(col => {
+        const columnOracleId = col['Use content from'];
+        const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+        return {
+          label: col.Label.replace(/_/g, ' '),
+          table: getOracleTable(columnOracle) || []
+        };
+      });
+
+      return (
+        <NavigationView title={`${oracle.Name} - Table`} onBack={goBack} {...scrollProps}>
+          <div style={{ padding: '12px', color: '#8e8e93', fontSize: '13px', borderBottom: '0.5px solid #38383a' }}>
+            Each column represents a different environment or context for rolling.
           </div>
           {columnTables.map((columnData, colIndex) => (
             <MenuGroup key={colIndex} title={columnData.label}>
@@ -790,11 +995,14 @@ export const OracleTab = ({
     const oracleTable = getOracleTable(oracle);
 
     // Check if this is a multi-column oracle
-    const hasMultiColumns = oracle?.Display?.Table?.['Result columns'];
-    const isMultiColumnOracle = hasMultiColumns && hasMultiColumns.length > 1;
+    const hasMultiResultColumns = oracle?.Display?.Table?.['Result columns'];
+    const isMultiResultColumnOracle = hasMultiResultColumns && hasMultiResultColumns.length > 1;
+    
+    const hasMultiRollColumns = oracle?.Display?.Table?.['Roll columns'];
+    const isMultiRollColumnOracle = hasMultiRollColumns && hasMultiRollColumns.length > 1;
 
-    if (isMultiColumnOracle) {
-      // Handle multi-column display
+    if (isMultiResultColumnOracle) {
+      // Handle multi result-column display (like Name)
       const columns = oracle.Display.Table['Result columns'];
       const columnTables = columns.map(col => {
         const columnOracleId = col['Use content from'];
@@ -809,6 +1017,41 @@ export const OracleTab = ({
         <NavigationView title={`${oracle.Name} - Table`} onBack={goBack} {...scrollProps}>
           <div style={{ padding: '12px', color: '#8e8e93', fontSize: '13px', borderBottom: '0.5px solid #38383a' }}>
             Roll once to get results from all columns, or roll separately for each column.
+          </div>
+          {columnTables.map((columnData, colIndex) => (
+            <MenuGroup key={colIndex} title={columnData.label}>
+              {columnData.table.map((row, rowIndex) => (
+                <MenuItem 
+                  key={rowIndex}
+                  icon="🎲"
+                  iconBg={getGenericIconBg('🎲')}
+                  label={row.Result}
+                  value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
+                  showChevron={false}
+                />
+              ))}
+            </MenuGroup>
+          ))}
+        </NavigationView>
+      );
+    }
+
+    if (isMultiRollColumnOracle) {
+      // Handle multi roll-column display (like Basic Form)
+      const columns = oracle.Display.Table['Roll columns'];
+      const columnTables = columns.map(col => {
+        const columnOracleId = col['Use content from'];
+        const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+        return {
+          label: col.Label.replace(/_/g, ' '),
+          table: getOracleTable(columnOracle) || []
+        };
+      });
+
+      return (
+        <NavigationView title={`${oracle.Name} - Table`} onBack={goBack} {...scrollProps}>
+          <div style={{ padding: '12px', color: '#8e8e93', fontSize: '13px', borderBottom: '0.5px solid #38383a' }}>
+            Each column represents a different environment or context for rolling.
           </div>
           {columnTables.map((columnData, colIndex) => (
             <MenuGroup key={colIndex} title={columnData.label}>
