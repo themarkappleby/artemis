@@ -2,7 +2,28 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import './MenuItem.css';
 
-export const MenuItem = ({ icon, iconBg, label, subtitle, value, onClick, showChevron = true, isButton = false, destructive = false, muted = false }) => {
+export const MenuItem = ({ icon, iconBg, label, subtitle, value, onClick, showChevron = true, isButton = false, destructive = false, muted = false, onLinkClick }) => {
+  // Check if label contains markdown links
+  const hasMarkdown = label && (label.includes('[') || label.includes(']('));
+  
+  // Custom link component that handles internal oracle/move links
+  const LinkRenderer = ({ href, children }) => {
+    const handleClick = (e) => {
+      // Check if this is an internal Starforged link
+      if (href && href.startsWith('Starforged/') && onLinkClick) {
+        e.preventDefault();
+        e.stopPropagation();
+        onLinkClick(href);
+      }
+    };
+
+    return (
+      <a href={href} onClick={handleClick}>
+        {children}
+      </a>
+    );
+  };
+  
   if (isButton) {
     return (
       <div className={`menu-item menu-item-button ${destructive ? 'menu-item-destructive' : ''}`} onClick={onClick}>
@@ -12,7 +33,11 @@ export const MenuItem = ({ icon, iconBg, label, subtitle, value, onClick, showCh
   }
   
   return (
-    <div className={`menu-item ${muted ? 'menu-item-muted' : ''}`} onClick={onClick}>
+    <div 
+      className={`menu-item ${muted ? 'menu-item-muted' : ''}`} 
+      onClick={hasMarkdown ? undefined : onClick}
+      style={hasMarkdown ? { cursor: 'default' } : undefined}
+    >
       <div className="menu-item-content">
         {icon && (
           <div 
@@ -23,7 +48,19 @@ export const MenuItem = ({ icon, iconBg, label, subtitle, value, onClick, showCh
           </div>
         )}
         <div className="menu-item-text">
-          <span className="menu-item-label">{label}</span>
+          {hasMarkdown ? (
+            <div className="menu-item-label">
+              <ReactMarkdown
+                components={{
+                  a: LinkRenderer
+                }}
+              >
+                {label}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            <span className="menu-item-label">{label}</span>
+          )}
           {subtitle && <div className="menu-item-subtitle"><ReactMarkdown>{subtitle}</ReactMarkdown></div>}
         </div>
       </div>

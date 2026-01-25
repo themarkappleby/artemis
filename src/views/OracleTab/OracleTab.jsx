@@ -205,27 +205,42 @@ export const OracleTab = ({
     const category = starforgedData.oracleCategories[index];
 
     if (category) {
+      const hasOracles = category.Oracles && category.Oracles.length > 0;
+      const hasCategories = category.Categories && category.Categories.length > 0;
+
       return (
         <NavigationView title={category.Name} onBack={goBack} {...scrollProps}>
-          <MenuGroup>
-            {category.Oracles?.map((oracle, oracleIndex) => (
-              <MenuItem 
-                key={oracle['$id'] || oracleIndex}
-                icon={getOracleIcon(category.Name)}
-                iconBg={getOracleIconBg(category.Name)}
-                label={oracle.Name}
-                onClick={() => navigate(`oracle-${index}-${oracleIndex}`)}
-              />
-            )) || category.Categories?.map((subCategory, subIndex) => (
-              <MenuItem 
-                key={subCategory['$id'] || subIndex}
-                icon={getOracleIcon(subCategory.Name)}
-                iconBg={getOracleIconBg(subCategory.Name)}
-                label={subCategory.Name}
-                onClick={() => navigate(`oracle-sub-${index}-${subIndex}`)}
-              />
-            )) || <MenuItem icon="📄" iconBg={getGenericIconBg('📄')} label="No oracles available" showChevron={false} />}
-          </MenuGroup>
+          {hasOracles && (
+            <MenuGroup title={hasCategories ? "Oracles" : undefined}>
+              {category.Oracles.map((oracle, oracleIndex) => (
+                <MenuItem 
+                  key={oracle['$id'] || oracleIndex}
+                  icon={getOracleIcon(category.Name)}
+                  iconBg={getOracleIconBg(category.Name)}
+                  label={oracle.Name}
+                  onClick={() => navigate(`oracle-${index}-${oracleIndex}`)}
+                />
+              ))}
+            </MenuGroup>
+          )}
+          {hasCategories && (
+            <MenuGroup title={hasOracles ? "Categories" : undefined}>
+              {category.Categories.map((subCategory, subIndex) => (
+                <MenuItem 
+                  key={subCategory['$id'] || subIndex}
+                  icon={getOracleIcon(category.Name)}
+                  iconBg={getOracleIconBg(category.Name)}
+                  label={subCategory.Name}
+                  onClick={() => navigate(`oracle-sub-${index}-${subIndex}`)}
+                />
+              ))}
+            </MenuGroup>
+          )}
+          {!hasOracles && !hasCategories && (
+            <MenuGroup>
+              <MenuItem icon="📄" iconBg={getGenericIconBg('📄')} label="No oracles available" showChevron={false} />
+            </MenuGroup>
+          )}
         </NavigationView>
       );
     }
@@ -236,30 +251,133 @@ export const OracleTab = ({
     const parts = viewName.split('-');
     const catIndex = parseInt(parts[2]);
     const subIndex = parseInt(parts[3]);
-    const subCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex];
+    const parentCategory = starforgedData.oracleCategories[catIndex];
+    const subCategory = parentCategory?.Categories?.[subIndex];
 
     if (subCategory) {
+      const hasOracles = subCategory.Oracles && subCategory.Oracles.length > 0;
+      const hasCategories = subCategory.Categories && subCategory.Categories.length > 0;
+
+      // Check if this is a Location Theme sub-category (has Feature, Peril, Opportunity oracles)
+      const oracleNames = subCategory.Oracles?.map(o => o.Name) || [];
+      const isLocationTheme = oracleNames.includes('Feature') && 
+                              oracleNames.includes('Peril') && 
+                              oracleNames.includes('Opportunity');
+
+      if (isLocationTheme) {
+        // Consolidated Location Theme view
+        const featureOracle = subCategory.Oracles.find(o => o.Name === 'Feature');
+        const perilOracle = subCategory.Oracles.find(o => o.Name === 'Peril');
+        const opportunityOracle = subCategory.Oracles.find(o => o.Name === 'Opportunity');
+
+        const featureKey = `oracle-sub-${catIndex}-${subIndex}-feature`;
+        const perilKey = `oracle-sub-${catIndex}-${subIndex}-peril`;
+        const opportunityKey = `oracle-sub-${catIndex}-${subIndex}-opportunity`;
+
+        const featureResult = oracleRolls[featureKey];
+        const perilResult = oracleRolls[perilKey];
+        const opportunityResult = oracleRolls[opportunityKey];
+
+        return (
+          <NavigationView title={subCategory.Name} onBack={goBack} {...scrollProps}>
+            <DetailCard
+              icon={getOracleIcon(parentCategory.Name)}
+              iconBg={getOracleIconBg(parentCategory.Name)}
+              title={subCategory.Name}
+              description={subCategory.Description || 'A location theme with unique features, perils, and opportunities.'}
+            />
+
+            <MenuGroup title="Feature">
+              {featureResult && (
+                <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                  <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                    {featureResult.result}
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                    Rolled: {featureResult.roll}
+                  </div>
+                </div>
+              )}
+              <MenuItem 
+                label="Roll Feature"
+                onClick={() => rollOracle(featureKey, getOracleTable(featureOracle))}
+                isButton={true}
+              />
+            </MenuGroup>
+
+            <MenuGroup title="Peril">
+              {perilResult && (
+                <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                  <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                    {perilResult.result}
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                    Rolled: {perilResult.roll}
+                  </div>
+                </div>
+              )}
+              <MenuItem 
+                label="Roll Peril"
+                onClick={() => rollOracle(perilKey, getOracleTable(perilOracle))}
+                isButton={true}
+              />
+            </MenuGroup>
+
+            <MenuGroup title="Opportunity">
+              {opportunityResult && (
+                <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                  <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                    {opportunityResult.result}
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                    Rolled: {opportunityResult.roll}
+                  </div>
+                </div>
+              )}
+              <MenuItem 
+                label="Roll Opportunity"
+                onClick={() => rollOracle(opportunityKey, getOracleTable(opportunityOracle))}
+                isButton={true}
+              />
+            </MenuGroup>
+          </NavigationView>
+        );
+      }
+
+      // Default sub-category view (list of oracles/sub-categories)
       return (
         <NavigationView title={subCategory.Name} onBack={goBack} {...scrollProps}>
-          <MenuGroup>
-            {subCategory.Oracles?.map((oracle, oracleIndex) => (
-              <MenuItem 
-                key={oracle['$id'] || oracleIndex}
-                icon={getOracleIcon(subCategory.Name)}
-                iconBg={getOracleIconBg(subCategory.Name)}
-                label={oracle.Name}
-                onClick={() => navigate(`oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`)}
-              />
-            )) || subCategory.Categories?.map((subSubCategory, subSubIndex) => (
-              <MenuItem 
-                key={subSubCategory['$id'] || subSubIndex}
-                icon={getOracleIcon(subSubCategory.Name)}
-                iconBg={getOracleIconBg(subSubCategory.Name)}
-                label={subSubCategory.Name}
-                onClick={() => navigate(`oracle-sub-sub-${catIndex}-${subIndex}-${subSubIndex}`)}
-              />
-            )) || <MenuItem icon="📄" iconBg={getGenericIconBg('📄')} label="No oracles available" showChevron={false} />}
-          </MenuGroup>
+          {hasOracles && (
+            <MenuGroup title={hasCategories ? "Oracles" : undefined}>
+              {subCategory.Oracles.map((oracle, oracleIndex) => (
+                <MenuItem 
+                  key={oracle['$id'] || oracleIndex}
+                  icon={getOracleIcon(subCategory.Name)}
+                  iconBg={getOracleIconBg(subCategory.Name)}
+                  label={oracle.Name}
+                  onClick={() => navigate(`oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`)}
+                />
+              ))}
+            </MenuGroup>
+          )}
+          {hasCategories && (
+            <MenuGroup title={hasOracles ? "Categories" : undefined}>
+              {subCategory.Categories.map((subSubCategory, subSubIndex) => (
+                <MenuItem 
+                  key={subSubCategory['$id'] || subSubIndex}
+                  icon={getOracleIcon(subSubCategory.Name)}
+                  iconBg={getOracleIconBg(subSubCategory.Name)}
+                  label={subSubCategory.Name}
+                  onClick={() => navigate(`oracle-sub-sub-${catIndex}-${subIndex}-${subSubIndex}`)}
+                />
+              ))}
+            </MenuGroup>
+          )}
+          {!hasOracles && !hasCategories && (
+            <MenuGroup>
+              <MenuItem icon="📄" iconBg={getGenericIconBg('📄')} label="No oracles available" showChevron={false} />
+            </MenuGroup>
+          )}
         </NavigationView>
       );
     }
@@ -770,6 +888,88 @@ export const OracleTab = ({
     }
   }
 
+  // Helper to navigate to an oracle or move from a Starforged path
+  const navigateToOracleByPath = (path) => {
+    if (!starforgedData || !path) return;
+
+    // Check if it's a move link
+    if (path.startsWith('Starforged/Moves/')) {
+      const moveIndices = findMoveFromLink(path, starforgedData);
+      if (moveIndices) {
+        navigate(`move-${moveIndices.catIndex}-${moveIndices.moveIndex}`);
+        return;
+      }
+    }
+
+    // Find the oracle or category in the data structure
+    for (let catIndex = 0; catIndex < starforgedData.oracleCategories.length; catIndex++) {
+      const category = starforgedData.oracleCategories[catIndex];
+      
+      // Check if this top-level category matches
+      if (category['$id'] === path) {
+        navigate(`oracle-category-${catIndex}`);
+        return;
+      }
+      
+      // Check direct oracles in category
+      if (category.Oracles) {
+        for (let oracleIndex = 0; oracleIndex < category.Oracles.length; oracleIndex++) {
+          const oracle = category.Oracles[oracleIndex];
+          if (oracle['$id'] === path) {
+            navigate(`oracle-${catIndex}-${oracleIndex}`);
+            return;
+          }
+        }
+      }
+      
+      // Check sub-categories
+      if (category.Categories) {
+        for (let subIndex = 0; subIndex < category.Categories.length; subIndex++) {
+          const subCat = category.Categories[subIndex];
+          
+          // Check if this sub-category matches
+          if (subCat['$id'] === path) {
+            navigate(`oracle-sub-${catIndex}-${subIndex}`);
+            return;
+          }
+          
+          if (subCat.Oracles) {
+            for (let oracleIndex = 0; oracleIndex < subCat.Oracles.length; oracleIndex++) {
+              const oracle = subCat.Oracles[oracleIndex];
+              if (oracle['$id'] === path) {
+                navigate(`oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`);
+                return;
+              }
+            }
+          }
+          
+          // Check deeply nested categories
+          if (subCat.Categories) {
+            for (let subSubIndex = 0; subSubIndex < subCat.Categories.length; subSubIndex++) {
+              const subSubCat = subCat.Categories[subSubIndex];
+              
+              // Check if this sub-sub-category matches
+              if (subSubCat['$id'] === path) {
+                navigate(`oracle-sub-sub-${catIndex}-${subIndex}-${subSubIndex}`);
+                return;
+              }
+              
+              if (subSubCat.Oracles) {
+                for (let oracleIndex = 0; oracleIndex < subSubCat.Oracles.length; oracleIndex++) {
+                  const oracle = subSubCat.Oracles[oracleIndex];
+                  if (oracle['$id'] === path) {
+                    navigate(`oracle-detail-deep-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`);
+                    return;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
   // Oracle Table (direct from category)
   if (viewName.startsWith('oracle-table-') && viewName.split('-').length === 4 && starforgedData) {
     const parts = viewName.split('-');
@@ -813,6 +1013,7 @@ export const OracleTab = ({
                   label={row.Result}
                   value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
                   showChevron={false}
+                  onLinkClick={navigateToOracleByPath}
                 />
               ))}
             </MenuGroup>
@@ -848,6 +1049,7 @@ export const OracleTab = ({
                   label={row.Result}
                   value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
                   showChevron={false}
+                  onLinkClick={navigateToOracleByPath}
                 />
               ))}
             </MenuGroup>
@@ -868,6 +1070,7 @@ export const OracleTab = ({
                 label={row.Result}
                 value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
                 showChevron={false}
+                onLinkClick={navigateToOracleByPath}
               />
             ))}
           </MenuGroup>
@@ -920,6 +1123,7 @@ export const OracleTab = ({
                   label={row.Result}
                   value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
                   showChevron={false}
+                  onLinkClick={navigateToOracleByPath}
                 />
               ))}
             </MenuGroup>
@@ -955,6 +1159,7 @@ export const OracleTab = ({
                   label={row.Result}
                   value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
                   showChevron={false}
+                  onLinkClick={navigateToOracleByPath}
                 />
               ))}
             </MenuGroup>
@@ -975,6 +1180,7 @@ export const OracleTab = ({
                 label={row.Result}
                 value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
                 showChevron={false}
+                onLinkClick={navigateToOracleByPath}
               />
             ))}
           </MenuGroup>
@@ -1028,6 +1234,7 @@ export const OracleTab = ({
                   label={row.Result}
                   value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
                   showChevron={false}
+                  onLinkClick={navigateToOracleByPath}
                 />
               ))}
             </MenuGroup>
@@ -1063,6 +1270,7 @@ export const OracleTab = ({
                   label={row.Result}
                   value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
                   showChevron={false}
+                  onLinkClick={navigateToOracleByPath}
                 />
               ))}
             </MenuGroup>
@@ -1083,6 +1291,7 @@ export const OracleTab = ({
                 label={row.Result}
                 value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
                 showChevron={false}
+                onLinkClick={navigateToOracleByPath}
               />
             ))}
           </MenuGroup>
