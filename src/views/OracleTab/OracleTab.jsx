@@ -662,6 +662,38 @@ export const OracleTab = ({
                 />
               </MenuGroup>
             </>
+          ) : oracle.Oracles && oracle.Oracles.length > 0 ? (
+            // Handle oracles with nested sub-oracles (like Ask the Oracle)
+            <>
+              {oracle.Oracles.map((subOracle, subIndex) => {
+                const subOracleTable = getOracleTable(subOracle);
+                const subOracleKey = `${oracleKey}-sub-${subIndex}`;
+                const subOracleResult = oracleRolls[subOracleKey];
+                // Extract percentage from table for display (e.g., "Almost Certain" shows "90%")
+                const yesEntry = subOracleTable?.find(row => row.Result === 'Yes');
+                const percentage = yesEntry ? `${yesEntry.Ceiling}%` : '';
+
+                return (
+                  <MenuGroup key={subIndex} title={`${subOracle.Name}${percentage ? ` (${percentage})` : ''}`}>
+                    {subOracleResult && (
+                      <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                        <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                          {renderOracleResult(subOracleResult.result)}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                          Rolled: {subOracleResult.roll}
+                        </div>
+                      </div>
+                    )}
+                    <MenuItem 
+                      label={`Roll ${subOracle.Name}`}
+                      onClick={() => rollOracle(subOracleKey, subOracleTable)}
+                      isButton={true}
+                    />
+                  </MenuGroup>
+                );
+              })}
+            </>
           ) : null}
         </NavigationView>
       );
@@ -821,6 +853,37 @@ export const OracleTab = ({
                   onClick={() => navigate(`oracle-detail-table-${catIndex}-${subIndex}-${oracleIndex}`)}
                 />
               </MenuGroup>
+            </>
+          ) : oracle.Oracles && oracle.Oracles.length > 0 ? (
+            // Handle oracles with nested sub-oracles (like Ask the Oracle)
+            <>
+              {oracle.Oracles.map((subOracle, subIndex2) => {
+                const subOracleTable = getOracleTable(subOracle);
+                const subOracleKey = `${oracleKey}-sub-${subIndex2}`;
+                const subOracleResult = oracleRolls[subOracleKey];
+                const yesEntry = subOracleTable?.find(row => row.Result === 'Yes');
+                const percentage = yesEntry ? `${yesEntry.Ceiling}%` : '';
+
+                return (
+                  <MenuGroup key={subIndex2} title={`${subOracle.Name}${percentage ? ` (${percentage})` : ''}`}>
+                    {subOracleResult && (
+                      <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                        <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                          {renderOracleResult(subOracleResult.result)}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                          Rolled: {subOracleResult.roll}
+                        </div>
+                      </div>
+                    )}
+                    <MenuItem 
+                      label={`Roll ${subOracle.Name}`}
+                      onClick={() => rollOracle(subOracleKey, subOracleTable)}
+                      isButton={true}
+                    />
+                  </MenuGroup>
+                );
+              })}
             </>
           ) : null}
         </NavigationView>
@@ -982,6 +1045,37 @@ export const OracleTab = ({
                   onClick={() => navigate(`oracle-detail-deep-table-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`)}
                 />
               </MenuGroup>
+            </>
+          ) : oracle.Oracles && oracle.Oracles.length > 0 ? (
+            // Handle oracles with nested sub-oracles (like Ask the Oracle)
+            <>
+              {oracle.Oracles.map((subOracle, subIdx) => {
+                const subOracleTable = getOracleTable(subOracle);
+                const subOracleKey = `${oracleKey}-sub-${subIdx}`;
+                const subOracleResult = oracleRolls[subOracleKey];
+                const yesEntry = subOracleTable?.find(row => row.Result === 'Yes');
+                const percentage = yesEntry ? `${yesEntry.Ceiling}%` : '';
+
+                return (
+                  <MenuGroup key={subIdx} title={`${subOracle.Name}${percentage ? ` (${percentage})` : ''}`}>
+                    {subOracleResult && (
+                      <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                        <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                          {renderOracleResult(subOracleResult.result)}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                          Rolled: {subOracleResult.roll}
+                        </div>
+                      </div>
+                    )}
+                    <MenuItem 
+                      label={`Roll ${subOracle.Name}`}
+                      onClick={() => rollOracle(subOracleKey, subOracleTable)}
+                      isButton={true}
+                    />
+                  </MenuGroup>
+                );
+              })}
             </>
           ) : null}
         </NavigationView>
