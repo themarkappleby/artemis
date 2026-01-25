@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import { NavigationView } from '../../components/NavigationView';
 import { MenuGroup } from '../../components/MenuGroup';
 import { MenuItem } from '../../components/MenuItem';
@@ -111,6 +112,106 @@ export const OracleTab = ({
     }
     return oracleId;
   };
+
+  // Helper to navigate to an oracle or move from a Starforged path
+  const navigateToOracleByPath = (path) => {
+    if (!starforgedData || !path) return;
+
+    // Check if it's a move link
+    if (path.startsWith('Starforged/Moves/')) {
+      const moveIndices = findMoveFromLink(path, starforgedData);
+      if (moveIndices) {
+        navigate(`move-${moveIndices.catIndex}-${moveIndices.moveIndex}`);
+        return;
+      }
+    }
+
+    // Find the oracle or category in the data structure
+    for (let catIndex = 0; catIndex < starforgedData.oracleCategories.length; catIndex++) {
+      const category = starforgedData.oracleCategories[catIndex];
+      
+      // Check if this top-level category matches
+      if (category['$id'] === path) {
+        navigate(`oracle-category-${catIndex}`);
+        return;
+      }
+      
+      // Check direct oracles in category
+      if (category.Oracles) {
+        for (let oracleIndex = 0; oracleIndex < category.Oracles.length; oracleIndex++) {
+          const oracle = category.Oracles[oracleIndex];
+          if (oracle['$id'] === path) {
+            navigate(`oracle-${catIndex}-${oracleIndex}`);
+            return;
+          }
+        }
+      }
+      
+      // Check sub-categories
+      if (category.Categories) {
+        for (let subIndex = 0; subIndex < category.Categories.length; subIndex++) {
+          const subCat = category.Categories[subIndex];
+          
+          // Check if this sub-category matches
+          if (subCat['$id'] === path) {
+            navigate(`oracle-sub-${catIndex}-${subIndex}`);
+            return;
+          }
+          
+          if (subCat.Oracles) {
+            for (let oracleIndex = 0; oracleIndex < subCat.Oracles.length; oracleIndex++) {
+              const oracle = subCat.Oracles[oracleIndex];
+              if (oracle['$id'] === path) {
+                navigate(`oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`);
+                return;
+              }
+            }
+          }
+          
+          // Check deeply nested categories
+          if (subCat.Categories) {
+            for (let subSubIndex = 0; subSubIndex < subCat.Categories.length; subSubIndex++) {
+              const subSubCat = subCat.Categories[subSubIndex];
+              
+              // Check if this sub-sub-category matches
+              if (subSubCat['$id'] === path) {
+                navigate(`oracle-sub-sub-${catIndex}-${subIndex}-${subSubIndex}`);
+                return;
+              }
+              
+              if (subSubCat.Oracles) {
+                for (let oracleIndex = 0; oracleIndex < subSubCat.Oracles.length; oracleIndex++) {
+                  const oracle = subSubCat.Oracles[oracleIndex];
+                  if (oracle['$id'] === path) {
+                    navigate(`oracle-detail-deep-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`);
+                    return;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  // Helper component for rendering oracle results with clickable links
+  const OracleResultLink = ({ href, children }) => {
+    const handleClick = (e) => {
+      if (href && href.startsWith('Starforged/')) {
+        e.preventDefault();
+        navigateToOracleByPath(href);
+      }
+    };
+    return <a href={href} onClick={handleClick} style={{ color: '#007AFF', textDecoration: 'none' }}>{children}</a>;
+  };
+
+  const renderOracleResult = (result) => (
+    <ReactMarkdown components={{ a: OracleResultLink, p: ({ children }) => <>{children}</> }}>
+      {result}
+    </ReactMarkdown>
+  );
+
   // Oracle Home
   if (viewName === 'oracle-home') {
     const oraclesToDisplay = editingOracleFavorites ? tempOracleFavoriteOrder : favoritedOracles;
@@ -291,7 +392,7 @@ export const OracleTab = ({
               {featureResult && (
                 <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
                   <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                    {featureResult.result}
+                    {renderOracleResult(featureResult.result)}
                   </div>
                   <div style={{ fontSize: '13px', color: '#8e8e93' }}>
                     Rolled: {featureResult.roll}
@@ -309,7 +410,7 @@ export const OracleTab = ({
               {perilResult && (
                 <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
                   <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                    {perilResult.result}
+                    {renderOracleResult(perilResult.result)}
                   </div>
                   <div style={{ fontSize: '13px', color: '#8e8e93' }}>
                     Rolled: {perilResult.roll}
@@ -327,7 +428,7 @@ export const OracleTab = ({
               {opportunityResult && (
                 <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
                   <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                    {opportunityResult.result}
+                    {renderOracleResult(opportunityResult.result)}
                   </div>
                   <div style={{ fontSize: '13px', color: '#8e8e93' }}>
                     Rolled: {opportunityResult.roll}
@@ -468,7 +569,7 @@ export const OracleTab = ({
                     {columnResult && (
                       <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
                         <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                          {columnResult.result}
+                          {renderOracleResult(columnResult.result)}
                         </div>
                         <div style={{ fontSize: '13px', color: '#8e8e93' }}>
                           Rolled: {columnResult.roll}
@@ -508,7 +609,7 @@ export const OracleTab = ({
                     {columnResult && (
                       <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
                         <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                          {columnResult.result}
+                          {renderOracleResult(columnResult.result)}
                         </div>
                         <div style={{ fontSize: '13px', color: '#8e8e93' }}>
                           Rolled: {columnResult.roll}
@@ -538,7 +639,7 @@ export const OracleTab = ({
                 {rolledResult && (
                   <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
                     <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                      {rolledResult.result}
+                      {renderOracleResult(rolledResult.result)}
                     </div>
                     <div style={{ fontSize: '13px', color: '#8e8e93' }}>
                       Rolled: {rolledResult.roll}
@@ -628,7 +729,7 @@ export const OracleTab = ({
                     {columnResult && (
                       <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
                         <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                          {columnResult.result}
+                          {renderOracleResult(columnResult.result)}
                         </div>
                         <div style={{ fontSize: '13px', color: '#8e8e93' }}>
                           Rolled: {columnResult.roll}
@@ -668,7 +769,7 @@ export const OracleTab = ({
                     {columnResult && (
                       <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
                         <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                          {columnResult.result}
+                          {renderOracleResult(columnResult.result)}
                         </div>
                         <div style={{ fontSize: '13px', color: '#8e8e93' }}>
                           Rolled: {columnResult.roll}
@@ -698,7 +799,7 @@ export const OracleTab = ({
                 {rolledResult && (
                   <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
                     <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                      {rolledResult.result}
+                      {renderOracleResult(rolledResult.result)}
                     </div>
                     <div style={{ fontSize: '13px', color: '#8e8e93' }}>
                       Rolled: {rolledResult.roll}
@@ -789,7 +890,7 @@ export const OracleTab = ({
                     {columnResult && (
                       <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
                         <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                          {columnResult.result}
+                          {renderOracleResult(columnResult.result)}
                         </div>
                         <div style={{ fontSize: '13px', color: '#8e8e93' }}>
                           Rolled: {columnResult.roll}
@@ -829,7 +930,7 @@ export const OracleTab = ({
                     {columnResult && (
                       <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
                         <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                          {columnResult.result}
+                          {renderOracleResult(columnResult.result)}
                         </div>
                         <div style={{ fontSize: '13px', color: '#8e8e93' }}>
                           Rolled: {columnResult.roll}
@@ -859,7 +960,7 @@ export const OracleTab = ({
                 {rolledResult && (
                   <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
                     <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
-                      {rolledResult.result}
+                      {renderOracleResult(rolledResult.result)}
                     </div>
                     <div style={{ fontSize: '13px', color: '#8e8e93' }}>
                       Rolled: {rolledResult.roll}
@@ -887,88 +988,6 @@ export const OracleTab = ({
       );
     }
   }
-
-  // Helper to navigate to an oracle or move from a Starforged path
-  const navigateToOracleByPath = (path) => {
-    if (!starforgedData || !path) return;
-
-    // Check if it's a move link
-    if (path.startsWith('Starforged/Moves/')) {
-      const moveIndices = findMoveFromLink(path, starforgedData);
-      if (moveIndices) {
-        navigate(`move-${moveIndices.catIndex}-${moveIndices.moveIndex}`);
-        return;
-      }
-    }
-
-    // Find the oracle or category in the data structure
-    for (let catIndex = 0; catIndex < starforgedData.oracleCategories.length; catIndex++) {
-      const category = starforgedData.oracleCategories[catIndex];
-      
-      // Check if this top-level category matches
-      if (category['$id'] === path) {
-        navigate(`oracle-category-${catIndex}`);
-        return;
-      }
-      
-      // Check direct oracles in category
-      if (category.Oracles) {
-        for (let oracleIndex = 0; oracleIndex < category.Oracles.length; oracleIndex++) {
-          const oracle = category.Oracles[oracleIndex];
-          if (oracle['$id'] === path) {
-            navigate(`oracle-${catIndex}-${oracleIndex}`);
-            return;
-          }
-        }
-      }
-      
-      // Check sub-categories
-      if (category.Categories) {
-        for (let subIndex = 0; subIndex < category.Categories.length; subIndex++) {
-          const subCat = category.Categories[subIndex];
-          
-          // Check if this sub-category matches
-          if (subCat['$id'] === path) {
-            navigate(`oracle-sub-${catIndex}-${subIndex}`);
-            return;
-          }
-          
-          if (subCat.Oracles) {
-            for (let oracleIndex = 0; oracleIndex < subCat.Oracles.length; oracleIndex++) {
-              const oracle = subCat.Oracles[oracleIndex];
-              if (oracle['$id'] === path) {
-                navigate(`oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`);
-                return;
-              }
-            }
-          }
-          
-          // Check deeply nested categories
-          if (subCat.Categories) {
-            for (let subSubIndex = 0; subSubIndex < subCat.Categories.length; subSubIndex++) {
-              const subSubCat = subCat.Categories[subSubIndex];
-              
-              // Check if this sub-sub-category matches
-              if (subSubCat['$id'] === path) {
-                navigate(`oracle-sub-sub-${catIndex}-${subIndex}-${subSubIndex}`);
-                return;
-              }
-              
-              if (subSubCat.Oracles) {
-                for (let oracleIndex = 0; oracleIndex < subSubCat.Oracles.length; oracleIndex++) {
-                  const oracle = subSubCat.Oracles[oracleIndex];
-                  if (oracle['$id'] === path) {
-                    navigate(`oracle-detail-deep-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`);
-                    return;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  };
 
   // Oracle Table (direct from category)
   if (viewName.startsWith('oracle-table-') && viewName.split('-').length === 4 && starforgedData) {
