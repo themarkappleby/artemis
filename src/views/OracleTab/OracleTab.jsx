@@ -302,6 +302,10 @@ export const OracleTab = ({
     const oracleTable = getOracleTable(oracle);
     const oracleIsFavorited = isOracleFavorited(oracleKey);
 
+    // Check if this is a multi-column oracle
+    const hasMultiColumns = oracle?.Display?.Table?.['Result columns'];
+    const isMultiColumnOracle = hasMultiColumns && hasMultiColumns.length > 1;
+
     if (oracle) {
       const handleLinkClick = (href) => {
         const moveIndices = findMoveFromLink(href, starforgedData);
@@ -326,7 +330,47 @@ export const OracleTab = ({
             onLinkClick={handleLinkClick}
           />
 
-          {oracleTable && (
+          {isMultiColumnOracle ? (
+            // Display separate roll cards for each column
+            <>
+              {oracle.Display.Table['Result columns'].map((column, colIndex) => {
+                const columnOracleId = column['Use content from'];
+                const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+                const columnTable = getOracleTable(columnOracle);
+                const columnKey = `${oracleKey}-col-${colIndex}`;
+                const columnResult = oracleRolls[columnKey];
+                const columnLabel = column.Label.replace(/_/g, ' ');
+
+                return (
+                  <MenuGroup key={colIndex} title={columnLabel}>
+                    {columnResult && (
+                      <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                        <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                          {columnResult.result}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                          Rolled: {columnResult.roll}
+                        </div>
+                      </div>
+                    )}
+                    <MenuItem 
+                      label={`Roll ${columnLabel}`}
+                      onClick={() => rollOracle(columnKey, columnTable)}
+                      isButton={true}
+                    />
+                  </MenuGroup>
+                );
+              })}
+              <MenuGroup>
+                <MenuItem 
+                  icon="📋"
+                  iconBg={getGenericIconBg('📋')}
+                  label="View Oracle Table"
+                  onClick={() => navigate(`oracle-table-${catIndex}-${oracleIndex}`)}
+                />
+              </MenuGroup>
+            </>
+          ) : oracleTable ? (
             <>
               <MenuGroup>
                 {rolledResult && (
@@ -355,7 +399,7 @@ export const OracleTab = ({
                 />
               </MenuGroup>
             </>
-          )}
+          ) : null}
         </NavigationView>
       );
     }
@@ -373,6 +417,10 @@ export const OracleTab = ({
     const rolledResult = oracleRolls[oracleKey];
     const oracleTable = getOracleTable(oracle);
     const oracleIsFavorited = isOracleFavorited(oracleKey);
+
+    // Check if this is a multi-column oracle (like Name)
+    const hasMultiColumns = oracle?.Display?.Table?.['Result columns'];
+    const isMultiColumnOracle = hasMultiColumns && hasMultiColumns.length > 1;
 
     if (oracle) {
       const handleLinkClick = (href) => {
@@ -398,7 +446,47 @@ export const OracleTab = ({
             onLinkClick={handleLinkClick}
           />
 
-          {oracleTable && (
+          {isMultiColumnOracle ? (
+            // Display separate roll cards for each column
+            <>
+              {oracle.Display.Table['Result columns'].map((column, colIndex) => {
+                const columnOracleId = column['Use content from'];
+                const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+                const columnTable = getOracleTable(columnOracle);
+                const columnKey = `${oracleKey}-col-${colIndex}`;
+                const columnResult = oracleRolls[columnKey];
+                const columnLabel = column.Label.replace(/_/g, ' ');
+
+                return (
+                  <MenuGroup key={colIndex} title={columnLabel}>
+                    {columnResult && (
+                      <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                        <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                          {columnResult.result}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                          Rolled: {columnResult.roll}
+                        </div>
+                      </div>
+                    )}
+                    <MenuItem 
+                      label={`Roll ${columnLabel}`}
+                      onClick={() => rollOracle(columnKey, columnTable)}
+                      isButton={true}
+                    />
+                  </MenuGroup>
+                );
+              })}
+              <MenuGroup>
+                <MenuItem 
+                  icon="📋"
+                  iconBg={getGenericIconBg('📋')}
+                  label="View Oracle Table"
+                  onClick={() => navigate(`oracle-detail-table-${catIndex}-${subIndex}-${oracleIndex}`)}
+                />
+              </MenuGroup>
+            </>
+          ) : oracleTable ? (
             <>
               <MenuGroup>
                 {rolledResult && (
@@ -427,7 +515,7 @@ export const OracleTab = ({
                 />
               </MenuGroup>
             </>
-          )}
+          ) : null}
         </NavigationView>
       );
     }
@@ -446,6 +534,10 @@ export const OracleTab = ({
     const rolledResult = oracleRolls[oracleKey];
     const oracleTable = getOracleTable(oracle);
     const oracleIsFavorited = isOracleFavorited(oracleKey);
+
+    // Check if this is a multi-column oracle
+    const hasMultiColumns = oracle?.Display?.Table?.['Result columns'];
+    const isMultiColumnOracle = hasMultiColumns && hasMultiColumns.length > 1;
 
     if (oracle) {
       const handleLinkClick = (href) => {
@@ -471,7 +563,47 @@ export const OracleTab = ({
             onLinkClick={handleLinkClick}
           />
 
-          {oracleTable && (
+          {isMultiColumnOracle ? (
+            // Display separate roll cards for each column
+            <>
+              {oracle.Display.Table['Result columns'].map((column, colIndex) => {
+                const columnOracleId = column['Use content from'];
+                const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+                const columnTable = getOracleTable(columnOracle);
+                const columnKey = `${oracleKey}-col-${colIndex}`;
+                const columnResult = oracleRolls[columnKey];
+                const columnLabel = column.Label.replace(/_/g, ' ');
+
+                return (
+                  <MenuGroup key={colIndex} title={columnLabel}>
+                    {columnResult && (
+                      <div style={{ padding: '16px', borderBottom: '0.5px solid #38383a' }}>
+                        <div style={{ fontSize: '17px', fontWeight: '600', color: '#ffffff', marginBottom: '4px' }}>
+                          {columnResult.result}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#8e8e93' }}>
+                          Rolled: {columnResult.roll}
+                        </div>
+                      </div>
+                    )}
+                    <MenuItem 
+                      label={`Roll ${columnLabel}`}
+                      onClick={() => rollOracle(columnKey, columnTable)}
+                      isButton={true}
+                    />
+                  </MenuGroup>
+                );
+              })}
+              <MenuGroup>
+                <MenuItem 
+                  icon="📋"
+                  iconBg={getGenericIconBg('📋')}
+                  label="View Oracle Table"
+                  onClick={() => navigate(`oracle-detail-deep-table-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`)}
+                />
+              </MenuGroup>
+            </>
+          ) : oracleTable ? (
             <>
               <MenuGroup>
                 {rolledResult && (
@@ -500,7 +632,7 @@ export const OracleTab = ({
                 />
               </MenuGroup>
             </>
-          )}
+          ) : null}
         </NavigationView>
       );
     }
@@ -514,6 +646,45 @@ export const OracleTab = ({
     const category = starforgedData.oracleCategories[catIndex];
     const oracle = category?.Oracles?.[oracleIndex];
     const oracleTable = getOracleTable(oracle);
+
+    // Check if this is a multi-column oracle
+    const hasMultiColumns = oracle?.Display?.Table?.['Result columns'];
+    const isMultiColumnOracle = hasMultiColumns && hasMultiColumns.length > 1;
+
+    if (isMultiColumnOracle) {
+      // Handle multi-column display
+      const columns = oracle.Display.Table['Result columns'];
+      const columnTables = columns.map(col => {
+        const columnOracleId = col['Use content from'];
+        const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+        return {
+          label: col.Label.replace(/_/g, ' '),
+          table: getOracleTable(columnOracle) || []
+        };
+      });
+
+      return (
+        <NavigationView title={`${oracle.Name} - Table`} onBack={goBack} {...scrollProps}>
+          <div style={{ padding: '12px', color: '#8e8e93', fontSize: '13px', borderBottom: '0.5px solid #38383a' }}>
+            Roll once to get results from all columns, or roll separately for each column.
+          </div>
+          {columnTables.map((columnData, colIndex) => (
+            <MenuGroup key={colIndex} title={columnData.label}>
+              {columnData.table.map((row, rowIndex) => (
+                <MenuItem 
+                  key={rowIndex}
+                  icon="🎲"
+                  iconBg={getGenericIconBg('🎲')}
+                  label={row.Result}
+                  value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
+                  showChevron={false}
+                />
+              ))}
+            </MenuGroup>
+          ))}
+        </NavigationView>
+      );
+    }
 
     if (oracleTable) {
       return (
@@ -545,6 +716,48 @@ export const OracleTab = ({
     const oracle = subCategory?.Oracles?.[oracleIndex];
     const oracleTable = getOracleTable(oracle);
 
+    // Check if this is a multi-column oracle
+    const hasMultiColumns = oracle?.Display?.Table?.['Result columns'];
+    const isMultiColumnOracle = hasMultiColumns && hasMultiColumns.length > 1;
+
+    if (isMultiColumnOracle) {
+      // Handle multi-column display
+      const columns = oracle.Display.Table['Result columns'];
+      const columnTables = columns.map(col => {
+        const columnOracleId = col['Use content from'];
+        const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+        return {
+          label: col.Label.replace(/_/g, ' '),
+          table: getOracleTable(columnOracle) || []
+        };
+      });
+
+      // Get the maximum number of rows (should be 100 for standard oracles)
+      const maxRows = Math.max(...columnTables.map(ct => ct.table.length));
+
+      return (
+        <NavigationView title={`${oracle.Name} - Table`} onBack={goBack} {...scrollProps}>
+          <div style={{ padding: '12px', color: '#8e8e93', fontSize: '13px', borderBottom: '0.5px solid #38383a' }}>
+            Roll once to get results from all columns, or roll separately for each column.
+          </div>
+          {columnTables.map((columnData, colIndex) => (
+            <MenuGroup key={colIndex} title={columnData.label}>
+              {columnData.table.map((row, rowIndex) => (
+                <MenuItem 
+                  key={rowIndex}
+                  icon="🎲"
+                  iconBg={getGenericIconBg('🎲')}
+                  label={row.Result}
+                  value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
+                  showChevron={false}
+                />
+              ))}
+            </MenuGroup>
+          ))}
+        </NavigationView>
+      );
+    }
+
     if (oracleTable) {
       return (
         <NavigationView title={`${oracle.Name} - Table`} onBack={goBack} {...scrollProps}>
@@ -575,6 +788,45 @@ export const OracleTab = ({
     const subSubCategory = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex]?.Categories?.[subSubIndex];
     const oracle = subSubCategory?.Oracles?.[oracleIndex];
     const oracleTable = getOracleTable(oracle);
+
+    // Check if this is a multi-column oracle
+    const hasMultiColumns = oracle?.Display?.Table?.['Result columns'];
+    const isMultiColumnOracle = hasMultiColumns && hasMultiColumns.length > 1;
+
+    if (isMultiColumnOracle) {
+      // Handle multi-column display
+      const columns = oracle.Display.Table['Result columns'];
+      const columnTables = columns.map(col => {
+        const columnOracleId = col['Use content from'];
+        const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+        return {
+          label: col.Label.replace(/_/g, ' '),
+          table: getOracleTable(columnOracle) || []
+        };
+      });
+
+      return (
+        <NavigationView title={`${oracle.Name} - Table`} onBack={goBack} {...scrollProps}>
+          <div style={{ padding: '12px', color: '#8e8e93', fontSize: '13px', borderBottom: '0.5px solid #38383a' }}>
+            Roll once to get results from all columns, or roll separately for each column.
+          </div>
+          {columnTables.map((columnData, colIndex) => (
+            <MenuGroup key={colIndex} title={columnData.label}>
+              {columnData.table.map((row, rowIndex) => (
+                <MenuItem 
+                  key={rowIndex}
+                  icon="🎲"
+                  iconBg={getGenericIconBg('🎲')}
+                  label={row.Result}
+                  value={`${row.Floor || row.Chance}-${row.Ceiling || ''}`}
+                  showChevron={false}
+                />
+              ))}
+            </MenuGroup>
+          ))}
+        </NavigationView>
+      );
+    }
 
     if (oracleTable) {
       return (
