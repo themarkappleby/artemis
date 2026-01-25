@@ -94,10 +94,12 @@
 
 /* Table styling */
 .detail-card-description table {
-  width: 100%;
+  width: calc(100% + 40px);
   border-collapse: collapse;
-  margin: 12px 0;
+  margin: 12px -20px;
   font-size: 14px;
+  table-layout: auto;
+  display: table;
 }
 
 .detail-card-description thead {
@@ -106,7 +108,7 @@
 
 .detail-card-description th {
   text-align: left;
-  padding: 10px 12px;
+  padding: 10px 20px;
   color: #ffffff;
   font-weight: 600;
   border-bottom: 1px solid #3a3a3c;
@@ -117,7 +119,7 @@
 }
 
 .detail-card-description td {
-  padding: 10px 12px;
+  padding: 10px 20px;
   border-bottom: 1px solid #2c2c2e;
   color: #8e8e93;
   vertical-align: top;
