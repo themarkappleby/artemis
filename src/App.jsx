@@ -72,7 +72,7 @@ function App() {
     burnMomentum,
     getBurnOutcome,
     wouldImprove
-  } = useRoll(character, updateCondition);
+  } = useRoll(character, updateCondition, starforgedData);
 
   const {
     favoritedMoves,

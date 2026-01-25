@@ -14,14 +14,14 @@ export function getAssetIcon(assetTypeName) {
 // Asset type icon background colors
 export function getAssetIconBg(assetTypeName) {
   const colorMap = {
-    'Command Vehicle': '#007AFF',
-    'Module': '#8e8e93',
-    'Support Vehicle': '#5856d6',
-    'Path': '#ff9500',
-    'Companion': '#34c759',
-    'Deed': '#ffcc00'
+    'Command Vehicle': 'rgba(0, 122, 255, 0.3)',
+    'Module': 'rgba(142, 142, 147, 0.3)',
+    'Support Vehicle': 'rgba(88, 86, 214, 0.3)',
+    'Path': 'rgba(255, 149, 0, 0.3)',
+    'Companion': 'rgba(52, 199, 89, 0.3)',
+    'Deed': 'rgba(255, 204, 0, 0.3)'
   };
-  return colorMap[assetTypeName] || '#8e8e93';
+  return colorMap[assetTypeName] || 'rgba(142, 142, 147, 0.3)';
 }
 
 // Move category icons
@@ -46,20 +46,20 @@ export function getMoveIcon(categoryName) {
 // Move category icon background colors
 export function getMoveIconBg(categoryName) {
   const colorMap = {
-    'Session': '#5856d6',
-    'Adventure': '#007AFF',
-    'Quest': '#ff3b30',
-    'Connection': '#34c759',
-    'Exploration': '#ff9500',
-    'Combat': '#ff3b30',
-    'Suffer': '#ff2d55',
-    'Recover': '#34c759',
-    'Threshold': '#8e8e93',
-    'Legacy': '#ffcc00',
-    'Fate': '#5856d6',
-    'Scene Challenge': '#af52de'
+    'Session': 'rgba(88, 86, 214, 0.3)',
+    'Adventure': 'rgba(0, 122, 255, 0.3)',
+    'Quest': 'rgba(255, 59, 48, 0.3)',
+    'Connection': 'rgba(52, 199, 89, 0.3)',
+    'Exploration': 'rgba(255, 149, 0, 0.3)',
+    'Combat': 'rgba(255, 59, 48, 0.3)',
+    'Suffer': 'rgba(255, 45, 85, 0.3)',
+    'Recover': 'rgba(52, 199, 89, 0.3)',
+    'Threshold': 'rgba(142, 142, 147, 0.3)',
+    'Legacy': 'rgba(255, 204, 0, 0.3)',
+    'Fate': 'rgba(88, 86, 214, 0.3)',
+    'Scene Challenge': 'rgba(175, 82, 222, 0.3)'
   };
-  return colorMap[categoryName] || '#007AFF';
+  return colorMap[categoryName] || 'rgba(0, 122, 255, 0.3)';
 }
 
 // Oracle category icons
@@ -86,22 +86,22 @@ export function getOracleIcon(categoryName) {
 // Oracle category icon background colors
 export function getOracleIconBg(categoryName) {
   const colorMap = {
-    'Character Creation': '#007AFF',
-    'Characters': '#5856d6',
-    'Core': '#ffcc00',
-    'Creatures': '#34c759',
-    'Derelicts': '#8e8e93',
-    'Factions': '#ff9500',
-    'Location Themes': '#34c759',
-    'Misc': '#5856d6',
-    'Moves': '#007AFF',
-    'Planets': '#ff9500',
-    'Settlements': '#af52de',
-    'Space': '#007AFF',
-    'Starships': '#5856d6',
-    'Vaults': '#ff3b30'
+    'Character Creation': 'rgba(0, 122, 255, 0.3)',
+    'Characters': 'rgba(88, 86, 214, 0.3)',
+    'Core': 'rgba(255, 204, 0, 0.3)',
+    'Creatures': 'rgba(52, 199, 89, 0.3)',
+    'Derelicts': 'rgba(142, 142, 147, 0.3)',
+    'Factions': 'rgba(255, 149, 0, 0.3)',
+    'Location Themes': 'rgba(52, 199, 89, 0.3)',
+    'Misc': 'rgba(88, 86, 214, 0.3)',
+    'Moves': 'rgba(0, 122, 255, 0.3)',
+    'Planets': 'rgba(255, 149, 0, 0.3)',
+    'Settlements': 'rgba(175, 82, 222, 0.3)',
+    'Space': 'rgba(0, 122, 255, 0.3)',
+    'Starships': 'rgba(88, 86, 214, 0.3)',
+    'Vaults': 'rgba(255, 59, 48, 0.3)'
   };
-  return colorMap[categoryName] || '#5856d6';
+  return colorMap[categoryName] || 'rgba(88, 86, 214, 0.3)';
 }
 
 // Count oracles in a category
@@ -129,12 +129,12 @@ export function getRegionIcon(region) {
 // Region icon background colors
 export function getRegionIconBg(region) {
   const colorMap = {
-    terminus: '#ffcc00',
-    outlands: '#5856d6',
-    expanse: '#007AFF',
-    void: '#1c1c1e'
+    terminus: 'rgba(255, 204, 0, 0.3)',
+    outlands: 'rgba(88, 86, 214, 0.3)',
+    expanse: 'rgba(0, 122, 255, 0.3)',
+    void: 'rgba(28, 28, 30, 0.3)'
   };
-  return colorMap[region] || '#ffcc00';
+  return colorMap[region] || 'rgba(255, 204, 0, 0.3)';
 }
 
 // Region labels for display
@@ -163,40 +163,40 @@ export function getStatIcon(statName) {
 // Stat icon background colors
 export function getStatIconBg(statName) {
   const colorMap = {
-    'edge': '#ffcc00',
-    'heart': '#ff3b30',
-    'iron': '#8e8e93',
-    'shadow': '#5856d6',
-    'wits': '#ff9500'
+    'edge': 'rgba(255, 204, 0, 0.3)',
+    'heart': 'rgba(255, 59, 48, 0.3)',
+    'iron': 'rgba(142, 142, 147, 0.3)',
+    'shadow': 'rgba(88, 86, 214, 0.3)',
+    'wits': 'rgba(255, 149, 0, 0.3)'
   };
-  return colorMap[statName?.toLowerCase()] || '#8e8e93';
+  return colorMap[statName?.toLowerCase()] || 'rgba(142, 142, 147, 0.3)';
 }
 
 // Progress category icon background colors
 export function getProgressIconBg(category) {
   const colorMap = {
-    'legacy': '#ffcc00',
-    'vows': '#ff3b30',
-    'expeditions': '#007AFF',
-    'combat': '#ff3b30',
-    'connections': '#34c759'
+    'legacy': 'rgba(255, 204, 0, 0.3)',
+    'vows': 'rgba(255, 59, 48, 0.3)',
+    'expeditions': 'rgba(0, 122, 255, 0.3)',
+    'combat': 'rgba(255, 59, 48, 0.3)',
+    'connections': 'rgba(52, 199, 89, 0.3)'
   };
-  return colorMap[category] || '#007AFF';
+  return colorMap[category] || 'rgba(0, 122, 255, 0.3)';
 }
 
 // Generic icon background colors for misc icons
 export function getGenericIconBg(icon) {
   const colorMap = {
-    '📋': '#8e8e93',
-    '📄': '#8e8e93',
-    '🎲': '#5856d6',
-    '📊': '#007AFF',
-    '💪': '#ff9500',
-    '👍': '#34c759',
-    '❌': '#ff3b30',
-    '⏳': '#ff9500',
-    '🌌': '#007AFF',
-    '🏛️': '#ff9500'
+    '📋': 'rgba(142, 142, 147, 0.3)',
+    '📄': 'rgba(142, 142, 147, 0.3)',
+    '🎲': 'rgba(88, 86, 214, 0.3)',
+    '📊': 'rgba(0, 122, 255, 0.3)',
+    '💪': 'rgba(255, 149, 0, 0.3)',
+    '👍': 'rgba(52, 199, 89, 0.3)',
+    '❌': 'rgba(255, 59, 48, 0.3)',
+    '⏳': 'rgba(255, 149, 0, 0.3)',
+    '🌌': 'rgba(0, 122, 255, 0.3)',
+    '🏛️': 'rgba(255, 149, 0, 0.3)'
   };
-  return colorMap[icon] || '#8e8e93';
+  return colorMap[icon] || 'rgba(142, 142, 147, 0.3)';
 }

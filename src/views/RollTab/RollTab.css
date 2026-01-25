@@ -175,6 +175,79 @@
   color: #ffffff;
 }
 
+.roll-outcome-text-display {
+  padding: 16px 20px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #ffffff;
+  border-top: 1px solid #38383a;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Markdown content styling for roll outcome */
+.roll-outcome-text-display p {
+  margin: 0 0 12px 0;
+}
+
+.roll-outcome-text-display p:last-child {
+  margin-bottom: 0;
+}
+
+.roll-outcome-text-display strong {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.roll-outcome-text-display em {
+  font-style: italic;
+}
+
+.roll-outcome-text-display ul,
+.roll-outcome-text-display ol {
+  margin: 8px 0 12px 0;
+  padding-left: 20px;
+}
+
+.roll-outcome-text-display li {
+  margin: 4px 0;
+  line-height: 1.5;
+}
+
+.roll-outcome-text-display a {
+  color: #007AFF;
+  text-decoration: none;
+}
+
+.roll-outcome-text-display a:active {
+  opacity: 0.6;
+}
+
+.pay-the-price-result {
+  margin-top: 16px;
+  margin-left: -20px;
+  margin-right: -20px;
+  padding: 16px 20px 0;
+  border-top: 1px solid #38383a;
+  width: calc(100% + 40px);
+  box-sizing: border-box;
+}
+
+.pay-the-price-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8e8e93;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.pay-the-price-text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #ffffff;
+}
+
 .momentum-preview-content {
   display: flex;
   flex-direction: column;
@@ -257,4 +330,52 @@
   font-size: 20px;
   font-weight: 700;
   color: #ffffff;
+}
+
+.momentum-outcome-text-display {
+  padding: 16px 20px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #ffffff;
+  border-top: 1px solid #38383a;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Markdown content styling for momentum outcome */
+.momentum-outcome-text-display p {
+  margin: 0 0 12px 0;
+}
+
+.momentum-outcome-text-display p:last-child {
+  margin-bottom: 0;
+}
+
+.momentum-outcome-text-display strong {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.momentum-outcome-text-display em {
+  font-style: italic;
+}
+
+.momentum-outcome-text-display ul,
+.momentum-outcome-text-display ol {
+  margin: 8px 0 12px 0;
+  padding-left: 20px;
+}
+
+.momentum-outcome-text-display li {
+  margin: 4px 0;
+  line-height: 1.5;
+}
+
+.momentum-outcome-text-display a {
+  color: #007AFF;
+  text-decoration: none;
+}
+
+.momentum-outcome-text-display a:active {
+  opacity: 0.6;
 }

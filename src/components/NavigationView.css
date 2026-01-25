@@ -49,8 +49,7 @@
 .action-button {
   position: absolute;
   right: 8px;
-  bottom: 50%;
-  transform: translateY(50%);
+  bottom: 8px;
   background: none;
   border: none;
   color: #007AFF;
@@ -58,7 +57,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  padding: 8px;
+  padding: 4px 8px;
   transition: opacity 0.2s;
 }
 

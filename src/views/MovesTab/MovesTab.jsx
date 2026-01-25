@@ -1,4 +1,6 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { NavigationView } from '../../components/NavigationView';
 import { MenuGroup } from '../../components/MenuGroup';
 import { MenuItem } from '../../components/MenuItem';
@@ -6,6 +8,15 @@ import { DetailCard } from '../../components/DetailCard';
 import { getMoveIcon, getMoveIconBg, getGenericIconBg, getStatIcon, getStatIconBg } from '../../utils/icons';
 import './MovesTab.css';
 import '../RollTab/RollTab.css';
+
+// Helper to get the appropriate move text based on whether it has rollable options
+const getMoveDisplayText = (move) => {
+  const hasRollableOptions = move.Trigger?.Options?.length > 0;
+  if (hasRollableOptions) {
+    return move.Trigger?.Text || '';
+  }
+  return move.Text || '';
+};
 
 export const MovesTab = ({
   viewName,
@@ -36,6 +47,8 @@ export const MovesTab = ({
   getBurnOutcome,
   scrollProps = {}
 }) => {
+  // No auto-rolling needed - rolls are generated in onClick handlers before navigation
+
   // Moves Home
   if (viewName === 'moves-home') {
     const movesToDisplay = editingFavorites ? tempFavoriteOrder : favoritedMoves;
@@ -169,16 +182,9 @@ export const MovesTab = ({
     if (move) {
       const category = starforgedData.moveCategories[catIndex];
       const moveIsFavorited = isFavorited(catIndex, moveIndex);
-      const triggerText = move.Trigger?.Text || '';
+      const triggerText = getMoveDisplayText(move);
       const triggerOptions = move.Trigger?.Options || [];
       const hasRollableOptions = triggerOptions.length > 0 && triggerOptions[0].Using;
-      const burnOutcome = getBurnOutcome?.();
-
-      // Helper to roll with a specific stat
-      const rollWithStat = (stat) => {
-        setRollStat(stat.toLowerCase());
-        setTimeout(() => makeActionRoll(), 0);
-      };
 
       return (
         <NavigationView 
@@ -224,13 +230,71 @@ export const MovesTab = ({
                     iconBg={getStatIconBg(statLower)}
                     label={option.Text}
                     value={`+${statValue} (${statCapitalized})`}
-                    onClick={() => rollWithStat(stat)}
+                    onClick={() => {
+                      // Set stat and generate roll before navigation
+                      setRollStat(statLower);
+                      const outcomeText = move?.Outcomes?.Miss?.Text || '';
+                      // Use setTimeout to ensure state updates before navigation
+                      setTimeout(() => {
+                        makeActionRoll(outcomeText);
+                        navigate(`move-roll-${catIndex}-${moveIndex}-${statLower}-${Date.now()}`);
+                      }, 0);
+                    }}
                   />
                 );
               })}
             </MenuGroup>
           )}
 
+          {/* Outcomes Reference Section */}
+          {move.Outcomes && (
+            <MenuGroup title="Outcomes Reference">
+              {move.Outcomes['Strong Hit'] && (
+                <MenuItem 
+                  label="Strong Hit" 
+                  subtitle={move.Outcomes['Strong Hit'].Text}
+                  onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-strong`)}
+                />
+              )}
+              {move.Outcomes['Weak Hit'] && (
+                <MenuItem 
+                  label="Weak Hit" 
+                  subtitle={move.Outcomes['Weak Hit'].Text}
+                  onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-weak`)}
+                />
+              )}
+              {move.Outcomes.Miss && (
+                <MenuItem 
+                  label="Miss" 
+                  subtitle={move.Outcomes.Miss.Text}
+                  onClick={() => navigate(`move-outcome-${catIndex}-${moveIndex}-miss`)}
+                />
+              )}
+            </MenuGroup>
+          )}
+        </NavigationView>
+      );
+    }
+  }
+
+  // Move Roll Results View
+  if (viewName.startsWith('move-roll-') && starforgedData) {
+    const parts = viewName.split('-');
+    const catIndex = parseInt(parts[2]);
+    const moveIndex = parseInt(parts[3]);
+    const stat = parts[4];
+    const move = starforgedData.moveCategories[catIndex]?.Moves?.[moveIndex];
+
+    if (move) {
+      const category = starforgedData.moveCategories[catIndex];
+      const burnOutcome = getBurnOutcome?.();
+
+      return (
+        <NavigationView 
+          title={move.Name} 
+          onBack={goBack}
+          {...scrollProps}
+        >
           {/* Roll Results */}
           {lastRoll && (
             <>
@@ -270,38 +334,56 @@ export const MovesTab = ({
                       ))
                     }
                   </div>
+
+                  {/* Show corresponding outcome text */}
+                  {move.Outcomes && (
+                    <div className="roll-outcome-text-display">
+                      {lastRoll.outcome === 'strong' && move.Outcomes['Strong Hit'] && (
+                        <>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {move.Outcomes['Strong Hit'].Text}
+                          </ReactMarkdown>
+                          {lastRoll.payThePrice && (
+                            <div className="pay-the-price-result">
+                              <div className="pay-the-price-label">Pay the Price ({lastRoll.payThePrice.roll})</div>
+                              <div className="pay-the-price-text">{lastRoll.payThePrice.result}</div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {lastRoll.outcome === 'weak' && move.Outcomes['Weak Hit'] && (
+                        <>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {move.Outcomes['Weak Hit'].Text}
+                          </ReactMarkdown>
+                          {lastRoll.payThePrice && (
+                            <div className="pay-the-price-result">
+                              <div className="pay-the-price-label">Pay the Price ({lastRoll.payThePrice.roll})</div>
+                              <div className="pay-the-price-text">{lastRoll.payThePrice.result}</div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      {lastRoll.outcome === 'miss' && move.Outcomes.Miss && (
+                        <>
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {move.Outcomes.Miss.Text}
+                          </ReactMarkdown>
+                          {lastRoll.payThePrice && (
+                            <div className="pay-the-price-result">
+                              <div className="pay-the-price-label">Pay the Price ({lastRoll.payThePrice.roll})</div>
+                              <div className="pay-the-price-text">{lastRoll.payThePrice.result}</div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Show corresponding outcome text */}
-              {move.Outcomes && (
-                <MenuGroup title="Result">
-                  {lastRoll.outcome === 'strong' && move.Outcomes['Strong Hit'] && (
-                    <MenuItem 
-                      label="Strong Hit"
-                      subtitle={move.Outcomes['Strong Hit'].Text}
-                      showChevron={false}
-                    />
-                  )}
-                  {lastRoll.outcome === 'weak' && move.Outcomes['Weak Hit'] && (
-                    <MenuItem 
-                      label="Weak Hit"
-                      subtitle={move.Outcomes['Weak Hit'].Text}
-                      showChevron={false}
-                    />
-                  )}
-                  {lastRoll.outcome === 'miss' && move.Outcomes.Miss && (
-                    <MenuItem 
-                      label="Miss"
-                      subtitle={move.Outcomes.Miss.Text}
-                      showChevron={false}
-                    />
-                  )}
-                </MenuGroup>
-              )}
-
               {/* Burn Momentum Option */}
-              {wouldImprove?.() && (
+              {wouldImprove?.() && character?.conditions?.momentum !== undefined && (
                 <MenuGroup title="Momentum">
                   <div className="momentum-preview-content">
                     <div className="momentum-outcome-row">
@@ -313,7 +395,7 @@ export const MovesTab = ({
                     </div>
                     <div className="momentum-dice-row">
                       {[
-                        { value: character.conditions.momentum, type: 'action' },
+                        { value: character?.conditions?.momentum || 0, type: 'action' },
                         { value: lastRoll.challenge1, type: 'challenge' },
                         { value: lastRoll.challenge2, type: 'challenge' }
                       ]
@@ -336,42 +418,39 @@ export const MovesTab = ({
                         ))
                       }
                     </div>
+
+                    {/* Show outcome text for momentum burn */}
+                    {move.Outcomes && (
+                      <div className="momentum-outcome-text-display">
+                        {burnOutcome === 'strong' && move.Outcomes['Strong Hit'] && (
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {move.Outcomes['Strong Hit'].Text}
+                          </ReactMarkdown>
+                        )}
+                        {burnOutcome === 'weak' && move.Outcomes['Weak Hit'] && (
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {move.Outcomes['Weak Hit'].Text}
+                          </ReactMarkdown>
+                        )}
+                        {burnOutcome === 'miss' && move.Outcomes.Miss && (
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {move.Outcomes.Miss.Text}
+                          </ReactMarkdown>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <MenuItem
-                    label={`Burn Momentum (${character.conditions.momentum})`}
-                    onClick={burnMomentum}
+                    label={`Burn Momentum (${character?.conditions?.momentum || 0})`}
+                    onClick={() => {
+                      const missOutcomeText = move.Outcomes?.Miss?.Text || '';
+                      burnMomentum(missOutcomeText);
+                    }}
                     isButton={true}
                   />
                 </MenuGroup>
               )}
             </>
-          )}
-
-          {/* Outcomes Reference Section */}
-          {move.Outcomes && (
-            <MenuGroup title="Outcomes Reference">
-              {move.Outcomes['Strong Hit'] && (
-                <MenuItem 
-                  label="Strong Hit" 
-                  subtitle={move.Outcomes['Strong Hit'].Text}
-                  showChevron={false}
-                />
-              )}
-              {move.Outcomes['Weak Hit'] && (
-                <MenuItem 
-                  label="Weak Hit" 
-                  subtitle={move.Outcomes['Weak Hit'].Text}
-                  showChevron={false}
-                />
-              )}
-              {move.Outcomes.Miss && (
-                <MenuItem 
-                  label="Miss" 
-                  subtitle={move.Outcomes.Miss.Text}
-                  showChevron={false}
-                />
-              )}
-            </MenuGroup>
           )}
         </NavigationView>
       );
