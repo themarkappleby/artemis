@@ -1,8 +1,41 @@
 import React from 'react';
 import './Modal.css';
 
-export const Modal = ({ isOpen, onClose, title, children, footer }) => {
-  if (!isOpen) return null;
+export const Modal = ({ isOpen, onClose, title, children, footer, fullScreen = false }) => {
+  // For non-fullscreen modals, use simple conditional rendering
+  if (!fullScreen && !isOpen) return null;
+
+  // For fullscreen modals, always render but control visibility with CSS
+  if (fullScreen) {
+    return (
+      <div 
+        className={`modal-overlay modal-fullscreen ${isOpen ? 'modal-open' : ''}`} 
+        onClick={onClose}
+        style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
+      >
+        <div 
+          className="modal-content modal-fullscreen-content" 
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="modal-header">
+            <button className="modal-close-button" onClick={onClose}>
+              Cancel
+            </button>
+            <h2 className="modal-title">{title}</h2>
+            <div className="modal-header-spacer"></div>
+          </div>
+          <div className="modal-body">
+            {children}
+          </div>
+          {footer && (
+            <div className="modal-footer">
+              {footer}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>

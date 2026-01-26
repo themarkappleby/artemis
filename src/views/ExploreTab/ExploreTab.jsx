@@ -83,6 +83,7 @@ export const ExploreTab = ({
   getSector,
   addFaction,
   getFaction,
+  addLocation,
   scrollProps = {}
 }) => {
   // Modal state (local, resets on navigation is fine)
@@ -91,6 +92,10 @@ export const ExploreTab = ({
   const [newSectorRegion, setNewSectorRegion] = useState('terminus');
   const [showFactionModal, setShowFactionModal] = useState(false);
   const [newFactionName, setNewFactionName] = useState('');
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [newLocationName, setNewLocationName] = useState('');
+  const [newLocationType, setNewLocationType] = useState('planet');
+  const [currentSectorId, setCurrentSectorId] = useState(null);
 
   const createSector = () => {
     if (!newSectorName.trim()) return;
@@ -105,6 +110,14 @@ export const ExploreTab = ({
     addFaction(newFactionName);
     setNewFactionName('');
     setShowFactionModal(false);
+  };
+
+  const createLocation = () => {
+    if (!newLocationName.trim() || !currentSectorId) return;
+    addLocation(currentSectorId, newLocationName, newLocationType);
+    setNewLocationName('');
+    setNewLocationType('planet');
+    setShowLocationModal(false);
   };
 
   // Home view
@@ -283,24 +296,91 @@ export const ExploreTab = ({
     }
 
     return (
-      <NavigationView title={sector.name} onBack={goBack} {...scrollProps}>
-        <MenuGroup title="Locations">
-          <MenuItem 
-            label="No locations yet"
-            showChevron={false}
-            muted={true}
-          />
-        </MenuGroup>
-        <MenuGroup title="Details">
-          <MenuItem 
-            label="Region"
-            value={getRegionLabel(sector.region)}
-            icon={getRegionIcon(sector.region)}
-            iconBg={getRegionIconBg(sector.region)}
-            showChevron={false}
-          />
-        </MenuGroup>
-      </NavigationView>
+      <>
+        <NavigationView 
+          title={sector.name} 
+          onBack={goBack}
+          rightIcon="plus"
+          onAction={() => {
+            setCurrentSectorId(sectorId);
+            setShowLocationModal(true);
+          }}
+          {...scrollProps}
+        >
+          <MenuGroup title="Locations">
+            {(!sector.locations || sector.locations.length === 0) ? (
+              <MenuItem 
+                label="No locations yet"
+                showChevron={false}
+                muted={true}
+              />
+            ) : (
+              sector.locations.map(location => (
+                <MenuItem 
+                  key={location.id}
+                  icon={location.type === 'planet' ? '🪐' : location.type === 'station' ? '🛰️' : '⭐'}
+                  iconBg={getGenericIconBg(location.type === 'planet' ? '🪐' : location.type === 'station' ? '🛰️' : '⭐')}
+                  label={location.name}
+                  value={location.type.charAt(0).toUpperCase() + location.type.slice(1)}
+                  onClick={() => navigate(`location-${sectorId}-${location.id}`)}
+                />
+              ))
+            )}
+          </MenuGroup>
+          <MenuGroup title="Details">
+            <MenuItem 
+              label="Region"
+              value={getRegionLabel(sector.region)}
+              icon={getRegionIcon(sector.region)}
+              iconBg={getRegionIconBg(sector.region)}
+              showChevron={false}
+            />
+          </MenuGroup>
+        </NavigationView>
+
+        {/* Create Location Modal */}
+        <Modal
+          isOpen={showLocationModal}
+          onClose={() => setShowLocationModal(false)}
+          title="New Location"
+          fullScreen={true}
+          footer={
+            <>
+              <ModalButton 
+                variant="create" 
+                onClick={createLocation}
+                disabled={!newLocationName.trim()}
+              >
+                Create
+              </ModalButton>
+            </>
+          }
+        >
+          <ModalField label="Name">
+            <input
+              type="text"
+              className="modal-input"
+              value={newLocationName}
+              onChange={(e) => setNewLocationName(e.target.value)}
+              placeholder="Enter location name..."
+              autoFocus
+            />
+          </ModalField>
+          <ModalField label="Type">
+            <select
+              className="modal-select"
+              value={newLocationType}
+              onChange={(e) => setNewLocationType(e.target.value)}
+            >
+              <option value="planet">🪐 Planet</option>
+              <option value="station">🛰️ Station</option>
+              <option value="settlement">🏘️ Settlement</option>
+              <option value="derelict">🚢 Derelict</option>
+              <option value="vault">🏛️ Vault</option>
+            </select>
+          </ModalField>
+        </Modal>
+      </>
     );
   }
 
