@@ -1,0 +1,51 @@
+/* Dice Input */
+.dice-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dice-input {
+  width: 100%;
+  padding: 12px;
+  padding-right: 48px;
+  background-color: #1c1c1e;
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 17px;
+  outline: none;
+}
+
+.dice-input:focus {
+  box-shadow: 0 0 0 2px #007AFF;
+}
+
+.dice-input::placeholder {
+  color: #636366;
+}
+
+.dice-input-button {
+  position: absolute;
+  right: 4px;
+  width: 40px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #8e8e93;
+  transition: color 0.15s ease, transform 0.1s ease;
+}
+
+.dice-input-button:hover {
+  color: #aeaeb2;
+}
+
+.dice-input-button:active {
+  color: #007AFF;
+  transform: scale(0.95);
+}

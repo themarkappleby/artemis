@@ -10,6 +10,7 @@ import { useOracle } from './hooks/useOracle';
 import { useRoll } from './hooks/useRoll';
 import { useFavoriteMoves } from './hooks/useFavoriteMoves';
 import { useFavoriteOracles } from './hooks/useFavoriteOracles';
+import { useExplore } from './hooks/useExplore';
 import { ExploreTab } from './views/ExploreTab/ExploreTab';
 import { CharacterTab } from './views/CharacterTab/CharacterTab';
 import { MovesTab } from './views/MovesTab/MovesTab';
@@ -104,6 +105,17 @@ function App() {
     isOracleFavorited
   } = useFavoriteOracles();
 
+  const {
+    sectors,
+    factions,
+    addSector,
+    removeSector,
+    getSector,
+    addFaction,
+    removeFaction,
+    getFaction
+  } = useExplore();
+
   // Register service worker
   useEffect(() => {
     if ('serviceWorker' in navigator) {
@@ -132,6 +144,14 @@ function App() {
           navigate={navigate}
           goBack={goBack}
           starforgedData={starforgedData}
+          sectors={sectors}
+          factions={factions}
+          addSector={addSector}
+          removeSector={removeSector}
+          getSector={getSector}
+          addFaction={addFaction}
+          removeFaction={removeFaction}
+          getFaction={getFaction}
           scrollProps={scrollProps}
         />
       );

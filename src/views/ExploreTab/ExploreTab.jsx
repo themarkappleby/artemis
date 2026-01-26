@@ -4,6 +4,7 @@ import { MenuGroup } from '../../components/MenuGroup';
 import { MenuItem } from '../../components/MenuItem';
 import { DetailCard } from '../../components/DetailCard';
 import { Modal, ModalField, ModalButton } from '../../components/Modal/Modal';
+import { DiceInput } from '../../components/DiceInput/DiceInput';
 import { getRegionIcon, getRegionIconBg, getRegionLabel, getGenericIconBg } from '../../utils/icons';
 import './ExploreTab.css';
 
@@ -35,34 +36,65 @@ const findMoveFromLink = (link, starforgedData) => {
   return { catIndex, moveIndex };
 };
 
+// Helper to roll on an oracle table
+const rollOnTable = (table) => {
+  if (!table || table.length === 0) return null;
+  const roll = Math.floor(Math.random() * 100) + 1;
+  const result = table.find(row => {
+    const floor = row.Floor || row.Chance || 1;
+    const ceiling = row.Ceiling || row.Chance || 100;
+    return roll >= floor && roll <= ceiling;
+  });
+  return result?.Result || null;
+};
+
+// Generate a random sector name from Starforged oracles
+const generateSectorName = (starforgedData) => {
+  if (!starforgedData?.oracleCategories) return null;
+  
+  const spaceCategory = starforgedData.oracleCategories.find(c => c.Name === 'Space');
+  if (!spaceCategory) return null;
+  
+  const sectorNameOracle = spaceCategory.Oracles?.find(o => o.Name === 'Sector Name');
+  if (!sectorNameOracle?.Oracles) return null;
+  
+  const prefixOracle = sectorNameOracle.Oracles.find(o => o.Name === 'Prefix');
+  const suffixOracle = sectorNameOracle.Oracles.find(o => o.Name === 'Suffix');
+  
+  if (!prefixOracle?.Table || !suffixOracle?.Table) return null;
+  
+  const prefix = rollOnTable(prefixOracle.Table);
+  const suffix = rollOnTable(suffixOracle.Table);
+  
+  if (prefix && suffix) {
+    return `${prefix} ${suffix}`;
+  }
+  return null;
+};
+
 export const ExploreTab = ({ 
   viewName, 
   navigate, 
   goBack,
   starforgedData,
+  sectors,
+  factions,
+  addSector,
+  getSector,
+  addFaction,
+  getFaction,
   scrollProps = {}
 }) => {
-  // Sectors state
-  const [sectors, setSectors] = useState([]);
+  // Modal state (local, resets on navigation is fine)
   const [showSectorModal, setShowSectorModal] = useState(false);
   const [newSectorName, setNewSectorName] = useState('');
   const [newSectorRegion, setNewSectorRegion] = useState('terminus');
-
-  // Factions state
-  const [factions, setFactions] = useState([]);
   const [showFactionModal, setShowFactionModal] = useState(false);
   const [newFactionName, setNewFactionName] = useState('');
 
   const createSector = () => {
     if (!newSectorName.trim()) return;
-
-    const newSector = {
-      id: Date.now(),
-      name: newSectorName.trim(),
-      region: newSectorRegion
-    };
-
-    setSectors([...sectors, newSector]);
+    addSector(newSectorName, newSectorRegion);
     setNewSectorName('');
     setNewSectorRegion('terminus');
     setShowSectorModal(false);
@@ -70,13 +102,7 @@ export const ExploreTab = ({
 
   const createFaction = () => {
     if (!newFactionName.trim()) return;
-
-    const newFaction = {
-      id: Date.now(),
-      name: newFactionName.trim()
-    };
-
-    setFactions([...factions, newFaction]);
+    addFaction(newFactionName);
     setNewFactionName('');
     setShowFactionModal(false);
   };
@@ -172,11 +198,15 @@ export const ExploreTab = ({
             }
           >
             <ModalField label="Name">
-              <input
-                type="text"
-                className="modal-input"
+              <DiceInput
                 value={newSectorName}
                 onChange={(e) => setNewSectorName(e.target.value)}
+                onDiceClick={() => {
+                  const name = generateSectorName(starforgedData);
+                  if (name) {
+                    setNewSectorName(name);
+                  }
+                }}
                 placeholder="Enter sector name..."
                 autoFocus
               />
@@ -236,28 +266,48 @@ export const ExploreTab = ({
   // Sector Detail View
   if (viewName.startsWith('sector-')) {
     const sectorId = parseInt(viewName.split('-')[1]);
-    const sector = sectors.find(s => s.id === sectorId);
+    const sector = getSector(sectorId);
 
-    if (sector) {
+    if (!sector) {
       return (
-        <NavigationView title={sector.name} onBack={goBack} {...scrollProps}>
+        <NavigationView title="Sector Not Found" onBack={goBack} {...scrollProps}>
           <MenuGroup>
             <MenuItem 
-              label={`Region: ${getRegionLabel(sector.region)}`}
-              icon={getRegionIcon(sector.region)}
-              iconBg={getRegionIconBg(sector.region)}
+              label="This sector no longer exists"
               showChevron={false}
+              muted={true}
             />
           </MenuGroup>
         </NavigationView>
       );
     }
+
+    return (
+      <NavigationView title={sector.name} onBack={goBack} {...scrollProps}>
+        <MenuGroup title="Locations">
+          <MenuItem 
+            label="No locations yet"
+            showChevron={false}
+            muted={true}
+          />
+        </MenuGroup>
+        <MenuGroup title="Details">
+          <MenuItem 
+            label="Region"
+            value={getRegionLabel(sector.region)}
+            icon={getRegionIcon(sector.region)}
+            iconBg={getRegionIconBg(sector.region)}
+            showChevron={false}
+          />
+        </MenuGroup>
+      </NavigationView>
+    );
   }
 
   // Faction Detail View
   if (viewName.startsWith('faction-')) {
     const factionId = parseInt(viewName.split('-')[1]);
-    const faction = factions.find(f => f.id === factionId);
+    const faction = getFaction(factionId);
 
     if (faction) {
       return (
