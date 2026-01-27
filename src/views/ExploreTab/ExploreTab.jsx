@@ -3,7 +3,7 @@ import { NavigationView } from '../../components/NavigationView';
 import { MenuGroup } from '../../components/MenuGroup';
 import { MenuItem } from '../../components/MenuItem';
 import { DetailCard } from '../../components/DetailCard';
-import { Modal, ModalField, ModalButton } from '../../components/Modal/Modal';
+import { Modal, ModalField } from '../../components/Modal/Modal';
 import { DiceInput } from '../../components/DiceInput/DiceInput';
 import { getRegionIcon, getRegionIconBg, getRegionLabel, getGenericIconBg } from '../../utils/icons';
 import './ExploreTab.css';
@@ -94,7 +94,7 @@ export const ExploreTab = ({
   const [newFactionName, setNewFactionName] = useState('');
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [newLocationName, setNewLocationName] = useState('');
-  const [newLocationType, setNewLocationType] = useState('planet');
+  const [newLocationType, setNewLocationType] = useState(null);
   const [currentSectorId, setCurrentSectorId] = useState(null);
 
   const createSector = () => {
@@ -113,11 +113,35 @@ export const ExploreTab = ({
   };
 
   const createLocation = () => {
-    if (!newLocationName.trim() || !currentSectorId) return;
-    addLocation(currentSectorId, newLocationName, newLocationType);
-    setNewLocationName('');
-    setNewLocationType('planet');
+    if (!currentSectorId || !newLocationType) return;
+    // Auto-generate name based on type
+    const typeNames = {
+      planet: 'Planet',
+      station: 'Station',
+      settlement: 'Settlement',
+      derelict: 'Derelict',
+      vault: 'Vault'
+    };
+    const name = typeNames[newLocationType] || 'Location';
+    addLocation(currentSectorId, name, newLocationType);
+    setNewLocationType(null);
     setShowLocationModal(false);
+  };
+
+  const closeLocationModal = () => {
+    setNewLocationType(null);
+    setShowLocationModal(false);
+  };
+
+  const getEntityTypeInfo = (type) => {
+    const types = {
+      planet: { icon: '🪐', label: 'Planet' },
+      station: { icon: '🛰️', label: 'Station' },
+      settlement: { icon: '🏘️', label: 'Settlement' },
+      derelict: { icon: '🚢', label: 'Derelict' },
+      vault: { icon: '🏛️', label: 'Vault' }
+    };
+    return types[type];
   };
 
   // Home view
@@ -190,88 +214,66 @@ export const ExploreTab = ({
         </NavigationView>
 
         {/* Create Sector Modal */}
-        {showSectorModal && (
-          <Modal
-            isOpen={showSectorModal}
-            onClose={() => setShowSectorModal(false)}
-            title="New Sector"
-            footer={
-              <>
-                <ModalButton variant="cancel" onClick={() => setShowSectorModal(false)}>
-                  Cancel
-                </ModalButton>
-                <ModalButton 
-                  variant="create" 
-                  onClick={createSector}
-                  disabled={!newSectorName.trim()}
-                >
-                  Create
-                </ModalButton>
-              </>
-            }
-          >
-            <ModalField label="Name">
-              <DiceInput
-                value={newSectorName}
-                onChange={(e) => setNewSectorName(e.target.value)}
-                onDiceClick={() => {
-                  const name = generateSectorName(starforgedData);
-                  if (name) {
-                    setNewSectorName(name);
-                  }
-                }}
-                placeholder="Enter sector name..."
-                autoFocus
-              />
-            </ModalField>
-            <ModalField label="Region">
-              <select
-                className="modal-select"
-                value={newSectorRegion}
-                onChange={(e) => setNewSectorRegion(e.target.value)}
-              >
-                <option value="terminus">🌟 Terminus</option>
-                <option value="outlands">🌀 Outlands</option>
-                <option value="expanse">🌌 Expanse</option>
-                <option value="void">🕳️ Void</option>
-              </select>
-            </ModalField>
-          </Modal>
-        )}
+        <Modal
+          isOpen={showSectorModal}
+          onClose={() => setShowSectorModal(false)}
+          title="New Sector"
+          action={{
+            label: 'Create',
+            onClick: createSector,
+            disabled: !newSectorName.trim()
+          }}
+        >
+          <ModalField label="Name">
+            <DiceInput
+              value={newSectorName}
+              onChange={(e) => setNewSectorName(e.target.value)}
+              onDiceClick={() => {
+                const name = generateSectorName(starforgedData);
+                if (name) {
+                  setNewSectorName(name);
+                }
+              }}
+              placeholder="Enter sector name..."
+              autoFocus
+            />
+          </ModalField>
+          <ModalField label="Region">
+            <select
+              className="modal-select"
+              value={newSectorRegion}
+              onChange={(e) => setNewSectorRegion(e.target.value)}
+            >
+              <option value="terminus">🌟 Terminus</option>
+              <option value="outlands">🌀 Outlands</option>
+              <option value="expanse">🌌 Expanse</option>
+              <option value="void">🕳️ Void</option>
+            </select>
+          </ModalField>
+        </Modal>
 
         {/* Create Faction Modal */}
-        {showFactionModal && (
-          <Modal
-            isOpen={showFactionModal}
-            onClose={() => setShowFactionModal(false)}
-            title="New Faction"
-            footer={
-              <>
-                <ModalButton variant="cancel" onClick={() => setShowFactionModal(false)}>
-                  Cancel
-                </ModalButton>
-                <ModalButton 
-                  variant="create" 
-                  onClick={createFaction}
-                  disabled={!newFactionName.trim()}
-                >
-                  Create
-                </ModalButton>
-              </>
-            }
-          >
-            <ModalField label="Name">
-              <input
-                type="text"
-                className="modal-input"
-                value={newFactionName}
-                onChange={(e) => setNewFactionName(e.target.value)}
-                placeholder="Enter faction name..."
-                autoFocus
-              />
-            </ModalField>
-          </Modal>
-        )}
+        <Modal
+          isOpen={showFactionModal}
+          onClose={() => setShowFactionModal(false)}
+          title="New Faction"
+          action={{
+            label: 'Create',
+            onClick: createFaction,
+            disabled: !newFactionName.trim()
+          }}
+        >
+          <ModalField label="Name">
+            <input
+              type="text"
+              className="modal-input"
+              value={newFactionName}
+              onChange={(e) => setNewFactionName(e.target.value)}
+              placeholder="Enter faction name..."
+              autoFocus
+            />
+          </ModalField>
+        </Modal>
       </>
     );
   }
@@ -300,17 +302,12 @@ export const ExploreTab = ({
         <NavigationView 
           title={sector.name} 
           onBack={goBack}
-          rightIcon="plus"
-          onAction={() => {
-            setCurrentSectorId(sectorId);
-            setShowLocationModal(true);
-          }}
           {...scrollProps}
         >
-          <MenuGroup title="Locations">
+          <MenuGroup title="Connected">
             {(!sector.locations || sector.locations.length === 0) ? (
               <MenuItem 
-                label="No locations yet"
+                label="No entities yet"
                 showChevron={false}
                 muted={true}
               />
@@ -326,14 +323,41 @@ export const ExploreTab = ({
                 />
               ))
             )}
-          </MenuGroup>
-          <MenuGroup title="Details">
             <MenuItem 
-              label="Region"
-              value={getRegionLabel(sector.region)}
-              icon={getRegionIcon(sector.region)}
-              iconBg={getRegionIconBg(sector.region)}
-              showChevron={false}
+              label="Add entity"
+              onClick={() => {
+                setCurrentSectorId(sectorId);
+                setShowLocationModal(true);
+              }}
+              isButton={true}
+            />
+          </MenuGroup>
+          <MenuGroup title="Not connected">
+            {(!sector.locations || sector.locations.length === 0) ? (
+              <MenuItem 
+                label="No entities yet"
+                showChevron={false}
+                muted={true}
+              />
+            ) : (
+              sector.locations.map(location => (
+                <MenuItem 
+                  key={location.id}
+                  icon={location.type === 'planet' ? '🪐' : location.type === 'station' ? '🛰️' : '⭐'}
+                  iconBg={getGenericIconBg(location.type === 'planet' ? '🪐' : location.type === 'station' ? '🛰️' : '⭐')}
+                  label={location.name}
+                  value={location.type.charAt(0).toUpperCase() + location.type.slice(1)}
+                  onClick={() => navigate(`location-${sectorId}-${location.id}`)}
+                />
+              ))
+            )}
+            <MenuItem 
+              label="Add entity"
+              onClick={() => {
+                setCurrentSectorId(sectorId);
+                setShowLocationModal(true);
+              }}
+              isButton={true}
             />
           </MenuGroup>
         </NavigationView>
@@ -341,44 +365,57 @@ export const ExploreTab = ({
         {/* Create Location Modal */}
         <Modal
           isOpen={showLocationModal}
-          onClose={() => setShowLocationModal(false)}
-          title="New Location"
-          fullScreen={true}
-          footer={
-            <>
-              <ModalButton 
-                variant="create" 
-                onClick={createLocation}
-                disabled={!newLocationName.trim()}
-              >
-                Create
-              </ModalButton>
-            </>
-          }
+          onClose={closeLocationModal}
+          onBack={newLocationType ? () => setNewLocationType(null) : null}
+          title={newLocationType ? getEntityTypeInfo(newLocationType).label : "New entity"}
+          action={newLocationType ? {
+            label: 'Create',
+            onClick: createLocation,
+            disabled: false
+          } : null}
         >
-          <ModalField label="Name">
-            <input
-              type="text"
-              className="modal-input"
-              value={newLocationName}
-              onChange={(e) => setNewLocationName(e.target.value)}
-              placeholder="Enter location name..."
-              autoFocus
-            />
-          </ModalField>
-          <ModalField label="Type">
-            <select
-              className="modal-select"
-              value={newLocationType}
-              onChange={(e) => setNewLocationType(e.target.value)}
-            >
-              <option value="planet">🪐 Planet</option>
-              <option value="station">🛰️ Station</option>
-              <option value="settlement">🏘️ Settlement</option>
-              <option value="derelict">🚢 Derelict</option>
-              <option value="vault">🏛️ Vault</option>
-            </select>
-          </ModalField>
+          {!newLocationType ? (
+            <MenuGroup>
+              <MenuItem 
+                icon="🪐"
+                iconBg={getGenericIconBg('🪐')}
+                label="Planet"
+                onClick={() => setNewLocationType('planet')}
+              />
+              <MenuItem 
+                icon="🛰️"
+                iconBg={getGenericIconBg('🛰️')}
+                label="Station"
+                onClick={() => setNewLocationType('station')}
+              />
+              <MenuItem 
+                icon="🏘️"
+                iconBg={getGenericIconBg('🏘️')}
+                label="Settlement"
+                onClick={() => setNewLocationType('settlement')}
+              />
+              <MenuItem 
+                icon="🚢"
+                iconBg={getGenericIconBg('🚢')}
+                label="Derelict"
+                onClick={() => setNewLocationType('derelict')}
+              />
+              <MenuItem 
+                icon="🏛️"
+                iconBg={getGenericIconBg('🏛️')}
+                label="Vault"
+                onClick={() => setNewLocationType('vault')}
+              />
+            </MenuGroup>
+          ) : (
+            <MenuGroup>
+              <MenuItem 
+                label="Entity details coming soon"
+                showChevron={false}
+                muted={true}
+              />
+            </MenuGroup>
+          )}
         </Modal>
       </>
     );

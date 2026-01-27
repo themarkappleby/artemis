@@ -1,56 +1,64 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './Modal.css';
 
-export const Modal = ({ isOpen, onClose, title, children, footer, fullScreen = false }) => {
-  // For non-fullscreen modals, use simple conditional rendering
-  if (!fullScreen && !isOpen) return null;
+export const Modal = ({ isOpen, onClose, onBack, title, children, action }) => {
+  const [animationDirection, setAnimationDirection] = useState('none');
+  const [prevOnBack, setPrevOnBack] = useState(null);
 
-  // For fullscreen modals, always render but control visibility with CSS
-  if (fullScreen) {
-    return (
-      <div 
-        className={`modal-overlay modal-fullscreen ${isOpen ? 'modal-open' : ''}`} 
-        onClick={onClose}
-        style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
-      >
-        <div 
-          className="modal-content modal-fullscreen-content" 
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="modal-header">
-            <button className="modal-close-button" onClick={onClose}>
-              Cancel
-            </button>
-            <h2 className="modal-title">{title}</h2>
-            <div className="modal-header-spacer"></div>
-          </div>
-          <div className="modal-body">
-            {children}
-          </div>
-          {footer && (
-            <div className="modal-footer">
-              {footer}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+  // Detect when stepping in or out based on onBack prop changes
+  useEffect(() => {
+    if (isOpen) {
+      if (onBack && !prevOnBack) {
+        // Stepped in - slide from right
+        setAnimationDirection('step-in');
+      } else if (!onBack && prevOnBack) {
+        // Stepped back - slide from left
+        setAnimationDirection('step-out');
+      }
+      setPrevOnBack(onBack);
+      
+      // Reset animation after it completes
+      const timer = setTimeout(() => {
+        setAnimationDirection('none');
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setPrevOnBack(null);
+      setAnimationDirection('none');
+    }
+  }, [onBack, isOpen, prevOnBack]);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <div 
+      className={`modal-overlay ${isOpen ? 'modal-open' : ''}`} 
+      onClick={onBack || onClose}
+      style={{ pointerEvents: isOpen ? 'auto' : 'none' }}
+    >
+      <div 
+        className="modal-content" 
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
+          <button className="modal-close-button" onClick={onBack || onClose}>
+            {onBack ? '← Back' : 'Cancel'}
+          </button>
           <h2 className="modal-title">{title}</h2>
+          {action ? (
+            <button 
+              className="modal-action-button" 
+              onClick={action.onClick}
+              disabled={action.disabled}
+            >
+              {action.label}
+            </button>
+          ) : (
+            <div className="modal-header-spacer"></div>
+          )}
         </div>
-        <div className="modal-body">
+        <div className={`modal-body ${animationDirection}`}>
           {children}
         </div>
-        {footer && (
-          <div className="modal-footer">
-            {footer}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -62,16 +70,3 @@ export const ModalField = ({ label, children }) => (
     {children}
   </div>
 );
-
-export const ModalButton = ({ onClick, disabled, variant = 'default', children }) => {
-  const className = `modal-button ${variant === 'cancel' ? 'modal-cancel' : ''} ${variant === 'create' ? 'modal-create' : ''}`;
-  return (
-    <button 
-      className={className} 
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {children}
-    </button>
-  );
-};
