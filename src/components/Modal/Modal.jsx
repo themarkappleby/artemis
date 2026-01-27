@@ -1,35 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useEffect, useReducer } from 'react';
+import { createPortal } from 'react-dom';
 import './Modal.css';
 
 export const Modal = ({ isOpen, onClose, onBack, title, children, action }) => {
-  const [animationDirection, setAnimationDirection] = useState('none');
-  const [prevOnBack, setPrevOnBack] = useState(null);
+  const hasBackButton = !!onBack;
+  const prevHasBackRef = useRef(null);
+  const animationDirectionRef = useRef('none');
+  const [, forceRender] = useReducer(x => x + 1, 0);
 
-  // Detect when stepping in or out based on onBack prop changes
+  // Compute animation direction synchronously DURING render (not in effect)
+  // This ensures the animation class is applied on the same render as content change
+  if (!isOpen) {
+    prevHasBackRef.current = null;
+    animationDirectionRef.current = 'none';
+  } else if (prevHasBackRef.current === null) {
+    // Modal just opened, initialize without animation
+    prevHasBackRef.current = hasBackButton;
+    animationDirectionRef.current = 'none';
+  } else if (prevHasBackRef.current !== hasBackButton) {
+    // Transition detected - set animation direction immediately
+    animationDirectionRef.current = hasBackButton ? 'step-in' : 'step-out';
+    prevHasBackRef.current = hasBackButton;
+  }
+
+  const animationDirection = animationDirectionRef.current;
+
+  // Clear animation class after animation completes
   useEffect(() => {
-    if (isOpen) {
-      if (onBack && !prevOnBack) {
-        // Stepped in - slide from right
-        setAnimationDirection('step-in');
-      } else if (!onBack && prevOnBack) {
-        // Stepped back - slide from left
-        setAnimationDirection('step-out');
-      }
-      setPrevOnBack(onBack);
-      
-      // Reset animation after it completes
+    if (animationDirection !== 'none') {
       const timer = setTimeout(() => {
-        setAnimationDirection('none');
+        animationDirectionRef.current = 'none';
+        forceRender();
       }, 300);
-      
       return () => clearTimeout(timer);
-    } else {
-      setPrevOnBack(null);
-      setAnimationDirection('none');
     }
-  }, [onBack, isOpen, prevOnBack]);
+  }, [animationDirection]);
 
-  return (
+  // Render modal at document.body level using portal to escape transformed ancestors
+  return createPortal(
     <div 
       className={`modal-overlay ${isOpen ? 'modal-open' : ''}`} 
       onClick={onBack || onClose}
@@ -41,10 +49,10 @@ export const Modal = ({ isOpen, onClose, onBack, title, children, action }) => {
       >
         <div className="modal-header">
           <button className="modal-close-button" onClick={onBack || onClose}>
-            {onBack ? '← Back' : 'Cancel'}
+            {onBack ? 'Back' : 'Cancel'}
           </button>
           <h2 className="modal-title">{title}</h2>
-          {action ? (
+          {action && (
             <button 
               className="modal-action-button" 
               onClick={action.onClick}
@@ -52,15 +60,14 @@ export const Modal = ({ isOpen, onClose, onBack, title, children, action }) => {
             >
               {action.label}
             </button>
-          ) : (
-            <div className="modal-header-spacer"></div>
           )}
         </div>
         <div className={`modal-body ${animationDirection}`}>
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

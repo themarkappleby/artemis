@@ -43,11 +43,12 @@ export const useExplore = () => {
     return factions.find(f => f.id === factionId);
   };
 
-  const addLocation = (sectorId, name, type = 'planet') => {
+  const addLocation = (sectorId, name, type = 'planet', data = {}) => {
     const newLocation = {
       id: Date.now(),
       name: name.trim(),
-      type
+      type,
+      ...data
     };
     setSectors(prev => prev.map(sector => {
       if (sector.id === sectorId) {
@@ -59,6 +60,12 @@ export const useExplore = () => {
       return sector;
     }));
     return newLocation;
+  };
+
+  const getLocation = (sectorId, locationId) => {
+    const sector = sectors.find(s => s.id === sectorId);
+    if (!sector?.locations) return null;
+    return sector.locations.find(l => l.id === locationId);
   };
 
   const removeLocation = (sectorId, locationId) => {
@@ -83,6 +90,7 @@ export const useExplore = () => {
     removeFaction,
     getFaction,
     addLocation,
+    getLocation,
     removeLocation
   };
 };

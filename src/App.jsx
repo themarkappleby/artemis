@@ -115,6 +115,7 @@ function App() {
     removeFaction,
     getFaction,
     addLocation,
+    getLocation,
     removeLocation
   } = useExplore();
 
@@ -155,6 +156,7 @@ function App() {
           removeFaction={removeFaction}
           getFaction={getFaction}
           addLocation={addLocation}
+          getLocation={getLocation}
           removeLocation={removeLocation}
           scrollProps={scrollProps}
         />

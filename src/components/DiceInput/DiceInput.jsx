@@ -33,3 +33,29 @@ export const DiceInput = ({ value, onChange, onDiceClick, placeholder, ...props 
     </button>
   </div>
 );
+
+export const DiceSelect = ({ value, onChange, onDiceClick, options, placeholder, ...props }) => (
+  <div className="dice-input-wrapper">
+    <select
+      className="dice-select"
+      value={value}
+      onChange={onChange}
+      {...props}
+    >
+      {placeholder && <option value="">{placeholder}</option>}
+      {options.map(option => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+    <button
+      type="button"
+      className="dice-input-button"
+      onClick={onDiceClick}
+      aria-label="Roll random value"
+    >
+      <DiceIcon />
+    </button>
+  </div>
+);
