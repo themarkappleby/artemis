@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavigationView } from '../../components/NavigationView';
 import { MenuGroup } from '../../components/MenuGroup';
 import { MenuItem } from '../../components/MenuItem';
-import { DetailCard } from '../../components/DetailCard';
+import { DetailCard, DetailCardItems } from '../../components/DetailCard';
 import { Modal, ModalField } from '../../components/Modal/Modal';
 import { DiceInput, DiceSelect } from '../../components/DiceInput/DiceInput';
 import { getRegionIcon, getRegionIconBg, getRegionLabel, getGenericIconBg } from '../../utils/icons';
@@ -47,11 +47,23 @@ const parseOracleResult = (result) => {
   return text;
 };
 
+// Helper to filter out invalid oracle table rows
+const filterValidRows = (table) => {
+  if (!table) return null;
+  return table.filter(row => {
+    const hasFloorCeiling = row.Floor !== undefined && row.Floor !== null && 
+                            row.Ceiling !== undefined && row.Ceiling !== null;
+    const hasChance = row.Chance !== undefined && row.Chance !== null;
+    return hasFloorCeiling || hasChance;
+  });
+};
+
 // Helper to roll on an oracle table
 const rollOnTable = (table) => {
-  if (!table || table.length === 0) return null;
+  const validTable = filterValidRows(table);
+  if (!validTable || validTable.length === 0) return null;
   const roll = Math.floor(Math.random() * 100) + 1;
-  const result = table.find(row => {
+  const result = validTable.find(row => {
     const floor = row.Floor || row.Chance || 1;
     const ceiling = row.Ceiling || row.Chance || 100;
     return roll >= floor && roll <= ceiling;
@@ -175,12 +187,13 @@ const getOracleTableForRegion = (oracle, region = 'Terminus') => {
 const getPlanetOracleOptions = (starforgedData, planetClass, oracleName, region = 'Terminus') => {
   const oracle = getPlanetOracle(starforgedData, planetClass, oracleName);
   const table = getOracleTableForRegion(oracle, region);
+  const validTable = filterValidRows(table);
   
-  if (!table) return [];
+  if (!validTable) return [];
   
   // Extract unique results from the table
   const results = new Set();
-  table.forEach(row => {
+  validTable.forEach(row => {
     if (row.Result) {
       const parsed = parseOracleResult(row.Result);
       if (parsed) results.add(parsed);
@@ -211,45 +224,56 @@ const planetHasLife = (lifeValue) => {
 // Get Peril oracle options based on life status
 const getPerilOracleOptions = (starforgedData, planetClass, hasLife) => {
   // Try planet-specific peril first
-  let options = getPlanetOracleOptions(starforgedData, planetClass, hasLife ? 'Peril' : 'Peril');
+  let options = getPlanetOracleOptions(starforgedData, planetClass, 'Peril');
   if (options.length > 0) return options;
   
   // Fall back to generic planetside peril from Planets category
   const planetsCategory = starforgedData?.oracleCategories?.find(c => c.Name === 'Planets');
   if (!planetsCategory?.Oracles) return [];
   
-  const oracleName = hasLife ? 'Planetside Peril' : 'Planetside Peril';
   const oracle = planetsCategory.Oracles.find(o => 
     o.Name.toLowerCase().includes('peril')
   );
   
   if (!oracle) return [];
   
-  // Check if it has life/lifeless variants
-  if (oracle.Tables) {
-    const tableKey = hasLife ? 'Life' : 'Lifeless';
-    const table = oracle.Tables[tableKey]?.Table || Object.values(oracle.Tables)[0]?.Table;
-    if (table) {
-      const results = new Set();
-      table.forEach(row => {
-        if (row.Result) {
-          const parsed = parseOracleResult(row.Result);
-          if (parsed) results.add(parsed);
-        }
-      });
-      return Array.from(results).map(r => ({ value: r, label: r }));
-    }
-  }
-  
-  if (oracle.Table) {
+  const extractOptions = (table) => {
+    const validTable = filterValidRows(table);
+    if (!validTable) return [];
     const results = new Set();
-    oracle.Table.forEach(row => {
+    validTable.forEach(row => {
       if (row.Result) {
         const parsed = parseOracleResult(row.Result);
         if (parsed) results.add(parsed);
       }
     });
     return Array.from(results).map(r => ({ value: r, label: r }));
+  };
+  
+  // Check for life/lifeless sub-oracles
+  if (oracle.Oracles) {
+    const subOracleName = hasLife ? 'Lifebearing' : 'Lifeless';
+    const subOracle = oracle.Oracles.find(o => 
+      o.Name.toLowerCase().includes(subOracleName.toLowerCase())
+    ) || oracle.Oracles[0];
+    if (subOracle?.Table) {
+      return extractOptions(subOracle.Table);
+    }
+  }
+  
+  // Check if it has life/lifeless table variants
+  if (oracle.Tables) {
+    const tableKey = hasLife ? 'Lifebearing' : 'Lifeless';
+    const table = oracle.Tables[tableKey]?.Table || 
+                  oracle.Tables['Life']?.Table ||
+                  Object.values(oracle.Tables)[0]?.Table;
+    if (table) {
+      return extractOptions(table);
+    }
+  }
+  
+  if (oracle.Table) {
+    return extractOptions(oracle.Table);
   }
   
   return [];
@@ -279,10 +303,24 @@ const rollPerilOracle = (starforgedData, planetClass, hasLife) => {
   
   if (!oracle) return null;
   
-  // Check for life/lifeless variants
+  // Check for life/lifeless sub-oracles
+  if (oracle.Oracles) {
+    const subOracleName = hasLife ? 'Lifebearing' : 'Lifeless';
+    const subOracle = oracle.Oracles.find(o => 
+      o.Name.toLowerCase().includes(subOracleName.toLowerCase())
+    ) || oracle.Oracles[0];
+    if (subOracle?.Table) {
+      const result = rollOnTable(subOracle.Table);
+      return parseOracleResult(result);
+    }
+  }
+  
+  // Check for life/lifeless table variants
   if (oracle.Tables) {
-    const tableKey = hasLife ? 'Life' : 'Lifeless';
-    const table = oracle.Tables[tableKey]?.Table || Object.values(oracle.Tables)[0]?.Table;
+    const tableKey = hasLife ? 'Lifebearing' : 'Lifeless';
+    const table = oracle.Tables[tableKey]?.Table || 
+                  oracle.Tables['Life']?.Table ||
+                  Object.values(oracle.Tables)[0]?.Table;
     if (table) {
       const result = rollOnTable(table);
       return parseOracleResult(result);
@@ -313,31 +351,43 @@ const getOpportunityOracleOptions = (starforgedData, planetClass, hasLife) => {
   
   if (!oracle) return [];
   
-  // Check if it has life/lifeless variants
-  if (oracle.Tables) {
-    const tableKey = hasLife ? 'Life' : 'Lifeless';
-    const table = oracle.Tables[tableKey]?.Table || Object.values(oracle.Tables)[0]?.Table;
-    if (table) {
-      const results = new Set();
-      table.forEach(row => {
-        if (row.Result) {
-          const parsed = parseOracleResult(row.Result);
-          if (parsed) results.add(parsed);
-        }
-      });
-      return Array.from(results).map(r => ({ value: r, label: r }));
-    }
-  }
-  
-  if (oracle.Table) {
+  const extractOptions = (table) => {
+    const validTable = filterValidRows(table);
+    if (!validTable) return [];
     const results = new Set();
-    oracle.Table.forEach(row => {
+    validTable.forEach(row => {
       if (row.Result) {
         const parsed = parseOracleResult(row.Result);
         if (parsed) results.add(parsed);
       }
     });
     return Array.from(results).map(r => ({ value: r, label: r }));
+  };
+  
+  // Check for life/lifeless sub-oracles
+  if (oracle.Oracles) {
+    const subOracleName = hasLife ? 'Lifebearing' : 'Lifeless';
+    const subOracle = oracle.Oracles.find(o => 
+      o.Name.toLowerCase().includes(subOracleName.toLowerCase())
+    ) || oracle.Oracles[0];
+    if (subOracle?.Table) {
+      return extractOptions(subOracle.Table);
+    }
+  }
+  
+  // Check if it has life/lifeless table variants
+  if (oracle.Tables) {
+    const tableKey = hasLife ? 'Lifebearing' : 'Lifeless';
+    const table = oracle.Tables[tableKey]?.Table || 
+                  oracle.Tables['Life']?.Table ||
+                  Object.values(oracle.Tables)[0]?.Table;
+    if (table) {
+      return extractOptions(table);
+    }
+  }
+  
+  if (oracle.Table) {
+    return extractOptions(oracle.Table);
   }
   
   return [];
@@ -367,10 +417,24 @@ const rollOpportunityOracle = (starforgedData, planetClass, hasLife) => {
   
   if (!oracle) return null;
   
-  // Check for life/lifeless variants
+  // Check for life/lifeless sub-oracles
+  if (oracle.Oracles) {
+    const subOracleName = hasLife ? 'Lifebearing' : 'Lifeless';
+    const subOracle = oracle.Oracles.find(o => 
+      o.Name.toLowerCase().includes(subOracleName.toLowerCase())
+    ) || oracle.Oracles[0];
+    if (subOracle?.Table) {
+      const result = rollOnTable(subOracle.Table);
+      return parseOracleResult(result);
+    }
+  }
+  
+  // Check for life/lifeless table variants
   if (oracle.Tables) {
-    const tableKey = hasLife ? 'Life' : 'Lifeless';
-    const table = oracle.Tables[tableKey]?.Table || Object.values(oracle.Tables)[0]?.Table;
+    const tableKey = hasLife ? 'Lifebearing' : 'Lifeless';
+    const table = oracle.Tables[tableKey]?.Table || 
+                  oracle.Tables['Life']?.Table ||
+                  Object.values(oracle.Tables)[0]?.Table;
     if (table) {
       const result = rollOnTable(table);
       return parseOracleResult(result);
@@ -425,6 +489,7 @@ export const ExploreTab = ({
   const [newLocationName, setNewLocationName] = useState('');
   const [newLocationType, setNewLocationType] = useState(null);
   const [currentSectorId, setCurrentSectorId] = useState(null);
+  const [newLocationConnected, setNewLocationConnected] = useState(true);
   const [newPlanetClass, setNewPlanetClass] = useState('');
   const [newPlanetAtmosphere, setNewPlanetAtmosphere] = useState('');
   const [newPlanetSettlements, setNewPlanetSettlements] = useState('');
@@ -455,11 +520,12 @@ export const ExploreTab = ({
     
     // Use planet class as name for planets, otherwise use type name
     let name;
-    let data = {};
+    let data = { connected: newLocationConnected };
     
     if (newLocationType === 'planet') {
       name = newPlanetClass.trim();
       data = {
+        ...data,
         planetClass: newPlanetClass.trim(),
         atmosphere: newPlanetAtmosphere,
         settlements: newPlanetSettlements,
@@ -487,6 +553,7 @@ export const ExploreTab = ({
 
   const closeLocationModal = () => {
     setNewLocationType(null);
+    setNewLocationConnected(true);
     setNewPlanetClass('');
     setNewPlanetAtmosphere('');
     setNewPlanetSettlements('');
@@ -507,6 +574,36 @@ export const ExploreTab = ({
     setNewPlanetLife('');
     setNewPlanetPeril('');
     setNewPlanetOpportunity('');
+  };
+
+  // Roll all planet fields based on a given class
+  const rollAllPlanetFields = (planetClass, sectorId) => {
+    if (!planetClass) return;
+    
+    const sector = getSector(sectorId);
+    const region = sector?.region ? sector.region.charAt(0).toUpperCase() + sector.region.slice(1) : 'Terminus';
+    
+    // Roll each field
+    const atmosphere = rollPlanetOracle(starforgedData, planetClass, 'Atmosphere');
+    const settlements = rollPlanetOracle(starforgedData, planetClass, 'Settlements', region);
+    const observed = rollPlanetOracle(starforgedData, planetClass, 'Observed From Space');
+    const feature = rollPlanetOracle(starforgedData, planetClass, 'Feature');
+    const life = rollPlanetOracle(starforgedData, planetClass, 'Life');
+    
+    // Set all the values
+    if (atmosphere) setNewPlanetAtmosphere(atmosphere);
+    if (settlements) setNewPlanetSettlements(settlements);
+    if (observed) setNewPlanetObserved(observed);
+    if (feature) setNewPlanetFeature(feature);
+    if (life) {
+      setNewPlanetLife(life);
+      // Roll peril and opportunity based on life status
+      const hasLife = planetHasLife(life);
+      const peril = rollPerilOracle(starforgedData, planetClass, hasLife);
+      const opportunity = rollOpportunityOracle(starforgedData, planetClass, hasLife);
+      if (peril) setNewPlanetPeril(peril);
+      if (opportunity) setNewPlanetOpportunity(opportunity);
+    }
   };
 
   const getEntityTypeInfo = (type) => {
@@ -546,7 +643,11 @@ export const ExploreTab = ({
             )}
             <MenuItem 
               label="Create Sector"
-              onClick={() => setShowSectorModal(true)}
+              onClick={() => {
+                const name = generateSectorName(starforgedData);
+                if (name) setNewSectorName(name);
+                setShowSectorModal(true);
+              }}
               isButton={true}
             />
           </MenuGroup>
@@ -681,56 +782,64 @@ export const ExploreTab = ({
           {...scrollProps}
         >
           <MenuGroup title="Connected">
-            {(!sector.locations || sector.locations.length === 0) ? (
-              <MenuItem 
-                label="No entities yet"
-                showChevron={false}
-                muted={true}
-              />
-            ) : (
-              sector.locations.map(location => (
+            {(() => {
+              const connectedLocations = (sector.locations || []).filter(l => l.connected !== false);
+              return connectedLocations.length === 0 ? (
                 <MenuItem 
-                  key={location.id}
-                  icon={location.type === 'planet' ? '🪐' : location.type === 'station' ? '🛰️' : '⭐'}
-                  iconBg={getGenericIconBg(location.type === 'planet' ? '🪐' : location.type === 'station' ? '🛰️' : '⭐')}
-                  label={location.name}
-                  value={location.type.charAt(0).toUpperCase() + location.type.slice(1)}
-                  onClick={() => navigate(`location-${sectorId}-${location.id}`)}
+                  label="No entities yet"
+                  showChevron={false}
+                  muted={true}
                 />
-              ))
-            )}
+              ) : (
+                connectedLocations.map(location => (
+                  <MenuItem 
+                    key={location.id}
+                    icon={location.type === 'planet' ? '🪐' : location.type === 'station' ? '🛰️' : '⭐'}
+                    iconBg={getGenericIconBg(location.type === 'planet' ? '🪐' : location.type === 'station' ? '🛰️' : '⭐')}
+                    label={location.name}
+                    value={location.type.charAt(0).toUpperCase() + location.type.slice(1)}
+                    onClick={() => navigate(`location-${sectorId}-${location.id}`)}
+                  />
+                ))
+              );
+            })()}
             <MenuItem 
               label="Add entity"
               onClick={() => {
                 setCurrentSectorId(sectorId);
+                setNewLocationConnected(true);
                 setShowLocationModal(true);
               }}
               isButton={true}
             />
           </MenuGroup>
           <MenuGroup title="Not connected">
-            {(!sector.locations || sector.locations.length === 0) ? (
-              <MenuItem 
-                label="No entities yet"
-                showChevron={false}
-                muted={true}
-              />
-            ) : (
-              sector.locations.map(location => (
+            {(() => {
+              const notConnectedLocations = (sector.locations || []).filter(l => l.connected === false);
+              return notConnectedLocations.length === 0 ? (
                 <MenuItem 
-                  key={location.id}
-                  icon={location.type === 'planet' ? '🪐' : location.type === 'station' ? '🛰️' : '⭐'}
-                  iconBg={getGenericIconBg(location.type === 'planet' ? '🪐' : location.type === 'station' ? '🛰️' : '⭐')}
-                  label={location.name}
-                  value={location.type.charAt(0).toUpperCase() + location.type.slice(1)}
-                  onClick={() => navigate(`location-${sectorId}-${location.id}`)}
+                  label="No entities yet"
+                  showChevron={false}
+                  muted={true}
                 />
-              ))
-            )}
+              ) : (
+                notConnectedLocations.map(location => (
+                  <MenuItem 
+                    key={location.id}
+                    icon={location.type === 'planet' ? '🪐' : location.type === 'station' ? '🛰️' : '⭐'}
+                    iconBg={getGenericIconBg(location.type === 'planet' ? '🪐' : location.type === 'station' ? '🛰️' : '⭐')}
+                    label={location.name}
+                    value={location.type.charAt(0).toUpperCase() + location.type.slice(1)}
+                    onClick={() => navigate(`location-${sectorId}-${location.id}`)}
+                  />
+                ))
+              );
+            })()}
             <MenuItem 
               label="Add entity"
               onClick={() => {
                 setCurrentSectorId(sectorId);
+                setNewLocationConnected(false);
                 setShowLocationModal(true);
               }}
               isButton={true}
@@ -756,7 +865,15 @@ export const ExploreTab = ({
                 icon="🪐"
                 iconBg={getGenericIconBg('🪐')}
                 label="Planet"
-                onClick={() => setNewLocationType('planet')}
+                onClick={() => {
+                  setNewLocationType('planet');
+                  // Auto-generate random planet class and all fields
+                  const planetClass = generatePlanetClass(starforgedData);
+                  if (planetClass) {
+                    setNewPlanetClass(planetClass);
+                    rollAllPlanetFields(planetClass, currentSectorId);
+                  }
+                }}
               />
               <MenuItem 
                 icon="🛰️"
@@ -789,21 +906,13 @@ export const ExploreTab = ({
                 <DiceSelect
                   value={newPlanetClass}
                   onChange={(e) => {
-                    setNewPlanetClass(e.target.value);
-                    // Reset dependent fields when class changes
-                    setNewPlanetAtmosphere('');
-                    setNewPlanetSettlements('');
-                    setNewPlanetObserved('');
-                    setNewPlanetFeature('');
-                    setNewPlanetLife('');
-                    setNewPlanetPeril('');
-                    setNewPlanetOpportunity('');
-                  }}
-                  onDiceClick={() => {
-                    const planetClass = generatePlanetClass(starforgedData);
+                    const planetClass = e.target.value;
+                    setNewPlanetClass(planetClass);
+                    // Roll all dependent fields with new class
                     if (planetClass) {
-                      setNewPlanetClass(planetClass);
-                      // Reset dependent fields when class changes
+                      rollAllPlanetFields(planetClass, currentSectorId);
+                    } else {
+                      // Clear dependent fields if no class selected
                       setNewPlanetAtmosphere('');
                       setNewPlanetSettlements('');
                       setNewPlanetObserved('');
@@ -811,6 +920,14 @@ export const ExploreTab = ({
                       setNewPlanetLife('');
                       setNewPlanetPeril('');
                       setNewPlanetOpportunity('');
+                    }
+                  }}
+                  onDiceClick={() => {
+                    const planetClass = generatePlanetClass(starforgedData);
+                    if (planetClass) {
+                      setNewPlanetClass(planetClass);
+                      // Roll all dependent fields with new class
+                      rollAllPlanetFields(planetClass, currentSectorId);
                     }
                   }}
                   options={PLANET_CLASSES}
@@ -973,84 +1090,41 @@ export const ExploreTab = ({
             iconBg={getGenericIconBg(getLocationIcon(location.type))}
             title={location.name}
             description={location.type.charAt(0).toUpperCase() + location.type.slice(1)}
-          />
-          
-          {location.type === 'planet' && (
-            <MenuGroup title="Details">
-              {location.atmosphere && (
-                <MenuItem 
-                  label="Atmosphere"
-                  value={location.atmosphere}
-                  showChevron={false}
-                />
+          >
+            <DetailCardItems>
+              {location.type === 'planet' && (
+                <>
+                  {location.atmosphere && (
+                    <MenuItem label="Atmosphere" value={location.atmosphere} showChevron={false} />
+                  )}
+                  {location.settlements && (
+                    <MenuItem label="Settlements" value={location.settlements} showChevron={false} />
+                  )}
+                  {location.observed && (
+                    <MenuItem label="Observed from Space" value={location.observed} showChevron={false} />
+                  )}
+                  {location.feature && (
+                    <MenuItem label="Feature" value={location.feature} showChevron={false} />
+                  )}
+                  {location.life && (
+                    <MenuItem label="Life" value={location.life} showChevron={false} />
+                  )}
+                  {location.peril && (
+                    <MenuItem label="Peril" value={location.peril} showChevron={false} />
+                  )}
+                  {location.opportunity && (
+                    <MenuItem label="Opportunity" value={location.opportunity} showChevron={false} />
+                  )}
+                </>
               )}
-              {location.settlements && (
-                <MenuItem 
-                  label="Settlements"
-                  value={location.settlements}
-                  showChevron={false}
-                />
+              {sector && (
+                <>
+                  <MenuItem label="Sector" value={sector.name} showChevron={false} />
+                  <MenuItem label="Region" value={getRegionLabel(sector.region)} showChevron={false} />
+                </>
               )}
-              {location.observed && (
-                <MenuItem 
-                  label="Observed from Space"
-                  value={location.observed}
-                  showChevron={false}
-                />
-              )}
-              {location.feature && (
-                <MenuItem 
-                  label="Feature"
-                  value={location.feature}
-                  showChevron={false}
-                />
-              )}
-              {location.life && (
-                <MenuItem 
-                  label="Life"
-                  value={location.life}
-                  showChevron={false}
-                />
-              )}
-              {location.peril && (
-                <MenuItem 
-                  label="Peril"
-                  value={location.peril}
-                  showChevron={false}
-                />
-              )}
-              {location.opportunity && (
-                <MenuItem 
-                  label="Opportunity"
-                  value={location.opportunity}
-                  showChevron={false}
-                />
-              )}
-              {!location.atmosphere && !location.settlements && !location.observed && 
-               !location.feature && !location.life && !location.peril && !location.opportunity && (
-                <MenuItem 
-                  label="No details recorded"
-                  showChevron={false}
-                  muted={true}
-                />
-              )}
-            </MenuGroup>
-          )}
-
-          {sector && (
-            <MenuGroup title="Location">
-              <MenuItem 
-                label="Sector"
-                value={sector.name}
-                showChevron={false}
-              />
-              <MenuItem 
-                label="Region"
-                value={getRegionLabel(sector.region)}
-                showChevron={false}
-              />
-            </MenuGroup>
-          )}
+            </DetailCardItems>
+          </DetailCard>
         </NavigationView>
       );
     }

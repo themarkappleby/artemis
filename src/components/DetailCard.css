@@ -136,3 +136,11 @@
 .detail-card-description tbody tr:hover {
   background-color: rgba(255, 255, 255, 0.05);
 }
+
+/* DetailCard items container for MenuItems */
+.detail-card-items {
+  margin: 16px -20px -20px -20px;
+  border-top: 1px solid #2c2c2e;
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+}

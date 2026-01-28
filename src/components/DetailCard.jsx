@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import './DetailCard.css';
 
-export const DetailCard = ({ icon, iconBg, title, description, onLinkClick }) => {
+export const DetailCard = ({ icon, iconBg, title, description, onLinkClick, children }) => {
   // Custom link component that handles internal move links
   const LinkRenderer = ({ href, children }) => {
     const handleClick = (e) => {
@@ -44,6 +44,16 @@ export const DetailCard = ({ icon, iconBg, title, description, onLinkClick }) =>
           </ReactMarkdown>
         </div>
       )}
+      {children}
+    </div>
+  );
+};
+
+// A container for MenuItems within a DetailCard
+export const DetailCardItems = ({ children }) => {
+  return (
+    <div className="detail-card-items">
+      {children}
     </div>
   );
 };
