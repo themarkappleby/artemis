@@ -856,9 +856,7 @@ export const ExploreTab = ({
   const [newCreatureAspect, setNewCreatureAspect] = useState('');
   
   // Character state
-  const [newCharacterGivenName, setNewCharacterGivenName] = useState('');
-  const [newCharacterFamilyName, setNewCharacterFamilyName] = useState('');
-  const [newCharacterCallsign, setNewCharacterCallsign] = useState('');
+  const [newCharacterName, setNewCharacterName] = useState('');
   const [newCharacterFirstLook, setNewCharacterFirstLook] = useState('');
   const [newCharacterDisposition, setNewCharacterDisposition] = useState('');
   const [newCharacterRole, setNewCharacterRole] = useState('');
@@ -1087,13 +1085,9 @@ export const ExploreTab = ({
         break;
       
       case 'character':
-        // Build display name from available parts
-        const fullName = [newCharacterGivenName, newCharacterFamilyName].filter(Boolean).join(' ');
-        name = fullName || newCharacterCallsign || 'Character';
+        name = newCharacterName || 'Character';
         data = {
-          givenName: newCharacterGivenName,
-          familyName: newCharacterFamilyName,
-          callsign: newCharacterCallsign,
+          characterName: newCharacterName,
           firstLook: newCharacterFirstLook,
           initialDisposition: newCharacterDisposition,
           role: newCharacterRole,
@@ -1178,9 +1172,7 @@ export const ExploreTab = ({
     setNewCreatureBehavior('');
     setNewCreatureAspect('');
     // Character fields
-    setNewCharacterGivenName('');
-    setNewCharacterFamilyName('');
-    setNewCharacterCallsign('');
+    setNewCharacterName('');
     setNewCharacterFirstLook('');
     setNewCharacterDisposition('');
     setNewCharacterRole('');
@@ -1343,13 +1335,32 @@ export const ExploreTab = ({
     const role = rollCharacterOracle(starforgedData, 'Role');
     const goal = rollCharacterOracle(starforgedData, 'Goal');
     
-    if (givenName) setNewCharacterGivenName(givenName);
-    if (familyName) setNewCharacterFamilyName(familyName);
-    if (callsign) setNewCharacterCallsign(callsign);
+    // Build name in format: Given "Callsign" Family
+    if (givenName && callsign && familyName) {
+      setNewCharacterName(`${givenName} "${callsign}" ${familyName}`);
+    } else if (givenName && familyName) {
+      setNewCharacterName(`${givenName} ${familyName}`);
+    } else if (givenName) {
+      setNewCharacterName(givenName);
+    }
     if (firstLook) setNewCharacterFirstLook(firstLook);
     if (disposition) setNewCharacterDisposition(disposition);
     if (role) setNewCharacterRole(role);
     if (goal) setNewCharacterGoal(goal);
+  };
+  
+  // Generate a random character name
+  const generateCharacterName = () => {
+    const givenName = rollCharacterOracle(starforgedData, 'Given Name');
+    const familyName = rollCharacterOracle(starforgedData, 'Family Name');
+    const callsign = rollCharacterOracle(starforgedData, 'Callsign');
+    
+    if (givenName && callsign && familyName) {
+      return `${givenName} "${callsign}" ${familyName}`;
+    } else if (givenName && familyName) {
+      return `${givenName} ${familyName}`;
+    }
+    return givenName || familyName || callsign || null;
   };
 
   // Roll all custom fields using Core oracles
@@ -1626,7 +1637,7 @@ export const ExploreTab = ({
           isOpen={showLocationModal}
           onClose={closeLocationModal}
           onBack={newLocationType ? () => { setNewLocationType(null); resetPlanetFields(); } : null}
-          title={newLocationType ? getEntityTypeInfo(newLocationType).label : "New entity"}
+          title={newLocationType ? getEntityTypeInfo(newLocationType).label : "Add entity"}
           action={newLocationType ? {
             label: 'Create',
             onClick: createLocation,
@@ -2633,7 +2644,7 @@ export const ExploreTab = ({
                   label: 'Create',
                   onClick: createSubLocation,
                   disabled: (newSubLocationType === 'settlement' && !newSettlementName.trim()) ||
-                            (newSubLocationType === 'character' && !newCharacterGivenName.trim() && !newCharacterCallsign.trim()) ||
+                            (newSubLocationType === 'character' && !newCharacterName.trim()) ||
                             (newSubLocationType === 'custom' && !newCustomName.trim())
                 } : null}
               >
@@ -3048,40 +3059,15 @@ export const ExploreTab = ({
                   </>
                 ) : newSubLocationType === 'character' ? (
                   <>
-                    <ModalField label="Given Name">
-                      <DiceSelect
-                        value={newCharacterGivenName}
-                        onChange={(e) => setNewCharacterGivenName(e.target.value)}
+                    <ModalField label="Name">
+                      <DiceInput
+                        value={newCharacterName}
+                        onChange={(e) => setNewCharacterName(e.target.value)}
                         onDiceClick={() => {
-                          const result = rollCharacterOracle(starforgedData, 'Given Name');
-                          if (result) setNewCharacterGivenName(result);
+                          const name = generateCharacterName();
+                          if (name) setNewCharacterName(name);
                         }}
-                        options={getCharacterOracleOptions(starforgedData, 'Given Name')}
-                        placeholder="Select given name..."
-                      />
-                    </ModalField>
-                    <ModalField label="Family Name">
-                      <DiceSelect
-                        value={newCharacterFamilyName}
-                        onChange={(e) => setNewCharacterFamilyName(e.target.value)}
-                        onDiceClick={() => {
-                          const result = rollCharacterOracle(starforgedData, 'Family Name');
-                          if (result) setNewCharacterFamilyName(result);
-                        }}
-                        options={getCharacterOracleOptions(starforgedData, 'Family Name')}
-                        placeholder="Select family name..."
-                      />
-                    </ModalField>
-                    <ModalField label="Callsign">
-                      <DiceSelect
-                        value={newCharacterCallsign}
-                        onChange={(e) => setNewCharacterCallsign(e.target.value)}
-                        onDiceClick={() => {
-                          const result = rollCharacterOracle(starforgedData, 'Callsign');
-                          if (result) setNewCharacterCallsign(result);
-                        }}
-                        options={getCharacterOracleOptions(starforgedData, 'Callsign')}
-                        placeholder="Select callsign..."
+                        placeholder="Enter character name..."
                       />
                     </ModalField>
                     <ModalField label="First Look">
@@ -3350,14 +3336,8 @@ export const ExploreTab = ({
               )}
               {subLocation.type === 'character' && (
                 <>
-                  {subLocation.givenName && (
-                    <MenuItem label="Given Name" value={subLocation.givenName} showChevron={false} />
-                  )}
-                  {subLocation.familyName && (
-                    <MenuItem label="Family Name" value={subLocation.familyName} showChevron={false} />
-                  )}
-                  {subLocation.callsign && (
-                    <MenuItem label="Callsign" value={subLocation.callsign} showChevron={false} />
+                  {subLocation.characterName && (
+                    <MenuItem label="Name" value={subLocation.characterName} showChevron={false} />
                   )}
                   {subLocation.firstLook && (
                     <MenuItem label="First Look" value={subLocation.firstLook} showChevron={false} />

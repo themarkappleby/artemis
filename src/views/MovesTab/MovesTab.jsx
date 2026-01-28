@@ -156,17 +156,72 @@ export const MovesTab = ({
             )}
           </MenuGroup>
         )}
-        <MenuGroup title="Move Categories">
-          {starforgedData?.moveCategories.map((category, index) => (
-            <MenuItem 
-              key={category['$id'] || index}
-              icon={getMoveIcon(category.Name)}
-              iconBg={getMoveIconBg(category.Name)}
-              label={category.Name}
-              value={category.Moves?.length || 0}
-              onClick={() => navigate(`move-category-${index}`)}
-            />
-          ))}
+        {/* Generic */}
+        <MenuGroup title="Generic">
+          {starforgedData?.moveCategories
+            .map((category, index) => ({ category, index }))
+            .filter(({ category }) => ['Adventure', 'Fate'].includes(category.Name))
+            .map(({ category, index }) => (
+              <MenuItem 
+                key={category['$id'] || index}
+                icon={getMoveIcon(category.Name)}
+                iconBg={getMoveIconBg(category.Name)}
+                label={category.Name}
+                value={category.Moves?.length || 0}
+                onClick={() => navigate(`move-category-${index}`)}
+              />
+            ))}
+        </MenuGroup>
+
+        {/* Progress Tracks */}
+        <MenuGroup title="Progress Tracks">
+          {starforgedData?.moveCategories
+            .map((category, index) => ({ category, index }))
+            .filter(({ category }) => ['Quest', 'Connection', 'Exploration', 'Combat', 'Scene Challenge'].includes(category.Name))
+            .map(({ category, index }) => (
+              <MenuItem 
+                key={category['$id'] || index}
+                icon={getMoveIcon(category.Name)}
+                iconBg={getMoveIconBg(category.Name)}
+                label={category.Name}
+                value={category.Moves?.length || 0}
+                onClick={() => navigate(`move-category-${index}`)}
+              />
+            ))}
+        </MenuGroup>
+
+        {/* Outcomes */}
+        <MenuGroup title="Outcomes">
+          {starforgedData?.moveCategories
+            .map((category, index) => ({ category, index }))
+            .filter(({ category }) => ['Suffer', 'Threshold', 'Recover', 'Legacy'].includes(category.Name))
+            .map(({ category, index }) => (
+              <MenuItem 
+                key={category['$id'] || index}
+                icon={getMoveIcon(category.Name)}
+                iconBg={getMoveIconBg(category.Name)}
+                label={category.Name}
+                value={category.Moves?.length || 0}
+                onClick={() => navigate(`move-category-${index}`)}
+              />
+            ))}
+        </MenuGroup>
+
+        {/* Meta */}
+        <MenuGroup title="Meta">
+          {starforgedData?.moveCategories
+            .map((category, index) => ({ category, index }))
+            .filter(({ category }) => ['Session'].includes(category.Name))
+            .map(({ category, index }) => (
+              <MenuItem 
+                key={category['$id'] || index}
+                icon={getMoveIcon(category.Name)}
+                iconBg={getMoveIconBg(category.Name)}
+                label={category.Name}
+                value={category.Moves?.length || 0}
+                onClick={() => navigate(`move-category-${index}`)}
+              />
+            ))}
         </MenuGroup>
       </NavigationView>
     );

@@ -6,9 +6,92 @@ import { DetailCard } from '../../components/DetailCard';
 import { StatBar } from '../../components/StatBar';
 import { MeterBar } from '../../components/MeterBar';
 import { ProgressTrack, RANK_LABELS } from '../../components/ProgressTrack';
+import { ModalField } from '../../components/Modal/Modal';
+import { DiceInput } from '../../components/DiceInput/DiceInput';
 import { getAssetIcon, getAssetIconBg, getStatIcon, getStatIconBg, getProgressIconBg, getGenericIconBg } from '../../utils/icons';
 import '../../styles/forms.css';
 import './CharacterTab.css';
+
+// Helper to get oracle category by name
+const getOracleCategory = (starforgedData, categoryName) => {
+  if (!starforgedData?.oracleCategories) return null;
+  return starforgedData.oracleCategories.find(c => c.Name === categoryName);
+};
+
+// Helper to get oracle from category
+const getOracleFromCategory = (category, oracleName) => {
+  if (!category?.Oracles) return null;
+  return category.Oracles.find(o => 
+    o.Name === oracleName || 
+    o.Name.toLowerCase().includes(oracleName.toLowerCase())
+  );
+};
+
+// Helper to filter valid oracle rows
+const filterValidRows = (table) => {
+  if (!table) return null;
+  return table.filter(row => {
+    const hasFloorCeiling = row.Floor !== undefined && row.Floor !== null && 
+                            row.Ceiling !== undefined && row.Ceiling !== null;
+    const hasChance = row.Chance !== undefined && row.Chance !== null;
+    return hasFloorCeiling || hasChance;
+  });
+};
+
+// Helper to roll on a table
+const rollOnTable = (table) => {
+  const validTable = filterValidRows(table);
+  if (!validTable || validTable.length === 0) return null;
+  const roll = Math.floor(Math.random() * 100) + 1;
+  const result = validTable.find(row => {
+    const floor = row.Floor || row.Chance || 1;
+    const ceiling = row.Ceiling || row.Chance || 100;
+    return roll >= floor && roll <= ceiling;
+  });
+  return result?.Result || null;
+};
+
+// Get character oracle (handles nested Name oracle structure)
+const getCharacterOracle = (starforgedData, oracleName) => {
+  const category = getOracleCategory(starforgedData, 'Characters');
+  if (!category) return null;
+  
+  let oracle = getOracleFromCategory(category, oracleName);
+  if (oracle) return oracle;
+  
+  // Check nested Name oracle
+  const nameOracle = getOracleFromCategory(category, 'Name');
+  if (nameOracle?.Oracles) {
+    oracle = nameOracle.Oracles.find(o => 
+      o.Name === oracleName || 
+      o.Name.toLowerCase().includes(oracleName.toLowerCase())
+    );
+    if (oracle) return oracle;
+  }
+  
+  return null;
+};
+
+// Roll on character oracle
+const rollCharacterOracle = (starforgedData, oracleName) => {
+  const oracle = getCharacterOracle(starforgedData, oracleName);
+  if (!oracle?.Table) return null;
+  return rollOnTable(oracle.Table);
+};
+
+// Generate character name in format: Given "Callsign" Family
+const generateCharacterName = (starforgedData) => {
+  const givenName = rollCharacterOracle(starforgedData, 'Given Name');
+  const familyName = rollCharacterOracle(starforgedData, 'Family Name');
+  const callsign = rollCharacterOracle(starforgedData, 'Callsign');
+  
+  if (givenName && callsign && familyName) {
+    return `${givenName} "${callsign}" ${familyName}`;
+  } else if (givenName && familyName) {
+    return `${givenName} ${familyName}`;
+  }
+  return givenName || familyName || callsign || null;
+};
 
 export const CharacterTab = ({
   viewName,
@@ -39,6 +122,18 @@ export const CharacterTab = ({
   if (viewName === 'character-home') {
     return (
       <NavigationView title="Character" {...scrollProps}>
+        <ModalField label="Name" style={{ paddingTop: 0 }}>
+          <DiceInput
+            value={character.name}
+            onChange={(e) => updateName(e.target.value)}
+            onDiceClick={() => {
+              const name = generateCharacterName(starforgedData);
+              if (name) updateName(name);
+            }}
+            placeholder="Enter character name..."
+          />
+        </ModalField>
+
         <MenuGroup title="Condition Meters">
           <div style={{ padding: '12px 0' }}>
             <MeterBar 
@@ -92,16 +187,6 @@ export const CharacterTab = ({
             onChange={(val) => updateCondition('momentumReset', val)}
           />
         </MenuGroup>
-
-        <div style={{ padding: '0 16px' }}>
-          <input
-            type="text"
-            className="character-name-input"
-            value={character.name}
-            onChange={(e) => updateName(e.target.value)}
-            placeholder="Character Name"
-          />
-        </div>
 
         <MenuGroup title="Stats">
           <StatBar 

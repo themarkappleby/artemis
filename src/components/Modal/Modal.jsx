@@ -90,8 +90,8 @@ export const Modal = ({ isOpen, onClose, onBack, title, children, action }) => {
   );
 };
 
-export const ModalField = ({ label, children }) => (
-  <div className="modal-field">
+export const ModalField = ({ label, children, style }) => (
+  <div className="modal-field" style={style}>
     {label && <label className="modal-label">{label}</label>}
     {children}
   </div>
