@@ -48,6 +48,7 @@ export const useExplore = () => {
       id: Date.now(),
       name: name.trim(),
       type,
+      subLocations: [],
       ...data
     };
     setSectors(prev => prev.map(sector => {
@@ -80,6 +81,60 @@ export const useExplore = () => {
     }));
   };
 
+  const addSubLocation = (sectorId, locationId, name, type, placement, data = {}) => {
+    const newSubLocation = {
+      id: Date.now(),
+      name: name.trim(),
+      type,
+      placement, // 'orbit' or 'planetside'
+      ...data
+    };
+    setSectors(prev => prev.map(sector => {
+      if (sector.id === sectorId) {
+        return {
+          ...sector,
+          locations: (sector.locations || []).map(location => {
+            if (location.id === locationId) {
+              return {
+                ...location,
+                subLocations: [...(location.subLocations || []), newSubLocation]
+              };
+            }
+            return location;
+          })
+        };
+      }
+      return sector;
+    }));
+    return newSubLocation;
+  };
+
+  const getSubLocation = (sectorId, locationId, subLocationId) => {
+    const location = getLocation(sectorId, locationId);
+    if (!location?.subLocations) return null;
+    return location.subLocations.find(sl => sl.id === subLocationId);
+  };
+
+  const removeSubLocation = (sectorId, locationId, subLocationId) => {
+    setSectors(prev => prev.map(sector => {
+      if (sector.id === sectorId) {
+        return {
+          ...sector,
+          locations: (sector.locations || []).map(location => {
+            if (location.id === locationId) {
+              return {
+                ...location,
+                subLocations: (location.subLocations || []).filter(sl => sl.id !== subLocationId)
+              };
+            }
+            return location;
+          })
+        };
+      }
+      return sector;
+    }));
+  };
+
   return {
     sectors,
     factions,
@@ -91,6 +146,9 @@ export const useExplore = () => {
     getFaction,
     addLocation,
     getLocation,
-    removeLocation
+    removeLocation,
+    addSubLocation,
+    getSubLocation,
+    removeSubLocation
   };
 };

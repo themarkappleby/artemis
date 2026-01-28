@@ -6,30 +6,40 @@ export const Modal = ({ isOpen, onClose, onBack, title, children, action }) => {
   const hasBackButton = !!onBack;
   const prevHasBackRef = useRef(null);
   const animationDirectionRef = useRef('none');
+  const outgoingContentRef = useRef(null);
+  const prevChildrenRef = useRef(children);
   const [, forceRender] = useReducer(x => x + 1, 0);
 
-  // Compute animation direction synchronously DURING render (not in effect)
-  // This ensures the animation class is applied on the same render as content change
+  // Compute animation direction and capture outgoing content synchronously DURING render
+  // This ensures both the animation class and outgoing content are ready on the same render
   if (!isOpen) {
     prevHasBackRef.current = null;
     animationDirectionRef.current = 'none';
+    outgoingContentRef.current = null;
   } else if (prevHasBackRef.current === null) {
     // Modal just opened, initialize without animation
     prevHasBackRef.current = hasBackButton;
     animationDirectionRef.current = 'none';
+    outgoingContentRef.current = null;
   } else if (prevHasBackRef.current !== hasBackButton) {
-    // Transition detected - set animation direction immediately
+    // Transition detected - capture outgoing content and set animation direction
+    outgoingContentRef.current = prevChildrenRef.current;
     animationDirectionRef.current = hasBackButton ? 'step-in' : 'step-out';
     prevHasBackRef.current = hasBackButton;
   }
 
-  const animationDirection = animationDirectionRef.current;
+  // Update prev children ref after computing animation state
+  prevChildrenRef.current = children;
 
-  // Clear animation class after animation completes
+  const animationDirection = animationDirectionRef.current;
+  const outgoingContent = outgoingContentRef.current;
+
+  // Clear animation class and outgoing content after animation completes
   useEffect(() => {
     if (animationDirection !== 'none') {
       const timer = setTimeout(() => {
         animationDirectionRef.current = 'none';
+        outgoingContentRef.current = null;
         forceRender();
       }, 300);
       return () => clearTimeout(timer);
@@ -62,8 +72,17 @@ export const Modal = ({ isOpen, onClose, onBack, title, children, action }) => {
             </button>
           )}
         </div>
-        <div className={`modal-body ${animationDirection}`}>
-          {children}
+        <div className="modal-body-container">
+          {/* Outgoing content with exit animation */}
+          {outgoingContent && animationDirection !== 'none' && (
+            <div className={`modal-body ${animationDirection === 'step-in' ? 'exit-left' : 'exit-right'}`}>
+              {outgoingContent}
+            </div>
+          )}
+          {/* Current content with entry animation */}
+          <div className={`modal-body ${animationDirection}`}>
+            {children}
+          </div>
         </div>
       </div>
     </div>,

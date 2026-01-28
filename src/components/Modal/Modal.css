@@ -99,22 +99,45 @@
   text-align: center;
 }
 
-.modal-body {
+.modal-body-container {
   flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-body {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 0 0 16px;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
 }
 
-/* Step in animation - slide from right */
+/* When not animating, use static positioning */
+.modal-body.none {
+  position: relative;
+}
+
+/* Step in animation - new content slides from right */
 .modal-body.step-in {
-  animation: slideInFromRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInFromRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* Step out animation - slide from left */
+/* Step out animation - new content slides from left */
 .modal-body.step-out {
-  animation: slideInFromLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: slideInFromLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Exit animations for outgoing content */
+.modal-body.exit-left {
+  animation: slideOutToLeft 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.modal-body.exit-right {
+  animation: slideOutToRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes slideInFromRight {
@@ -136,6 +159,28 @@
   to {
     transform: translateX(0);
     opacity: 1;
+  }
+}
+
+@keyframes slideOutToLeft {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-30%);
+    opacity: 0;
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
   }
 }
 

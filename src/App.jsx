@@ -116,7 +116,10 @@ function App() {
     getFaction,
     addLocation,
     getLocation,
-    removeLocation
+    removeLocation,
+    addSubLocation,
+    getSubLocation,
+    removeSubLocation
   } = useExplore();
 
   // Register service worker
@@ -158,6 +161,9 @@ function App() {
           addLocation={addLocation}
           getLocation={getLocation}
           removeLocation={removeLocation}
+          addSubLocation={addSubLocation}
+          getSubLocation={getSubLocation}
+          removeSubLocation={removeSubLocation}
           scrollProps={scrollProps}
         />
       );
