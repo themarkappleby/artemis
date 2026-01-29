@@ -225,27 +225,30 @@ export const resolveOracle = (parsed, starforgedData) => {
   const { depth, catIndex, subIndex, subSubIndex, oracleIndex } = parsed;
 
   if (depth === 'direct') {
-    const category = starforgedData.oracleCategories[catIndex];
+    const parentCategory = starforgedData.oracleCategories[catIndex];
+    const category = parentCategory;
     const oracle = category?.Oracles?.[oracleIndex];
     const oracleKey = `oracle-${catIndex}-${oracleIndex}`;
     const tableViewName = `oracle-table-${catIndex}-${oracleIndex}`;
-    return { oracle, category, oracleKey, tableViewName };
+    return { oracle, category, parentCategory, oracleKey, tableViewName };
   }
 
   if (depth === 'sub') {
-    const category = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex];
+    const parentCategory = starforgedData.oracleCategories[catIndex];
+    const category = parentCategory?.Categories?.[subIndex];
     const oracle = category?.Oracles?.[oracleIndex];
     const oracleKey = `oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`;
     const tableViewName = `oracle-detail-table-${catIndex}-${subIndex}-${oracleIndex}`;
-    return { oracle, category, oracleKey, tableViewName };
+    return { oracle, category, parentCategory, oracleKey, tableViewName };
   }
 
   if (depth === 'deep') {
-    const category = starforgedData.oracleCategories[catIndex]?.Categories?.[subIndex]?.Categories?.[subSubIndex];
+    const parentCategory = starforgedData.oracleCategories[catIndex];
+    const category = parentCategory?.Categories?.[subIndex]?.Categories?.[subSubIndex];
     const oracle = category?.Oracles?.[oracleIndex];
     const oracleKey = `oracle-detail-deep-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`;
     const tableViewName = `oracle-detail-deep-table-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`;
-    return { oracle, category, oracleKey, tableViewName };
+    return { oracle, category, parentCategory, oracleKey, tableViewName };
   }
 
   return null;

@@ -18,19 +18,36 @@ export const OracleCategoryView = ({
   const hasOracles = category.Oracles && category.Oracles.length > 0;
   const hasCategories = category.Categories && category.Categories.length > 0;
 
+  // Check if there's a "Name" oracle to render first
+  const nameOracleIndex = category.Oracles?.findIndex(o => o.Name === 'Name') ?? -1;
+  const nameOracle = nameOracleIndex >= 0 ? category.Oracles[nameOracleIndex] : null;
+  const otherOracles = category.Oracles?.filter(o => o.Name !== 'Name') || [];
+
   return (
     <NavigationView title={category.Name} onBack={goBack} {...scrollProps}>
       {hasOracles && (
         <MenuGroup title={hasCategories ? "Oracles" : undefined}>
-          {category.Oracles.map((oracle, oracleIndex) => (
+          {nameOracle && (
             <MenuItem 
-              key={oracle['$id'] || oracleIndex}
+              key={nameOracle['$id'] || 'name-oracle'}
               icon={getOracleIcon(category.Name)}
               iconBg={getOracleIconBg(category.Name)}
-              label={oracle.Name}
-              onClick={() => navigate(`oracle-${catIndex}-${oracleIndex}`)}
+              label={nameOracle.Name}
+              onClick={() => navigate(`oracle-${catIndex}-${nameOracleIndex}`)}
             />
-          ))}
+          )}
+          {otherOracles.map((oracle) => {
+            const originalIndex = category.Oracles.findIndex(o => o['$id'] === oracle['$id']);
+            return (
+              <MenuItem 
+                key={oracle['$id'] || originalIndex}
+                icon={getOracleIcon(category.Name)}
+                iconBg={getOracleIconBg(category.Name)}
+                label={oracle.Name}
+                onClick={() => navigate(`oracle-${catIndex}-${originalIndex}`)}
+              />
+            );
+          })}
         </MenuGroup>
       )}
       {hasCategories && (

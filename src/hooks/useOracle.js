@@ -1,5 +1,11 @@
 import { useState } from 'react';
 
+// Tags that can be added to settlement names (50% chance)
+const SETTLEMENT_NAME_TAGS = [
+  'Base', 'Citadel', 'Depot', 'Fortress', 'Hold', 
+  'Landing', 'Outpost', 'Port', 'Station', 'Terminal'
+];
+
 export const useOracle = (starforgedData) => {
   const [oracleRolls, setOracleRolls] = useState({});
 
@@ -30,7 +36,16 @@ export const useOracle = (starforgedData) => {
     return null;
   };
 
-  const rollOracle = (oracleKey, oracleTable) => {
+  // Helper to add random tag suffix to settlement names (50% chance)
+  const maybeAddSettlementTag = (name) => {
+    if (Math.random() < 0.5) {
+      const randomTag = SETTLEMENT_NAME_TAGS[Math.floor(Math.random() * SETTLEMENT_NAME_TAGS.length)];
+      return `${name} ${randomTag}`;
+    }
+    return name;
+  };
+
+  const rollOracle = (oracleKey, oracleTable, options = {}) => {
     if (!oracleTable || oracleTable.length === 0) return;
 
     const roll = Math.floor(Math.random() * 100) + 1;
@@ -41,7 +56,18 @@ export const useOracle = (starforgedData) => {
       return roll >= floor && roll <= ceiling;
     });
 
-    const rawResult = result?.Result || 'No result found';
+    let rawResult = result?.Result || 'No result found';
+    
+    // Check if this is a Settlement Name oracle roll and add tag suffix
+    const { oracleName, categoryName } = options;
+    const isSettlementNameOracle = 
+      (categoryName === 'Settlements' && oracleName === 'Name') ||
+      (oracleName === 'Settlement Name');
+    
+    if (isSettlementNameOracle && rawResult !== 'No result found') {
+      rawResult = maybeAddSettlementTag(rawResult);
+    }
+    
     // Don't auto-roll on nested tables - display links for user to navigate
     setOracleRolls({
       ...oracleRolls,

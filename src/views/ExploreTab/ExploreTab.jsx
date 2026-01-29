@@ -570,26 +570,44 @@ const rollSettlementOracle = (starforgedData, oracleName, region = 'Terminus') =
   return rollOracleResult(oracle, region);
 };
 
+const SETTLEMENT_NAME_TAGS = [
+  'Base', 'Citadel', 'Depot', 'Fortress', 'Hold', 
+  'Landing', 'Outpost', 'Port', 'Station', 'Terminal'
+];
+
 const generateSettlementName = (starforgedData) => {
   const category = getOracleCategory(starforgedData, 'Settlements');
   if (!category) return null;
   
   const nameOracle = getOracleFromCategory(category, 'Name');
-  if (!nameOracle?.Oracles) return null;
+  if (!nameOracle) return null;
   
-  // Try to find prefix/suffix or other name sub-oracles
-  const subOracles = nameOracle.Oracles;
-  if (subOracles.length >= 2) {
-    const first = rollOnTable(subOracles[0]?.Table);
-    const second = rollOnTable(subOracles[1]?.Table);
+  let baseName = null;
+  
+  // Settlement names have a direct Table (not sub-oracles like sector names)
+  if (nameOracle.Table) {
+    const result = rollOnTable(nameOracle.Table);
+    baseName = parseOracleResult(result);
+  }
+  
+  // Fall back to sub-oracles if they exist (prefix/suffix pattern)
+  if (!baseName && nameOracle.Oracles && nameOracle.Oracles.length >= 2) {
+    const first = rollOnTable(nameOracle.Oracles[0]?.Table);
+    const second = rollOnTable(nameOracle.Oracles[1]?.Table);
     if (first && second) {
-      return `${parseOracleResult(first)} ${parseOracleResult(second)}`;
+      baseName = `${parseOracleResult(first)} ${parseOracleResult(second)}`;
     }
   }
   
-  // Fall back to simple roll
-  const result = rollOnTable(nameOracle.Table);
-  return parseOracleResult(result);
+  if (!baseName) return null;
+  
+  // 50% chance to add a tag suffix
+  if (Math.random() < 0.5) {
+    const randomTag = SETTLEMENT_NAME_TAGS[Math.floor(Math.random() * SETTLEMENT_NAME_TAGS.length)];
+    return `${baseName} ${randomTag}`;
+  }
+  
+  return baseName;
 };
 
 // ==================== STARSHIP HELPERS ====================
@@ -3068,11 +3086,11 @@ export const ExploreTab = ({
           <MenuGroup title="Details">
             {location.type === 'planet' && (
               <>
-                {location.planetClass && (
-                  <MenuItem label="Class" value={location.planetClass} showChevron={false} stacked />
-                )}
                 {location.planetName && (
                   <MenuItem label="Name" value={location.planetName} showChevron={false} stacked />
+                )}
+                {location.planetClass && (
+                  <MenuItem label="Class" value={location.planetClass} showChevron={false} stacked />
                 )}
                 {location.atmosphere && (
                   <MenuItem label="Atmosphere" value={location.atmosphere} showChevron={false} stacked />
@@ -3234,12 +3252,6 @@ export const ExploreTab = ({
                 {location.focus && (
                   <MenuItem label="Focus" value={location.focus} showChevron={false} stacked />
                 )}
-              </>
-            )}
-            {sector && (
-              <>
-                <MenuItem label="Sector" value={sector.name} showChevron={false} stacked />
-                <MenuItem label="Region" value={getRegionLabel(sector.region)} showChevron={false} stacked />
               </>
             )}
           </MenuGroup>
@@ -3431,12 +3443,6 @@ export const ExploreTab = ({
             )}
             {subLocation.placement && (
               <MenuItem label="Placement" value={subLocation.placement === 'orbit' ? 'In Orbit' : 'Planetside'} showChevron={false} stacked />
-            )}
-            {sector && (
-              <>
-                <MenuItem label="Sector" value={sector.name} showChevron={false} stacked />
-                <MenuItem label="Region" value={getRegionLabel(sector.region)} showChevron={false} stacked />
-              </>
             )}
           </MenuGroup>
         </NavigationView>

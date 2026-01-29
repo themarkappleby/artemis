@@ -89,27 +89,44 @@ export const OracleSubCategoryView = ({
   const sampleNames = subCategory['Sample Names'];
   const hasSampleNames = sampleNames && sampleNames.length > 0;
 
+  // Check if there's a "Name" oracle to render first
+  const nameOracleIndex = subCategory.Oracles?.findIndex(o => o.Name === 'Name') ?? -1;
+  const nameOracle = nameOracleIndex >= 0 ? subCategory.Oracles[nameOracleIndex] : null;
+  const otherOracles = subCategory.Oracles?.filter(o => o.Name !== 'Name') || [];
+
   // Default sub-category view (list of oracles/sub-categories)
   return (
     <NavigationView title={subCategory.Name} onBack={goBack} {...scrollProps}>
       <MenuGroup>
         {hasSampleNames && (
           <MenuItem 
-            icon={getOracleIcon(subCategory.Name)}
-            iconBg={getOracleIconBg(subCategory.Name)}
+            icon={getOracleIcon(parentCategory.Name)}
+            iconBg={getOracleIconBg(parentCategory.Name)}
             label="Name"
             onClick={() => navigate(`oracle-names-${catIndex}-${subIndex}`)}
           />
         )}
-        {hasOracles && subCategory.Oracles.map((oracle, oracleIndex) => (
+        {nameOracle && (
           <MenuItem 
-            key={oracle['$id'] || oracleIndex}
-            icon={getOracleIcon(subCategory.Name)}
-            iconBg={getOracleIconBg(subCategory.Name)}
-            label={oracle.Name}
-            onClick={() => navigate(`oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`)}
+            key={nameOracle['$id'] || 'name-oracle'}
+            icon={getOracleIcon(parentCategory.Name)}
+            iconBg={getOracleIconBg(parentCategory.Name)}
+            label={nameOracle.Name}
+            onClick={() => navigate(`oracle-detail-${catIndex}-${subIndex}-${nameOracleIndex}`)}
           />
-        ))}
+        )}
+        {otherOracles.map((oracle) => {
+          const originalIndex = subCategory.Oracles.findIndex(o => o['$id'] === oracle['$id']);
+          return (
+            <MenuItem 
+              key={oracle['$id'] || originalIndex}
+              icon={getOracleIcon(parentCategory.Name)}
+              iconBg={getOracleIconBg(parentCategory.Name)}
+              label={oracle.Name}
+              onClick={() => navigate(`oracle-detail-${catIndex}-${subIndex}-${originalIndex}`)}
+            />
+          );
+        })}
       </MenuGroup>
       {hasCategories && (
         <MenuGroup title="Categories">
@@ -157,8 +174,8 @@ export const OracleSubSubCategoryView = ({
       <MenuGroup>
         {hasSampleNames && (
           <MenuItem 
-            icon={getOracleIcon(subSubCategory.Name)}
-            iconBg={getOracleIconBg(subSubCategory.Name)}
+            icon={getOracleIcon(parentCategory.Name)}
+            iconBg={getOracleIconBg(parentCategory.Name)}
             label="Name"
             onClick={() => navigate(`oracle-names-deep-${catIndex}-${subIndex}-${subSubIndex}`)}
           />
@@ -166,8 +183,8 @@ export const OracleSubSubCategoryView = ({
         {subSubCategory.Oracles?.map((oracle, oracleIndex) => (
           <MenuItem 
             key={oracle['$id'] || oracleIndex}
-            icon={getOracleIcon(subSubCategory.Name)}
-            iconBg={getOracleIconBg(subSubCategory.Name)}
+            icon={getOracleIcon(parentCategory.Name)}
+            iconBg={getOracleIconBg(parentCategory.Name)}
             label={oracle.Name}
             onClick={() => navigate(`oracle-detail-deep-${catIndex}-${subIndex}-${subSubIndex}-${oracleIndex}`)}
           />

@@ -116,10 +116,6 @@
   padding: 0 0 16px;
 }
 
-/* When not animating, use static positioning */
-.modal-body.none {
-  position: relative;
-}
 
 /* Step in animation - new content slides from right */
 .modal-body.step-in {
@@ -204,11 +200,6 @@
 
 .modal-field {
   padding: 16px 16px 16px;
-  border-bottom: 0.5px solid #38383a;
-}
-
-.modal-field:last-child {
-  border-bottom: none;
 }
 
 .modal-label {

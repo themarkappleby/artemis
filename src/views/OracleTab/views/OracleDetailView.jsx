@@ -25,7 +25,7 @@ export const OracleDetailView = ({
   
   if (!resolved || !resolved.oracle) return null;
 
-  const { oracle, category, oracleKey, tableViewName } = resolved;
+  const { oracle, category, parentCategory, oracleKey, tableViewName } = resolved;
   const rolledResult = oracleRolls[oracleKey];
   const oracleTable = getOracleTable(oracle);
   const oracleIsFavorited = isOracleFavorited(oracleKey);
@@ -54,8 +54,8 @@ export const OracleDetailView = ({
       {...scrollProps}
     >
       <DetailCard
-        icon={getOracleIcon(category.Name)}
-        iconBg={getOracleIconBg(category.Name)}
+        icon={getOracleIcon(parentCategory.Name)}
+        iconBg={getOracleIconBg(parentCategory.Name)}
         title={oracle.Name}
         description={oracle.Description || 'Roll to consult this oracle.'}
         onLinkClick={handleLinkClick}
@@ -72,6 +72,7 @@ export const OracleDetailView = ({
             getOracleTable={getOracleTable}
             rollOracle={rollOracle}
             renderResult={renderResult}
+            categoryName={parentCategory.Name}
           />
           <MenuGroup>
             <MenuItem 
@@ -93,6 +94,7 @@ export const OracleDetailView = ({
             getOracleTable={getOracleTable}
             rollOracle={rollOracle}
             renderResult={renderResult}
+            categoryName={parentCategory.Name}
           />
           <MenuGroup>
             <MenuItem 
@@ -109,7 +111,7 @@ export const OracleDetailView = ({
             <OracleRollResult result={rolledResult} renderResult={renderResult} />
             <MenuItem 
               label="Roll Oracle"
-              onClick={() => rollOracle(oracleKey, oracleTable)}
+              onClick={() => rollOracle(oracleKey, oracleTable, { oracleName: oracle.Name, categoryName: parentCategory.Name })}
               isButton={true}
             />
           </MenuGroup>
@@ -139,7 +141,7 @@ export const OracleDetailView = ({
                 <OracleRollResult result={subOracleResult} renderResult={renderResult} />
                 <MenuItem 
                   label={`Roll ${subOracle.Name}`}
-                  onClick={() => rollOracle(subOracleKey, subOracleTable)}
+                  onClick={() => rollOracle(subOracleKey, subOracleTable, { oracleName: subOracle.Name, categoryName: parentCategory.Name })}
                   isButton={true}
                 />
               </MenuGroup>

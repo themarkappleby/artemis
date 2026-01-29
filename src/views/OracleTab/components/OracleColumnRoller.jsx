@@ -12,7 +12,8 @@ export const OracleColumnRoller = ({
   oracleRolls,
   getOracleTable,
   rollOracle,
-  renderResult
+  renderResult,
+  categoryName
 }) => {
   const columnsData = columnType === 'result' 
     ? oracle.Display?.Table?.['Result columns']
@@ -36,7 +37,7 @@ export const OracleColumnRoller = ({
             <OracleRollResult result={columnResult} renderResult={renderResult} />
             <MenuItem 
               label={`Roll ${columnLabel}`}
-              onClick={() => rollOracle(columnKey, columnTable)}
+              onClick={() => rollOracle(columnKey, columnTable, { oracleName: columnLabel, categoryName })}
               isButton={true}
             />
           </MenuGroup>
