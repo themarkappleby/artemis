@@ -102,6 +102,50 @@ export const parseOracleViewName = (viewName) => {
     };
   }
 
+  // Sample names table views
+  if (viewName.startsWith('oracle-names-table-deep-')) {
+    const parts = viewName.split('-');
+    return {
+      type: 'sample-names-table',
+      depth: 'deep',
+      catIndex: parseInt(parts[4]),
+      subIndex: parseInt(parts[5]),
+      subSubIndex: parseInt(parts[6])
+    };
+  }
+
+  if (viewName.startsWith('oracle-names-table-')) {
+    const parts = viewName.split('-');
+    return {
+      type: 'sample-names-table',
+      depth: 'sub',
+      catIndex: parseInt(parts[3]),
+      subIndex: parseInt(parts[4])
+    };
+  }
+
+  // Sample names views (for planet/location names from Sample Names array)
+  if (viewName.startsWith('oracle-names-deep-')) {
+    const parts = viewName.split('-');
+    return {
+      type: 'sample-names',
+      depth: 'deep',
+      catIndex: parseInt(parts[3]),
+      subIndex: parseInt(parts[4]),
+      subSubIndex: parseInt(parts[5])
+    };
+  }
+
+  if (viewName.startsWith('oracle-names-')) {
+    const parts = viewName.split('-');
+    return {
+      type: 'sample-names',
+      depth: 'sub',
+      catIndex: parseInt(parts[2]),
+      subIndex: parseInt(parts[3])
+    };
+  }
+
   // Oracle detail views
   if (viewName.startsWith('oracle-detail-deep-table-')) {
     const parts = viewName.split('-');

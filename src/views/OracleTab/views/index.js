@@ -3,3 +3,5 @@ export { OracleCategoryView } from './OracleCategoryView';
 export { OracleSubCategoryView, OracleSubSubCategoryView } from './OracleSubCategoryView';
 export { OracleDetailView } from './OracleDetailView';
 export { OracleTableView } from './OracleTableView';
+export { OracleSampleNamesView } from './OracleSampleNamesView';
+export { OracleSampleNamesTableView } from './OracleSampleNamesTableView';

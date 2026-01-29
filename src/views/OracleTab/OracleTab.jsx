@@ -7,7 +7,9 @@ import {
   OracleSubCategoryView, 
   OracleSubSubCategoryView,
   OracleDetailView, 
-  OracleTableView 
+  OracleTableView,
+  OracleSampleNamesView,
+  OracleSampleNamesTableView
 } from './views';
 import './OracleTab.css';
 
@@ -98,7 +100,7 @@ export const OracleTab = ({
     case 'sub-sub-category':
       return (
         <OracleSubSubCategoryView
-          {...commonProps}
+          {...oracleProps}
           catIndex={parsed.catIndex}
           subIndex={parsed.subIndex}
           subSubIndex={parsed.subSubIndex}
@@ -119,6 +121,22 @@ export const OracleTab = ({
       return (
         <OracleTableView
           {...oracleProps}
+          parsed={parsed}
+        />
+      );
+
+    case 'sample-names':
+      return (
+        <OracleSampleNamesView
+          {...oracleProps}
+          parsed={parsed}
+        />
+      );
+
+    case 'sample-names-table':
+      return (
+        <OracleSampleNamesTableView
+          {...commonProps}
           parsed={parsed}
         />
       );

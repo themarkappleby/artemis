@@ -93,6 +93,42 @@ const generateCharacterName = (starforgedData) => {
   return givenName || familyName || callsign || null;
 };
 
+// Generate starship name from Starships oracle
+const generateStarshipName = (starforgedData) => {
+  const category = getOracleCategory(starforgedData, 'Starships');
+  if (!category) return null;
+  
+  const nameOracle = getOracleFromCategory(category, 'Name');
+  if (!nameOracle?.Table) return null;
+  
+  return rollOnTable(nameOracle.Table);
+};
+
+// Generate asset input name based on asset type
+const generateAssetInputName = (starforgedData, assetType, inputName) => {
+  // Lowercase for comparison
+  const type = assetType?.toLowerCase() || '';
+  const input = inputName?.toLowerCase() || '';
+  
+  // Vehicle assets use starship names
+  if (type.includes('vehicle') || type.includes('starship')) {
+    return generateStarshipName(starforgedData);
+  }
+  
+  // Companion assets use character names or callsigns
+  if (type.includes('companion') || type.includes('creature')) {
+    // For companions, just use a callsign
+    return rollCharacterOracle(starforgedData, 'Callsign');
+  }
+  
+  // Default to callsign for generic "Name" inputs
+  if (input === 'name') {
+    return rollCharacterOracle(starforgedData, 'Callsign');
+  }
+  
+  return null;
+};
+
 export const CharacterTab = ({
   viewName,
   navigate,
@@ -437,29 +473,26 @@ export const CharacterTab = ({
             />
           )}
 
-          {asset.Inputs && asset.Inputs.length > 0 && (
-            <MenuGroup title="Inputs">
-              {asset.Inputs.map((input, inputIndex) => (
-                <div key={inputIndex} style={{ padding: '12px 16px' }}>
-                  <input
-                    type="text"
-                    className="asset-input"
+          {((asset.Inputs && asset.Inputs.length > 0) || (asset.Abilities && asset.Abilities.length > 0)) && (
+            <MenuGroup>
+              {asset.Inputs && asset.Inputs.length > 0 && asset.Inputs.map((input, inputIndex) => (
+                <ModalField key={`input-${inputIndex}`} label={input.Name || `Input ${inputIndex + 1}`}>
+                  <DiceInput
                     value={ownedAsset.inputs?.[input.Name] || ''}
                     onChange={(e) => updateAssetInput(typeIndex, assetIndex, input.Name, e.target.value)}
-                    placeholder={input.Name || `Input ${inputIndex + 1}`}
+                    onDiceClick={() => {
+                      const name = generateAssetInputName(starforgedData, assetType.Name, input.Name);
+                      if (name) updateAssetInput(typeIndex, assetIndex, input.Name, name);
+                    }}
+                    placeholder={`Enter ${(input.Name || 'value').toLowerCase()}...`}
                   />
-                </div>
+                </ModalField>
               ))}
-            </MenuGroup>
-          )}
-
-          {asset.Abilities && asset.Abilities.length > 0 && (
-            <MenuGroup title="Abilities">
-              {asset.Abilities.map((ability, abilityIndex) => {
+              {asset.Abilities && asset.Abilities.length > 0 && asset.Abilities.map((ability, abilityIndex) => {
                 const isEnabled = ownedAsset.enabledAbilities.includes(abilityIndex);
                 return (
                   <MenuItem 
-                    key={abilityIndex}
+                    key={`ability-${abilityIndex}`}
                     icon={<input type="checkbox" className="ability-checkbox" checked={isEnabled} readOnly />}
                     label={ability.Name || `Ability ${abilityIndex + 1}`}
                     subtitle={ability.Text || ''}

@@ -9,7 +9,7 @@
   width: 100%;
   padding: 12px;
   padding-right: 48px;
-  background-color: #1c1c1e;
+  background-color: #2c2c2e;
   border: none;
   border-radius: 10px;
   color: #ffffff;
@@ -55,7 +55,7 @@
   width: 100%;
   padding: 12px;
   padding-right: 48px;
-  background-color: #1c1c1e;
+  background-color: #2c2c2e;
   border: none;
   border-radius: 10px;
   color: #ffffff;
@@ -71,6 +71,6 @@
 }
 
 .dice-select option {
-  background-color: #1c1c1e;
+  background-color: #2c2c2e;
   color: #ffffff;
 }

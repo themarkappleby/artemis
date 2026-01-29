@@ -203,12 +203,12 @@
 }
 
 .modal-field {
-  margin-bottom: 16px;
-  padding: 16px 16px 0;
+  padding: 16px 16px 16px;
+  border-bottom: 0.5px solid #38383a;
 }
 
 .modal-field:last-child {
-  margin-bottom: 0;
+  border-bottom: none;
 }
 
 .modal-label {
@@ -259,5 +259,10 @@
 .modal-select option {
   background-color: #1c1c1e;
   color: #ffffff;
+}
+
+.modal-body .dice-input,
+.modal-body .dice-select {
+  background-color: #1c1c1e;
 }
 

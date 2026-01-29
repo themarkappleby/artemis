@@ -2,7 +2,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import './MenuItem.css';
 
-export const MenuItem = ({ icon, iconBg, label, subtitle, value, onClick, showChevron = true, isButton = false, destructive = false, muted = false, onLinkClick }) => {
+export const MenuItem = ({ icon, iconBg, label, subtitle, value, onClick, showChevron = true, isButton = false, destructive = false, muted = false, stacked = false, onLinkClick }) => {
   // Check if label contains markdown links
   const hasMarkdown = label && (label.includes('[') || label.includes(']('));
   
@@ -34,7 +34,7 @@ export const MenuItem = ({ icon, iconBg, label, subtitle, value, onClick, showCh
   
   return (
     <div 
-      className={`menu-item ${muted ? 'menu-item-muted' : ''}`} 
+      className={`menu-item ${muted ? 'menu-item-muted' : ''} ${stacked ? 'menu-item-stacked' : ''}`} 
       onClick={hasMarkdown ? undefined : onClick}
       style={hasMarkdown ? { cursor: 'default' } : undefined}
     >

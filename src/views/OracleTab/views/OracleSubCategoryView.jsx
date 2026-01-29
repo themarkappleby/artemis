@@ -4,7 +4,7 @@ import { MenuGroup } from '../../../components/MenuGroup';
 import { MenuItem } from '../../../components/MenuItem';
 import { DetailCard } from '../../../components/DetailCard';
 import { getOracleIcon, getOracleIconBg, getGenericIconBg } from '../../../utils/icons';
-import { OracleRollResult } from '../components/OracleRollResult';
+import { OracleRollResult } from '../components/OracleRollResult'; // Used in location theme view
 
 export const OracleSubCategoryView = ({
   catIndex,
@@ -85,24 +85,34 @@ export const OracleSubCategoryView = ({
     );
   }
 
+  // Check if this category has sample names (like planet types)
+  const sampleNames = subCategory['Sample Names'];
+  const hasSampleNames = sampleNames && sampleNames.length > 0;
+
   // Default sub-category view (list of oracles/sub-categories)
   return (
     <NavigationView title={subCategory.Name} onBack={goBack} {...scrollProps}>
-      {hasOracles && (
-        <MenuGroup title={hasCategories ? "Oracles" : undefined}>
-          {subCategory.Oracles.map((oracle, oracleIndex) => (
-            <MenuItem 
-              key={oracle['$id'] || oracleIndex}
-              icon={getOracleIcon(subCategory.Name)}
-              iconBg={getOracleIconBg(subCategory.Name)}
-              label={oracle.Name}
-              onClick={() => navigate(`oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`)}
-            />
-          ))}
-        </MenuGroup>
-      )}
+      <MenuGroup>
+        {hasSampleNames && (
+          <MenuItem 
+            icon={getOracleIcon(subCategory.Name)}
+            iconBg={getOracleIconBg(subCategory.Name)}
+            label="Name"
+            onClick={() => navigate(`oracle-names-${catIndex}-${subIndex}`)}
+          />
+        )}
+        {hasOracles && subCategory.Oracles.map((oracle, oracleIndex) => (
+          <MenuItem 
+            key={oracle['$id'] || oracleIndex}
+            icon={getOracleIcon(subCategory.Name)}
+            iconBg={getOracleIconBg(subCategory.Name)}
+            label={oracle.Name}
+            onClick={() => navigate(`oracle-detail-${catIndex}-${subIndex}-${oracleIndex}`)}
+          />
+        ))}
+      </MenuGroup>
       {hasCategories && (
-        <MenuGroup title={hasOracles ? "Categories" : undefined}>
+        <MenuGroup title="Categories">
           {subCategory.Categories.map((subSubCategory, subSubIndex) => (
             <MenuItem 
               key={subSubCategory['$id'] || subSubIndex}
@@ -114,7 +124,7 @@ export const OracleSubCategoryView = ({
           ))}
         </MenuGroup>
       )}
-      {!hasOracles && !hasCategories && (
+      {!hasOracles && !hasCategories && !hasSampleNames && (
         <MenuGroup>
           <MenuItem icon="📄" iconBg={getGenericIconBg('📄')} label="No oracles available" showChevron={false} />
         </MenuGroup>
@@ -133,13 +143,26 @@ export const OracleSubSubCategoryView = ({
   starforgedData,
   scrollProps = {}
 }) => {
-  const subSubCategory = starforgedData?.oracleCategories[catIndex]?.Categories?.[subIndex]?.Categories?.[subSubIndex];
+  const parentCategory = starforgedData?.oracleCategories[catIndex];
+  const subSubCategory = parentCategory?.Categories?.[subIndex]?.Categories?.[subSubIndex];
 
   if (!subSubCategory) return null;
+
+  // Check if this category has sample names (like planet types)
+  const sampleNames = subSubCategory['Sample Names'];
+  const hasSampleNames = sampleNames && sampleNames.length > 0;
 
   return (
     <NavigationView title={subSubCategory.Name} onBack={goBack} {...scrollProps}>
       <MenuGroup>
+        {hasSampleNames && (
+          <MenuItem 
+            icon={getOracleIcon(subSubCategory.Name)}
+            iconBg={getOracleIconBg(subSubCategory.Name)}
+            label="Name"
+            onClick={() => navigate(`oracle-names-deep-${catIndex}-${subIndex}-${subSubIndex}`)}
+          />
+        )}
         {subSubCategory.Oracles?.map((oracle, oracleIndex) => (
           <MenuItem 
             key={oracle['$id'] || oracleIndex}

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { NavigationView } from './components/NavigationView';
 import { MenuGroup } from './components/MenuGroup';
 import { MenuItem } from './components/MenuItem';
@@ -19,6 +19,98 @@ import { RollTab } from './views/RollTab/RollTab';
 import { getGenericIconBg } from './utils/icons';
 import './App.css';
 import './styles/animations.css';
+
+// Helper to get oracle category by name
+const getOracleCategory = (starforgedData, categoryName) => {
+  if (!starforgedData?.oracleCategories) return null;
+  return starforgedData.oracleCategories.find(c => c.Name === categoryName);
+};
+
+// Helper to get oracle from category (with flexible matching)
+const getOracleFromCategory = (category, oracleName) => {
+  if (!category?.Oracles) return null;
+  return category.Oracles.find(o => 
+    o.Name === oracleName || 
+    o.Name.toLowerCase().includes(oracleName.toLowerCase())
+  );
+};
+
+// Helper to filter valid oracle rows
+const filterValidRows = (table) => {
+  if (!table) return null;
+  return table.filter(row => {
+    const hasFloorCeiling = row.Floor !== undefined && row.Floor !== null && 
+                            row.Ceiling !== undefined && row.Ceiling !== null;
+    const hasChance = row.Chance !== undefined && row.Chance !== null;
+    return hasFloorCeiling || hasChance;
+  });
+};
+
+// Helper to roll on an oracle table
+const rollOnTable = (table) => {
+  const validTable = filterValidRows(table);
+  if (!validTable || validTable.length === 0) return null;
+  const roll = Math.floor(Math.random() * 100) + 1;
+  const result = validTable.find(row => {
+    const floor = row.Floor || row.Chance || 1;
+    const ceiling = row.Ceiling || row.Chance || 100;
+    return roll >= floor && roll <= ceiling;
+  });
+  return result?.Result || null;
+};
+
+// Get character oracle (handles nested Name oracle structure)
+const getCharacterOracle = (starforgedData, oracleName) => {
+  const category = getOracleCategory(starforgedData, 'Characters');
+  if (!category) return null;
+  
+  let oracle = getOracleFromCategory(category, oracleName);
+  if (oracle) return oracle;
+  
+  // Check nested Name oracle
+  const nameOracle = getOracleFromCategory(category, 'Name');
+  if (nameOracle?.Oracles) {
+    oracle = nameOracle.Oracles.find(o => 
+      o.Name === oracleName || 
+      o.Name.toLowerCase().includes(oracleName.toLowerCase())
+    );
+    if (oracle) return oracle;
+  }
+  
+  return null;
+};
+
+// Roll on character oracle
+const rollCharacterOracle = (starforgedData, oracleName) => {
+  const oracle = getCharacterOracle(starforgedData, oracleName);
+  if (!oracle?.Table) return null;
+  return rollOnTable(oracle.Table);
+};
+
+// Helper to generate a random character name from oracle tables
+const generateRandomCharacterName = (starforgedData) => {
+  const givenName = rollCharacterOracle(starforgedData, 'Given Name');
+  const familyName = rollCharacterOracle(starforgedData, 'Family Name');
+  const callsign = rollCharacterOracle(starforgedData, 'Callsign');
+  
+  if (givenName && callsign && familyName) {
+    return `${givenName} "${callsign}" ${familyName}`;
+  } else if (givenName && familyName) {
+    return `${givenName} ${familyName}`;
+  }
+  return givenName || familyName || callsign || null;
+};
+
+// Helper to generate a random starship name from oracle tables
+const generateRandomStarshipName = (starforgedData) => {
+  const category = getOracleCategory(starforgedData, 'Starships');
+  if (!category) return null;
+  
+  const nameOracle = getOracleFromCategory(category, 'Name');
+  if (!nameOracle?.Table) return null;
+  
+  return rollOnTable(nameOracle.Table);
+};
 
 function App() {
   const { data: starforgedData, loading } = useStarforged();
@@ -121,6 +213,31 @@ function App() {
     getSubLocation,
     removeSubLocation
   } = useExplore();
+
+  // Generate random character name on initial load when data is available and name is empty
+  useEffect(() => {
+    if (starforgedData && !loading && !character.name) {
+      const randomName = generateRandomCharacterName(starforgedData);
+      if (randomName) {
+        updateName(randomName);
+      }
+    }
+  }, [starforgedData, loading, character.name, updateName]);
+
+  // Generate random starship name for default Command Vehicle asset on initial load
+  const starshipInitialized = useRef(false);
+  useEffect(() => {
+    if (starforgedData && !loading && !starshipInitialized.current) {
+      const defaultAsset = character.assets.find(a => a.typeIndex === 0 && a.assetIndex === 0);
+      if (defaultAsset && !defaultAsset.inputs?.Name) {
+        starshipInitialized.current = true;
+        const starshipName = generateRandomStarshipName(starforgedData);
+        if (starshipName) {
+          updateAssetInput(0, 0, 'Name', starshipName);
+        }
+      }
+    }
+  }, [starforgedData, loading, character.assets, updateAssetInput]);
 
   // Register service worker
   useEffect(() => {
