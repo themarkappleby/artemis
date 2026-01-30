@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import './NavigationView.css';
 
-export const NavigationView = ({ title, onBack, children, scrollPosition, onScrollChange, viewKey, actionIcon, onAction, rightIcon = 'star' }) => {
+export const NavigationView = ({ title, onBack, backButtonText = 'Back', children, scrollPosition, onScrollChange, viewKey, actionIcon, onAction, rightIcon = 'star', rightActionText, onRightActionText }) => {
   const contentRef = useRef(null);
 
   // Restore scroll position when component mounts or viewKey changes
@@ -26,11 +26,15 @@ export const NavigationView = ({ title, onBack, children, scrollPosition, onScro
             <svg width="13" height="21" viewBox="0 0 13 21" fill="none">
               <path d="M11 2L2 10.5L11 19" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span>Back</span>
+            <span>{backButtonText}</span>
           </button>
         )}
         <h1 className="navigation-title">{title}</h1>
-        {onAction && (
+        {rightActionText && onRightActionText ? (
+          <button className="action-text-button" onClick={onRightActionText}>
+            {rightActionText}
+          </button>
+        ) : onAction && (
           <button className={`action-button ${actionIcon ? 'active' : ''}`} onClick={onAction}>
             {rightIcon === 'plus' ? (
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">

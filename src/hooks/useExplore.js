@@ -259,6 +259,162 @@ export const useExplore = () => {
     }));
   };
 
+  // Add a nested entity to a location's nested entity (e.g., entities onboard a nested starship)
+  const addLocationNestedEntityChild = (sectorId, locationId, parentEntityId, name, type, data = {}) => {
+    const newEntity = {
+      id: Date.now(),
+      name: name.trim(),
+      type,
+      ...data
+    };
+    setSectors(prev => prev.map(sector => {
+      if (sector.id === sectorId) {
+        return {
+          ...sector,
+          locations: (sector.locations || []).map(location => {
+            if (location.id === locationId) {
+              return {
+                ...location,
+                nestedEntities: (location.nestedEntities || []).map(entity => {
+                  if (entity.id === parentEntityId) {
+                    return {
+                      ...entity,
+                      nestedEntities: [...(entity.nestedEntities || []), newEntity]
+                    };
+                  }
+                  return entity;
+                })
+              };
+            }
+            return location;
+          })
+        };
+      }
+      return sector;
+    }));
+    return newEntity;
+  };
+
+  const getLocationNestedEntityChild = (sectorId, locationId, parentEntityId, childEntityId) => {
+    const parentEntity = getLocationNestedEntity(sectorId, locationId, parentEntityId);
+    if (!parentEntity?.nestedEntities) return null;
+    return parentEntity.nestedEntities.find(e => e.id === childEntityId);
+  };
+
+  const removeLocationNestedEntityChild = (sectorId, locationId, parentEntityId, childEntityId) => {
+    setSectors(prev => prev.map(sector => {
+      if (sector.id === sectorId) {
+        return {
+          ...sector,
+          locations: (sector.locations || []).map(location => {
+            if (location.id === locationId) {
+              return {
+                ...location,
+                nestedEntities: (location.nestedEntities || []).map(entity => {
+                  if (entity.id === parentEntityId) {
+                    return {
+                      ...entity,
+                      nestedEntities: (entity.nestedEntities || []).filter(e => e.id !== childEntityId)
+                    };
+                  }
+                  return entity;
+                })
+              };
+            }
+            return location;
+          })
+        };
+      }
+      return sector;
+    }));
+  };
+
+  // Add a nested entity to a sublocation's nested entity (e.g., entities onboard a nested starship)
+  const addNestedEntityChild = (sectorId, locationId, subLocationId, parentEntityId, name, type, data = {}) => {
+    const newEntity = {
+      id: Date.now(),
+      name: name.trim(),
+      type,
+      ...data
+    };
+    setSectors(prev => prev.map(sector => {
+      if (sector.id === sectorId) {
+        return {
+          ...sector,
+          locations: (sector.locations || []).map(location => {
+            if (location.id === locationId) {
+              return {
+                ...location,
+                subLocations: (location.subLocations || []).map(subLocation => {
+                  if (subLocation.id === subLocationId) {
+                    return {
+                      ...subLocation,
+                      nestedEntities: (subLocation.nestedEntities || []).map(entity => {
+                        if (entity.id === parentEntityId) {
+                          return {
+                            ...entity,
+                            nestedEntities: [...(entity.nestedEntities || []), newEntity]
+                          };
+                        }
+                        return entity;
+                      })
+                    };
+                  }
+                  return subLocation;
+                })
+              };
+            }
+            return location;
+          })
+        };
+      }
+      return sector;
+    }));
+    return newEntity;
+  };
+
+  const getNestedEntityChild = (sectorId, locationId, subLocationId, parentEntityId, childEntityId) => {
+    const parentEntity = getNestedEntity(sectorId, locationId, subLocationId, parentEntityId);
+    if (!parentEntity?.nestedEntities) return null;
+    return parentEntity.nestedEntities.find(e => e.id === childEntityId);
+  };
+
+  const removeNestedEntityChild = (sectorId, locationId, subLocationId, parentEntityId, childEntityId) => {
+    setSectors(prev => prev.map(sector => {
+      if (sector.id === sectorId) {
+        return {
+          ...sector,
+          locations: (sector.locations || []).map(location => {
+            if (location.id === locationId) {
+              return {
+                ...location,
+                subLocations: (location.subLocations || []).map(subLocation => {
+                  if (subLocation.id === subLocationId) {
+                    return {
+                      ...subLocation,
+                      nestedEntities: (subLocation.nestedEntities || []).map(entity => {
+                        if (entity.id === parentEntityId) {
+                          return {
+                            ...entity,
+                            nestedEntities: (entity.nestedEntities || []).filter(e => e.id !== childEntityId)
+                          };
+                        }
+                        return entity;
+                      })
+                    };
+                  }
+                  return subLocation;
+                })
+              };
+            }
+            return location;
+          })
+        };
+      }
+      return sector;
+    }));
+  };
+
   return {
     sectors,
     factions,
@@ -279,6 +435,12 @@ export const useExplore = () => {
     removeNestedEntity,
     addLocationNestedEntity,
     getLocationNestedEntity,
-    removeLocationNestedEntity
+    removeLocationNestedEntity,
+    addLocationNestedEntityChild,
+    getLocationNestedEntityChild,
+    removeLocationNestedEntityChild,
+    addNestedEntityChild,
+    getNestedEntityChild,
+    removeNestedEntityChild
   };
 };

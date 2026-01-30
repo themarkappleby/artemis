@@ -1,6 +1,10 @@
 import React from 'react';
 import { parseOracleViewName, createOraclePathNavigator } from '../../utils/oracleHelpers';
 import { createOracleResultRenderer } from './components/OracleResultLink';
+import { useStarforgedContext } from '../../contexts/StarforgedContext';
+import { useNavigationContext } from '../../contexts/NavigationContext';
+import { useOracleContext } from '../../contexts/OracleContext';
+import { useFavoritesContext } from '../../contexts/FavoritesContext';
 import { 
   OracleHomeView, 
   OracleCategoryView, 
@@ -15,26 +19,26 @@ import './OracleTab.css';
 
 export const OracleTab = ({
   viewName,
-  navigate,
-  goBack,
-  starforgedData,
-  oracleRolls,
-  getOracleTable,
-  rollOracle,
-  favoritedOracles = [],
-  editingOracleFavorites,
-  tempOracleFavoriteOrder,
-  oracleDraggedIndex,
-  toggleFavoriteOracle,
-  startEditingOracleFavorites,
-  saveOracleFavoriteOrder,
-  cancelEditingOracleFavorites,
-  handleOracleDragStart,
-  handleOracleDragOver,
-  handleOracleDragEnd,
-  isOracleFavorited,
   scrollProps = {}
 }) => {
+  const { data: starforgedData } = useStarforgedContext();
+  const { navigate, goBack } = useNavigationContext();
+  const { oracleRolls, getOracleTable, rollOracle } = useOracleContext();
+  const {
+    favoritedOracles,
+    editingOracleFavorites,
+    tempOracleFavoriteOrder,
+    oracleDraggedIndex,
+    toggleFavoriteOracle,
+    startEditingOracleFavorites,
+    saveOracleFavoriteOrder,
+    cancelEditingOracleFavorites,
+    handleOracleDragStart,
+    handleOracleDragOver,
+    handleOracleDragEnd,
+    isOracleFavorited
+  } = useFavoritesContext();
+
   // Create navigation helper for oracle paths
   const navigateToOracleByPath = createOraclePathNavigator(starforgedData, navigate);
   

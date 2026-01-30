@@ -6,6 +6,12 @@ import { MenuGroup } from '../../components/MenuGroup';
 import { MenuItem } from '../../components/MenuItem';
 import { DetailCard } from '../../components/DetailCard';
 import { getMoveIcon, getMoveIconBg, getGenericIconBg, getStatIcon, getStatIconBg } from '../../utils/icons';
+import { findMoveFromLink } from '../../utils/oracleHelpers';
+import { useStarforgedContext } from '../../contexts/StarforgedContext';
+import { useCharacterContext } from '../../contexts/CharacterContext';
+import { useNavigationContext } from '../../contexts/NavigationContext';
+import { useRollContext } from '../../contexts/RollContext';
+import { useFavoritesContext } from '../../contexts/FavoritesContext';
 import './MovesTab.css';
 import '../RollTab/RollTab.css';
 
@@ -18,66 +24,39 @@ const getMoveDisplayText = (move) => {
   return move.Text || '';
 };
 
-// Helper to find move indices from a Starforged link (e.g., "Starforged/Moves/Session/End_a_Session")
-const findMoveFromLink = (link, starforgedData) => {
-  if (!link || !link.startsWith('Starforged/Moves/') || !starforgedData) {
-    return null;
-  }
-
-  // Parse the link: Starforged/Moves/{CategoryName}/{MoveName}
-  const parts = link.split('/');
-  if (parts.length < 4) return null;
-
-  const categoryName = parts[2];
-  const moveName = parts[3].replace(/_/g, ' '); // Replace underscores with spaces
-
-  // Find the category index
-  const catIndex = starforgedData.moveCategories?.findIndex(
-    cat => cat.Name === categoryName
-  );
-
-  if (catIndex === -1 || catIndex === undefined) return null;
-
-  // Find the move index within the category
-  const category = starforgedData.moveCategories[catIndex];
-  const moveIndex = category.Moves?.findIndex(
-    move => move.Name === moveName || move.Name.replace(/\s/g, '_') === parts[3]
-  );
-
-  if (moveIndex === -1 || moveIndex === undefined) return null;
-
-  return { catIndex, moveIndex };
-};
-
 export const MovesTab = ({
   viewName,
-  navigate,
-  goBack,
-  starforgedData,
-  character,
-  favoritedMoves,
-  editingFavorites,
-  tempFavoriteOrder,
-  draggedIndex,
-  toggleFavoriteMove,
-  startEditingFavorites,
-  saveFavoriteOrder,
-  cancelEditingFavorites,
-  handleDragStart,
-  handleDragOver,
-  handleDragEnd,
-  isFavorited,
-  rollStat,
-  setRollStat,
-  rollAdds,
-  setRollAdds,
-  lastRoll,
-  makeActionRoll,
-  burnMomentum,
-  wouldImprove,
-  getBurnOutcome,
   scrollProps = {}
 }) => {
+  const { data: starforgedData } = useStarforgedContext();
+  const { character } = useCharacterContext();
+  const { navigate, goBack } = useNavigationContext();
+  const {
+    rollStat,
+    setRollStat,
+    rollAdds,
+    setRollAdds,
+    lastRoll,
+    makeActionRoll,
+    burnMomentum,
+    wouldImprove,
+    getBurnOutcome
+  } = useRollContext();
+  const {
+    favoritedMoves,
+    editingFavorites,
+    tempFavoriteOrder,
+    draggedIndex,
+    toggleFavoriteMove,
+    startEditingFavorites,
+    saveFavoriteOrder,
+    cancelEditingFavorites,
+    handleDragStart,
+    handleDragOver,
+    handleDragEnd,
+    isFavorited
+  } = useFavoritesContext();
+
   // No auto-rolling needed - rolls are generated in onClick handlers before navigation
 
   // Moves Home

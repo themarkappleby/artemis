@@ -1,25 +1,8 @@
 import { useState } from 'react';
-
-// Tags that can be added to settlement names (50% chance)
-const SETTLEMENT_NAME_TAGS = [
-  'Base', 'Citadel', 'Depot', 'Fortress', 'Hold', 
-  'Landing', 'Outpost', 'Port', 'Station', 'Terminal'
-];
+import { maybeAddSettlementTag, filterValidRows } from '../utils/oracleRollers';
 
 export const useOracle = (starforgedData) => {
   const [oracleRolls, setOracleRolls] = useState({});
-
-  // Helper to filter out invalid oracle table rows (those without proper Floor/Ceiling values)
-  const filterValidRows = (table) => {
-    if (!table) return null;
-    return table.filter(row => {
-      // A valid row must have either Floor+Ceiling or Chance defined
-      const hasFloorCeiling = row.Floor !== undefined && row.Floor !== null && 
-                              row.Ceiling !== undefined && row.Ceiling !== null;
-      const hasChance = row.Chance !== undefined && row.Chance !== null;
-      return hasFloorCeiling || hasChance;
-    });
-  };
 
   // Helper to get oracle table data (handles different data structures)
   const getOracleTable = (oracle) => {
@@ -34,15 +17,6 @@ export const useOracle = (starforgedData) => {
       }
     }
     return null;
-  };
-
-  // Helper to add random tag suffix to settlement names (50% chance)
-  const maybeAddSettlementTag = (name) => {
-    if (Math.random() < 0.5) {
-      const randomTag = SETTLEMENT_NAME_TAGS[Math.floor(Math.random() * SETTLEMENT_NAME_TAGS.length)];
-      return `${name} ${randomTag}`;
-    }
-    return name;
   };
 
   const rollOracle = (oracleKey, oracleTable, options = {}) => {

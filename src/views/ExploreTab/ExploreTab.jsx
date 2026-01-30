@@ -5,208 +5,32 @@ import { MenuItem } from '../../components/MenuItem';
 import { DetailCard } from '../../components/DetailCard';
 import { Modal, ModalField } from '../../components/Modal/Modal';
 import { DiceInput, DiceSelect } from '../../components/DiceInput/DiceInput';
+import { ConfirmDialog } from '../../components/ConfirmDialog/ConfirmDialog';
 import { getRegionIcon, getRegionIconBg, getRegionLabel, getGenericIconBg } from '../../utils/icons';
+import { findMoveFromLink } from '../../utils/oracleHelpers';
+import { 
+  rollOnTable, 
+  parseOracleResult, 
+  generateSectorName, 
+  generatePlanetClass, 
+  getPlanetCategory, 
+  getPlanetSampleNames, 
+  rollPlanetName, 
+  getPlanetOracle, 
+  getOracleTableForRegion,
+  filterValidRows,
+  getOracleCategory,
+  getOracleFromCategory
+} from '../../utils/oracleRollers';
+import { REGION_DESCRIPTIONS } from '../../constants';
+import { useStarforgedContext } from '../../contexts/StarforgedContext';
+import { useNavigationContext } from '../../contexts/NavigationContext';
+import { useExploreContext } from '../../contexts/ExploreContext';
 import './ExploreTab.css';
 
 // Region descriptions from Starforged rulebook
 const getRegionDescription = (region) => {
-  const descriptions = {
-    terminus: 'Your people landed in this region following their exodus from their home galaxy. Settlements are common here. Factions compete for resources, and spaceborne caravans follow charted paths among the stars. But the Forge is a vast galaxy; even here, there are still unknown and isolated domains.',
-    outlands: 'In the last few decades, your people have pushed deeper into the galaxy, searching for habitable planets, resources, and opportunities. Settlements within the Outlands are scattered, and navigation paths are often uncharted.',
-    expanse: 'A few bold pioneers have delved the far-flung reaches of the Forge. Isolated settlements have been built among these distant domains, but they are usually lost and disconnected from the settled regions.',
-    void: 'Beyond the Forge, there are only a few isolated stars and vast gulfs of nothing. Travel beyond the periphery of the Forge is difficult or impossible.'
-  };
-  return descriptions[region] || descriptions.terminus;
-};
-
-// Helper to find move indices from a Starforged link
-const findMoveFromLink = (link, starforgedData) => {
-  if (!link || !link.startsWith('Starforged/Moves/') || !starforgedData) {
-    return null;
-  }
-
-  const parts = link.split('/');
-  if (parts.length < 4) return null;
-
-  const categoryName = parts[2];
-  const moveName = parts[3].replace(/_/g, ' ');
-
-  const catIndex = starforgedData.moveCategories?.findIndex(
-    cat => cat.Name === categoryName
-  );
-
-  if (catIndex === -1 || catIndex === undefined) return null;
-
-  const category = starforgedData.moveCategories[catIndex];
-  const moveIndex = category.Moves?.findIndex(
-    move => move.Name === moveName || move.Name.replace(/\s/g, '_') === parts[3]
-  );
-
-  if (moveIndex === -1 || moveIndex === undefined) return null;
-
-  return { catIndex, moveIndex };
-};
-
-// Helper to extract plain text from oracle result (handles markdown links and symbols)
-const parseOracleResult = (result) => {
-  if (!result) return null;
-  // Match markdown link format: [text](url)
-  const linkMatch = result.match(/\[([^\]]+)\]\([^)]+\)/);
-  let text = linkMatch ? linkMatch[1] : result;
-  // Remove leading symbols like ⏵
-  text = text.replace(/^[⏵▶►→]\s*/, '');
-  return text;
-};
-
-// Helper to filter out invalid oracle table rows
-const filterValidRows = (table) => {
-  if (!table) return null;
-  return table.filter(row => {
-    const hasFloorCeiling = row.Floor !== undefined && row.Floor !== null && 
-                            row.Ceiling !== undefined && row.Ceiling !== null;
-    const hasChance = row.Chance !== undefined && row.Chance !== null;
-    return hasFloorCeiling || hasChance;
-  });
-};
-
-// Helper to roll on an oracle table
-const rollOnTable = (table) => {
-  const validTable = filterValidRows(table);
-  if (!validTable || validTable.length === 0) return null;
-  const roll = Math.floor(Math.random() * 100) + 1;
-  const result = validTable.find(row => {
-    const floor = row.Floor || row.Chance || 1;
-    const ceiling = row.Ceiling || row.Chance || 100;
-    return roll >= floor && roll <= ceiling;
-  });
-  return result?.Result || null;
-};
-
-// Generate a random sector name from Starforged oracles
-const generateSectorName = (starforgedData) => {
-  if (!starforgedData?.oracleCategories) return null;
-  
-  const spaceCategory = starforgedData.oracleCategories.find(c => c.Name === 'Space');
-  if (!spaceCategory) return null;
-  
-  const sectorNameOracle = spaceCategory.Oracles?.find(o => o.Name === 'Sector Name');
-  if (!sectorNameOracle?.Oracles) return null;
-  
-  const prefixOracle = sectorNameOracle.Oracles.find(o => o.Name === 'Prefix');
-  const suffixOracle = sectorNameOracle.Oracles.find(o => o.Name === 'Suffix');
-  
-  if (!prefixOracle?.Table || !suffixOracle?.Table) return null;
-  
-  const prefix = rollOnTable(prefixOracle.Table);
-  const suffix = rollOnTable(suffixOracle.Table);
-  
-  if (prefix && suffix) {
-    return `${prefix} ${suffix}`;
-  }
-  return null;
-};
-
-// Generate a random planet class from Starforged oracles
-const generatePlanetClass = (starforgedData) => {
-  if (!starforgedData?.oracleCategories) return null;
-  
-  const planetsCategory = starforgedData.oracleCategories.find(c => c.Name === 'Planets');
-  if (!planetsCategory) return null;
-  
-  const classOracle = planetsCategory.Oracles?.find(o => o.Name === 'Class');
-  if (!classOracle?.Table) return null;
-  
-  const result = rollOnTable(classOracle.Table);
-  return parseOracleResult(result);
-};
-
-// Get planet category data for a specific planet class
-const getPlanetCategory = (starforgedData, planetClass) => {
-  if (!starforgedData?.oracleCategories || !planetClass) return null;
-  
-  const planetsCategory = starforgedData.oracleCategories.find(c => c.Name === 'Planets');
-  if (!planetsCategory?.Categories) return null;
-  
-  // Try exact match first
-  let category = planetsCategory.Categories.find(c => c.Name === planetClass);
-  if (category) return category;
-  
-  // Try matching without "World" suffix (e.g., "Grave World" -> "Grave")
-  const shortName = planetClass.replace(' World', '');
-  category = planetsCategory.Categories.find(c => c.Name === shortName);
-  if (category) return category;
-  
-  // Try case-insensitive partial match
-  category = planetsCategory.Categories.find(c => 
-    c.Name.toLowerCase().includes(shortName.toLowerCase()) ||
-    shortName.toLowerCase().includes(c.Name.toLowerCase())
-  );
-  
-  return category;
-};
-
-// Get sample names for a specific planet class
-const getPlanetSampleNames = (starforgedData, planetClass) => {
-  const planetCategory = getPlanetCategory(starforgedData, planetClass);
-  if (!planetCategory?.['Sample Names']) return [];
-  return planetCategory['Sample Names'];
-};
-
-// Roll a random name from the sample names for a planet class
-const rollPlanetName = (starforgedData, planetClass) => {
-  const sampleNames = getPlanetSampleNames(starforgedData, planetClass);
-  if (sampleNames.length === 0) return null;
-  const randomIndex = Math.floor(Math.random() * sampleNames.length);
-  return sampleNames[randomIndex];
-};
-
-// Get oracle from planet category, handling nested structures
-const getPlanetOracle = (starforgedData, planetClass, oracleName) => {
-  const planetCategory = getPlanetCategory(starforgedData, planetClass);
-  if (!planetCategory?.Oracles) return null;
-  
-  // Normalize oracle name for comparison
-  const normalizedName = oracleName.toLowerCase().replace(/\s+/g, ' ').trim();
-  
-  // Direct oracle lookup
-  let oracle = planetCategory.Oracles.find(o => o.Name === oracleName);
-  if (oracle) return oracle;
-  
-  // Try case-insensitive match
-  oracle = planetCategory.Oracles.find(o => 
-    o.Name.toLowerCase().replace(/\s+/g, ' ').trim() === normalizedName
-  );
-  if (oracle) return oracle;
-  
-  // Check for partial match
-  oracle = planetCategory.Oracles.find(o => {
-    const oracleLower = o.Name.toLowerCase();
-    return oracleLower.includes(normalizedName) || normalizedName.includes(oracleLower);
-  });
-  
-  return oracle;
-};
-
-// Get the table from an oracle, handling region-based oracles
-const getOracleTableForRegion = (oracle, region = 'Terminus') => {
-  if (!oracle) return null;
-  
-  // Direct table
-  if (oracle.Table) return oracle.Table;
-  
-  // Region-based tables (like Settlements)
-  if (oracle.Tables) {
-    const regionTable = oracle.Tables[region] || oracle.Tables['Terminus'];
-    if (regionTable?.Table) return regionTable.Table;
-  }
-  
-  // Nested oracles
-  if (oracle.Oracles) {
-    const regionOracle = oracle.Oracles.find(o => o.Name === region) || oracle.Oracles[0];
-    if (regionOracle?.Table) return regionOracle.Table;
-  }
-  
-  return null;
+  return REGION_DESCRIPTIONS[region] || REGION_DESCRIPTIONS.terminus;
 };
 
 // Get options from a planet oracle table
@@ -491,21 +315,6 @@ const PLANET_CLASSES = [
 ];
 
 // ==================== GENERIC ORACLE HELPERS ====================
-
-// Get oracle category by name
-const getOracleCategory = (starforgedData, categoryName) => {
-  if (!starforgedData?.oracleCategories) return null;
-  return starforgedData.oracleCategories.find(c => c.Name === categoryName);
-};
-
-// Get oracle from category by name
-const getOracleFromCategory = (category, oracleName) => {
-  if (!category?.Oracles) return null;
-  return category.Oracles.find(o => 
-    o.Name === oracleName || 
-    o.Name.toLowerCase().includes(oracleName.toLowerCase())
-  );
-};
 
 // Get oracle from sub-category
 const getOracleFromSubCategory = (category, subCategoryName, oracleName) => {
@@ -820,27 +629,39 @@ const rollCoreOracle = (starforgedData, oracleName) => {
 
 export const ExploreTab = ({ 
   viewName, 
-  navigate, 
-  goBack,
-  starforgedData,
-  sectors,
-  factions,
-  addSector,
-  getSector,
-  addFaction,
-  getFaction,
-  addLocation,
-  getLocation,
-  addSubLocation,
-  getSubLocation,
-  addNestedEntity,
-  getNestedEntity,
-  removeNestedEntity,
-  addLocationNestedEntity,
-  getLocationNestedEntity,
-  removeLocationNestedEntity,
   scrollProps = {}
 }) => {
+  const { data: starforgedData } = useStarforgedContext();
+  const { navigate, goBack } = useNavigationContext();
+  const {
+    sectors,
+    factions,
+    addSector,
+    removeSector,
+    getSector,
+    addFaction,
+    removeFaction,
+    getFaction,
+    addLocation,
+    getLocation,
+    removeLocation,
+    addSubLocation,
+    getSubLocation,
+    removeSubLocation,
+    addNestedEntity,
+    getNestedEntity,
+    removeNestedEntity,
+    addLocationNestedEntity,
+    getLocationNestedEntity,
+    removeLocationNestedEntity,
+    addLocationNestedEntityChild,
+    getLocationNestedEntityChild,
+    removeLocationNestedEntityChild,
+    addNestedEntityChild,
+    getNestedEntityChild,
+    removeNestedEntityChild
+  } = useExploreContext();
+
   // Modal state (local, resets on navigation is fine)
   const [showSectorModal, setShowSectorModal] = useState(false);
   const [newSectorName, setNewSectorName] = useState('');
@@ -932,6 +753,26 @@ export const ExploreTab = ({
   const [newOnboardEntityType, setNewOnboardEntityType] = useState(null);
   const [onboardTargetType, setOnboardTargetType] = useState(null); // 'location' or 'sublocation'
   const [parentEntityType, setParentEntityType] = useState(null); // Track parent type for modal title
+
+  // Deeply nested entity modal state (for entities within nested entities)
+  const [showDeepNestedModal, setShowDeepNestedModal] = useState(false);
+  const [currentParentEntityId, setCurrentParentEntityId] = useState(null);
+  const [newDeepNestedEntityType, setNewDeepNestedEntityType] = useState(null);
+  const [deepNestedTargetType, setDeepNestedTargetType] = useState(null); // 'location-nested' or 'sublocation-nested'
+
+  // Edit mode state for entity detail views
+  const [isEditingSector, setIsEditingSector] = useState(false);
+  const [isEditingLocation, setIsEditingLocation] = useState(false);
+  const [isEditingSubLocation, setIsEditingSubLocation] = useState(false);
+  const [isEditingNestedEntity, setIsEditingNestedEntity] = useState(false);
+  const [isEditingLocationNestedEntity, setIsEditingLocationNestedEntity] = useState(false);
+  const [isEditingLocationNestedEntityChild, setIsEditingLocationNestedEntityChild] = useState(false);
+  const [isEditingNestedEntityChild, setIsEditingNestedEntityChild] = useState(false);
+
+  // Confirmation dialog state
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmDialogMessage, setConfirmDialogMessage] = useState('');
+  const [confirmDialogCallback, setConfirmDialogCallback] = useState(null);
 
   const createSector = () => {
     if (!newSectorName.trim()) return;
@@ -1258,6 +1099,86 @@ export const ExploreTab = ({
     setParentEntityType(null);
     resetAllEntityFields();
     setShowOnboardModal(false);
+  };
+
+  const createDeepNestedEntity = () => {
+    if (!currentSectorId || !currentLocationId || !currentParentEntityId || !newDeepNestedEntityType) return;
+    // For sublocation-nested targets, we also need currentSubLocationId
+    if (deepNestedTargetType === 'sublocation-nested' && !currentSubLocationId) return;
+    
+    let name;
+    let data = {};
+    
+    switch (newDeepNestedEntityType) {
+      case 'character':
+        name = newCharacterName || 'Character';
+        data = {
+          characterName: newCharacterName,
+          firstLook: newCharacterFirstLook,
+          initialDisposition: newCharacterDisposition,
+          role: newCharacterRole,
+          goal: newCharacterGoal
+        };
+        break;
+      
+      case 'creature':
+        name = newCreatureForm || 'Creature';
+        data = {
+          environment: newCreatureEnvironment,
+          creatureScale: newCreatureScale,
+          basicForm: newCreatureForm,
+          firstLook: newCreatureFirstLook,
+          encounteredBehavior: newCreatureBehavior,
+          revealedAspect: newCreatureAspect
+        };
+        break;
+      
+      case 'custom':
+        name = newCustomName || 'Custom Entity';
+        data = {
+          customName: newCustomName,
+          action: newCustomAction,
+          theme: newCustomTheme,
+          descriptor: newCustomDescriptor,
+          focus: newCustomFocus
+        };
+        break;
+      
+      case 'starship':
+        name = newStarshipName || newStarshipType || 'Starship';
+        data = {
+          starshipName: newStarshipName,
+          starshipType: newStarshipType,
+          fleet: newStarshipFleet,
+          initialContact: newStarshipInitialContact,
+          firstLook: newStarshipFirstLook,
+          mission: newStarshipMission
+        };
+        break;
+      
+      default:
+        name = 'Entity';
+    }
+    
+    if (deepNestedTargetType === 'location-nested') {
+      addLocationNestedEntityChild(currentSectorId, currentLocationId, currentParentEntityId, name, newDeepNestedEntityType, data);
+    } else {
+      addNestedEntityChild(currentSectorId, currentLocationId, currentSubLocationId, currentParentEntityId, name, newDeepNestedEntityType, data);
+    }
+    setNewDeepNestedEntityType(null);
+    setDeepNestedTargetType(null);
+    setCurrentParentEntityId(null);
+    resetAllEntityFields();
+    setShowDeepNestedModal(false);
+  };
+
+  const closeDeepNestedModal = () => {
+    setNewDeepNestedEntityType(null);
+    setDeepNestedTargetType(null);
+    setCurrentParentEntityId(null);
+    setParentEntityType(null);
+    resetAllEntityFields();
+    setShowDeepNestedModal(false);
   };
   
   const resetAllEntityFields = () => {
@@ -1671,6 +1592,19 @@ export const ExploreTab = ({
             />
           </ModalField>
         </Modal>
+        <ConfirmDialog
+          isOpen={showConfirmDialog}
+          message={confirmDialogMessage}
+          onConfirm={() => {
+            setShowConfirmDialog(false);
+            if (confirmDialogCallback) {
+              confirmDialogCallback();
+            }
+          }}
+          onCancel={() => {
+            setShowConfirmDialog(false);
+          }}
+        />
       </>
     );
   }
@@ -1698,14 +1632,32 @@ export const ExploreTab = ({
       <>
         <NavigationView 
           title={sector.name} 
-          onBack={goBack}
+          onBack={() => {
+            if (isEditingSector) {
+              // Cancel edit mode
+              setIsEditingSector(false);
+            } else {
+              goBack();
+            }
+          }}
+          backButtonText={isEditingSector ? 'Cancel' : 'Back'}
+          rightActionText={isEditingSector ? 'Save' : 'Edit'}
+          onRightActionText={() => {
+            if (isEditingSector) {
+              // TODO: Implement save logic
+              console.log('Save sector:', sectorId);
+              setIsEditingSector(false);
+            } else {
+              setIsEditingSector(true);
+            }
+          }}
           {...scrollProps}
         >
           <DetailCard
             icon={getRegionIcon(sector.region)}
             iconBg={getRegionIconBg(sector.region)}
             title={sector.name}
-            description={`${getRegionLabel(sector.region)} - ${getRegionDescription(sector.region)}`}
+            description={getRegionLabel(sector.region)}
           />
           <MenuGroup title="Connected">
             {(() => {
@@ -1779,6 +1731,25 @@ export const ExploreTab = ({
               isButton={true}
             />
           </MenuGroup>
+          {isEditingSector && (
+            <MenuGroup>
+              <MenuItem 
+                label={`Remove ${sector.name}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setConfirmDialogMessage(`Are you sure you want to remove "${sector.name}"? This action cannot be undone.`);
+                  setConfirmDialogCallback(() => () => {
+                    removeSector(sectorId);
+                    goBack();
+                  });
+                  setShowConfirmDialog(true);
+                }}
+                isButton={true}
+                destructive={true}
+              />
+            </MenuGroup>
+          )}
         </NavigationView>
 
         {/* Create Location Modal */}
@@ -2519,6 +2490,19 @@ export const ExploreTab = ({
             </>
           ) : null}
         </Modal>
+        <ConfirmDialog
+          isOpen={showConfirmDialog}
+          message={confirmDialogMessage}
+          onConfirm={() => {
+            setShowConfirmDialog(false);
+            if (confirmDialogCallback) {
+              confirmDialogCallback();
+            }
+          }}
+          onCancel={() => {
+            setShowConfirmDialog(false);
+          }}
+        />
       </>
     );
   }
@@ -2544,9 +2528,28 @@ export const ExploreTab = ({
       }
 
       return (
-        <NavigationView 
-          title={location.name} 
-          onBack={goBack}
+        <>
+          <NavigationView 
+            title={location.name} 
+            onBack={() => {
+            if (isEditingLocation) {
+              // Cancel edit mode
+              setIsEditingLocation(false);
+            } else {
+              goBack();
+            }
+          }}
+          backButtonText={isEditingLocation ? 'Cancel' : 'Back'}
+          rightActionText={isEditingLocation ? 'Save' : 'Edit'}
+          onRightActionText={() => {
+            if (isEditingLocation) {
+              // TODO: Implement save logic
+              console.log('Save location:', sectorId, locationId);
+              setIsEditingLocation(false);
+            } else {
+              setIsEditingLocation(true);
+            }
+          }}
           {...scrollProps}
         >
           <DetailCard
@@ -3857,7 +3860,40 @@ export const ExploreTab = ({
               </>
             ) : null}
           </Modal>
-        </NavigationView>
+          {isEditingLocation && (
+            <MenuGroup>
+              <MenuItem 
+                label={`Remove ${location.name}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setConfirmDialogMessage(`Are you sure you want to remove "${location.name}"? This action cannot be undone.`);
+                  setConfirmDialogCallback(() => () => {
+                    removeLocation(sectorId, locationId);
+                    goBack();
+                  });
+                  setShowConfirmDialog(true);
+                }}
+                isButton={true}
+                destructive={true}
+              />
+            </MenuGroup>
+          )}
+          </NavigationView>
+          <ConfirmDialog
+            isOpen={showConfirmDialog}
+            message={confirmDialogMessage}
+            onConfirm={() => {
+              setShowConfirmDialog(false);
+              if (confirmDialogCallback) {
+                confirmDialogCallback();
+              }
+            }}
+            onCancel={() => {
+              setShowConfirmDialog(false);
+            }}
+          />
+        </>
       );
     }
   }
@@ -3878,7 +3914,25 @@ export const ExploreTab = ({
       return (
         <NavigationView 
           title={subLocation.name} 
-          onBack={goBack}
+          onBack={() => {
+            if (isEditingSubLocation) {
+              // Cancel edit mode
+              setIsEditingSubLocation(false);
+            } else {
+              goBack();
+            }
+          }}
+          backButtonText={isEditingSubLocation ? 'Cancel' : 'Back'}
+          rightActionText={isEditingSubLocation ? 'Save' : 'Edit'}
+          onRightActionText={() => {
+            if (isEditingSubLocation) {
+              // TODO: Implement save logic
+              console.log('Save sub-location:', sectorId, locationId, subLocationId);
+              setIsEditingSubLocation(false);
+            } else {
+              setIsEditingSubLocation(true);
+            }
+          }}
           {...scrollProps}
         >
           <DetailCard
@@ -4543,6 +4597,25 @@ export const ExploreTab = ({
               </>
             ) : null}
           </Modal>
+          {isEditingSubLocation && (
+            <MenuGroup>
+              <MenuItem 
+                label={`Remove ${subLocation.name}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setConfirmDialogMessage(`Are you sure you want to remove "${subLocation.name}"? This action cannot be undone.`);
+                  setConfirmDialogCallback(() => () => {
+                    removeSubLocation(sectorId, locationId, subLocationId);
+                    goBack();
+                  });
+                  setShowConfirmDialog(true);
+                }}
+                isButton={true}
+                destructive={true}
+              />
+            </MenuGroup>
+          )}
         </NavigationView>
       );
     }
@@ -4563,7 +4636,25 @@ export const ExploreTab = ({
       return (
         <NavigationView 
           title={entity.name} 
-          onBack={goBack}
+          onBack={() => {
+            if (isEditingLocationNestedEntity) {
+              // Cancel edit mode
+              setIsEditingLocationNestedEntity(false);
+            } else {
+              goBack();
+            }
+          }}
+          backButtonText={isEditingLocationNestedEntity ? 'Cancel' : 'Back'}
+          rightActionText={isEditingLocationNestedEntity ? 'Save' : 'Edit'}
+          onRightActionText={() => {
+            if (isEditingLocationNestedEntity) {
+              // TODO: Implement save logic
+              console.log('Save nested entity:', sectorId, locationId, entityId);
+              setIsEditingLocationNestedEntity(false);
+            } else {
+              setIsEditingLocationNestedEntity(true);
+            }
+          }}
           {...scrollProps}
         >
           <DetailCard
@@ -4572,6 +4663,49 @@ export const ExploreTab = ({
             title={entity.name}
             description={typeInfo.label}
           />
+
+          {/* Onboard section for nested starship entities */}
+          {entity.type === 'starship' && (
+            <>
+              <MenuGroup title="Onboard">
+                {(() => {
+                  const onboardEntities = entity.nestedEntities || [];
+                  return onboardEntities.length === 0 ? (
+                    <MenuItem 
+                      label="No entities yet"
+                      showChevron={false}
+                      muted={true}
+                    />
+                  ) : (
+                    onboardEntities.map(childEntity => {
+                      const entityTypeInfo = getEntityTypeInfo(childEntity.type) || { icon: '📍', label: 'Entity' };
+                      return (
+                        <MenuItem 
+                          key={childEntity.id}
+                          icon={entityTypeInfo.icon}
+                          iconBg={entityTypeInfo.iconBg}
+                          label={childEntity.name}
+                          onClick={() => navigate(`location-nested-child-${sectorId}-${locationId}-${entityId}-${childEntity.id}`)}
+                        />
+                      );
+                    })
+                  );
+                })()}
+                <MenuItem 
+                  label="Add entity"
+                  onClick={() => {
+                    setCurrentSectorId(sectorId);
+                    setCurrentLocationId(locationId);
+                    setCurrentParentEntityId(entityId);
+                    setParentEntityType(entity.type);
+                    setDeepNestedTargetType('location-nested');
+                    setShowDeepNestedModal(true);
+                  }}
+                  isButton={true}
+                />
+              </MenuGroup>
+            </>
+          )}
 
           <MenuGroup title="Details">
             {entity.type === 'character' && (
@@ -4668,6 +4802,349 @@ export const ExploreTab = ({
               isButton={true}
             />
           </MenuGroup>
+
+          {/* Modal for entities within nested entities (location-nested) */}
+          <Modal
+            isOpen={showDeepNestedModal && deepNestedTargetType === 'location-nested'}
+            onClose={closeDeepNestedModal}
+            onBack={newDeepNestedEntityType ? () => { setNewDeepNestedEntityType(null); resetAllEntityFields(); } : null}
+            title={newDeepNestedEntityType ? getEntityTypeInfo(newDeepNestedEntityType)?.label : 'Add onboard entity'}
+            action={newDeepNestedEntityType ? {
+              label: 'Create',
+              onClick: createDeepNestedEntity,
+              disabled: (newDeepNestedEntityType === 'character' && !newCharacterName.trim()) ||
+                        (newDeepNestedEntityType === 'custom' && !newCustomName.trim())
+            } : null}
+          >
+            {!newDeepNestedEntityType ? (
+              <MenuGroup>
+                <MenuItem 
+                  icon="👤"
+                  iconBg="rgba(255, 204, 0, 0.3)"
+                  label="Character"
+                  onClick={() => {
+                    setNewDeepNestedEntityType('character');
+                    rollAllCharacterFields();
+                  }}
+                />
+                <MenuItem 
+                  icon="👾"
+                  iconBg="rgba(52, 199, 89, 0.3)"
+                  label="Creature"
+                  onClick={() => {
+                    setNewDeepNestedEntityType('creature');
+                    rollAllCreatureFields();
+                  }}
+                />
+                <MenuItem 
+                  icon="🚀"
+                  iconBg="rgba(88, 86, 214, 0.3)"
+                  label="Starship"
+                  onClick={() => {
+                    setNewDeepNestedEntityType('starship');
+                    rollAllStarshipFields();
+                  }}
+                />
+                <MenuItem 
+                  icon="⭐"
+                  iconBg="rgba(255, 204, 0, 0.3)"
+                  label="Custom"
+                  onClick={() => {
+                    setNewDeepNestedEntityType('custom');
+                    rollAllCustomFields();
+                  }}
+                />
+              </MenuGroup>
+            ) : newDeepNestedEntityType === 'character' ? (
+              <>
+                <ModalField label="Name">
+                  <DiceInput
+                    value={newCharacterName}
+                    onChange={(e) => setNewCharacterName(e.target.value)}
+                    onDiceClick={() => {
+                      const name = generateCharacterName();
+                      if (name) setNewCharacterName(name);
+                    }}
+                    placeholder="Enter name..."
+                  />
+                </ModalField>
+                <ModalField label="First Look">
+                  <DiceSelect
+                    value={newCharacterFirstLook}
+                    onChange={(e) => setNewCharacterFirstLook(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'First Look');
+                      if (result) setNewCharacterFirstLook(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'First Look')}
+                    placeholder="Select first look..."
+                  />
+                </ModalField>
+                <ModalField label="Initial Disposition">
+                  <DiceSelect
+                    value={newCharacterDisposition}
+                    onChange={(e) => setNewCharacterDisposition(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'Initial Disposition');
+                      if (result) setNewCharacterDisposition(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'Initial Disposition')}
+                    placeholder="Select disposition..."
+                  />
+                </ModalField>
+                <ModalField label="Role">
+                  <DiceSelect
+                    value={newCharacterRole}
+                    onChange={(e) => setNewCharacterRole(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'Role');
+                      if (result) setNewCharacterRole(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'Role')}
+                    placeholder="Select role..."
+                  />
+                </ModalField>
+                <ModalField label="Goal">
+                  <DiceSelect
+                    value={newCharacterGoal}
+                    onChange={(e) => setNewCharacterGoal(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'Goal');
+                      if (result) setNewCharacterGoal(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'Goal')}
+                    placeholder="Select goal..."
+                  />
+                </ModalField>
+              </>
+            ) : newDeepNestedEntityType === 'creature' ? (
+              <>
+                <ModalField label="Environment">
+                  <DiceSelect
+                    value={newCreatureEnvironment}
+                    onChange={(e) => setNewCreatureEnvironment(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Environment');
+                      if (result) setNewCreatureEnvironment(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Environment')}
+                    placeholder="Select environment..."
+                  />
+                </ModalField>
+                <ModalField label="Scale">
+                  <DiceSelect
+                    value={newCreatureScale}
+                    onChange={(e) => setNewCreatureScale(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Scale');
+                      if (result) setNewCreatureScale(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Scale')}
+                    placeholder="Select scale..."
+                  />
+                </ModalField>
+                <ModalField label="Basic Form">
+                  <DiceSelect
+                    value={newCreatureForm}
+                    onChange={(e) => setNewCreatureForm(e.target.value)}
+                    onDiceClick={() => {
+                      const basicForm = rollCreatureBasicForm(starforgedData, newCreatureEnvironment);
+                      if (basicForm) setNewCreatureForm(basicForm);
+                    }}
+                    options={getCreatureBasicFormOptions(starforgedData, newCreatureEnvironment)}
+                    placeholder="Select basic form..."
+                  />
+                </ModalField>
+                <ModalField label="First Look">
+                  <DiceSelect
+                    value={newCreatureFirstLook}
+                    onChange={(e) => setNewCreatureFirstLook(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'First Look');
+                      if (result) setNewCreatureFirstLook(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'First Look')}
+                    placeholder="Select first look..."
+                  />
+                </ModalField>
+                <ModalField label="Encountered Behavior">
+                  <DiceSelect
+                    value={newCreatureBehavior}
+                    onChange={(e) => setNewCreatureBehavior(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Encountered Behavior');
+                      if (result) setNewCreatureBehavior(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Encountered Behavior')}
+                    placeholder="Select behavior..."
+                  />
+                </ModalField>
+                <ModalField label="Revealed Aspect">
+                  <DiceSelect
+                    value={newCreatureAspect}
+                    onChange={(e) => setNewCreatureAspect(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Revealed Aspect');
+                      if (result) setNewCreatureAspect(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Revealed Aspect')}
+                    placeholder="Select aspect..."
+                  />
+                </ModalField>
+              </>
+            ) : newDeepNestedEntityType === 'starship' ? (
+              <>
+                <ModalField label="Name">
+                  <DiceInput
+                    value={newStarshipName}
+                    onChange={(e) => setNewStarshipName(e.target.value)}
+                    onDiceClick={() => {
+                      const name = generateStarshipName(starforgedData);
+                      if (name) setNewStarshipName(name);
+                    }}
+                    placeholder="Enter starship name..."
+                  />
+                </ModalField>
+                <ModalField label="Type">
+                  <DiceSelect
+                    value={newStarshipType}
+                    onChange={(e) => setNewStarshipType(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Type');
+                      if (result) setNewStarshipType(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Type')}
+                    placeholder="Select type..."
+                  />
+                </ModalField>
+                <ModalField label="Fleet">
+                  <DiceSelect
+                    value={newStarshipFleet}
+                    onChange={(e) => setNewStarshipFleet(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Fleet');
+                      if (result) setNewStarshipFleet(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Fleet')}
+                    placeholder="Select fleet..."
+                  />
+                </ModalField>
+                <ModalField label="Initial Contact">
+                  <DiceSelect
+                    value={newStarshipInitialContact}
+                    onChange={(e) => setNewStarshipInitialContact(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Initial Contact');
+                      if (result) setNewStarshipInitialContact(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Initial Contact')}
+                    placeholder="Select contact..."
+                  />
+                </ModalField>
+                <ModalField label="First Look">
+                  <DiceSelect
+                    value={newStarshipFirstLook}
+                    onChange={(e) => setNewStarshipFirstLook(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'First Look');
+                      if (result) setNewStarshipFirstLook(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'First Look')}
+                    placeholder="Select first look..."
+                  />
+                </ModalField>
+                <ModalField label="Mission">
+                  <DiceSelect
+                    value={newStarshipMission}
+                    onChange={(e) => setNewStarshipMission(e.target.value)}
+                    onDiceClick={() => {
+                      const mission = rollStarshipMission(starforgedData);
+                      if (mission) setNewStarshipMission(mission);
+                    }}
+                    options={getStarshipMissionOptions(starforgedData)}
+                    placeholder="Select mission..."
+                  />
+                </ModalField>
+              </>
+            ) : newDeepNestedEntityType === 'custom' ? (
+              <>
+                <ModalField label="Name">
+                  <DiceInput
+                    value={newCustomName}
+                    onChange={(e) => setNewCustomName(e.target.value)}
+                    placeholder="Enter name..."
+                  />
+                </ModalField>
+                <ModalField label="Action">
+                  <DiceSelect
+                    value={newCustomAction}
+                    onChange={(e) => setNewCustomAction(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Action');
+                      if (result) setNewCustomAction(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Action')}
+                    placeholder="Select action..."
+                  />
+                </ModalField>
+                <ModalField label="Theme">
+                  <DiceSelect
+                    value={newCustomTheme}
+                    onChange={(e) => setNewCustomTheme(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Theme');
+                      if (result) setNewCustomTheme(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Theme')}
+                    placeholder="Select theme..."
+                  />
+                </ModalField>
+                <ModalField label="Descriptor">
+                  <DiceSelect
+                    value={newCustomDescriptor}
+                    onChange={(e) => setNewCustomDescriptor(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Descriptor');
+                      if (result) setNewCustomDescriptor(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Descriptor')}
+                    placeholder="Select descriptor..."
+                  />
+                </ModalField>
+                <ModalField label="Focus">
+                  <DiceSelect
+                    value={newCustomFocus}
+                    onChange={(e) => setNewCustomFocus(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Focus');
+                      if (result) setNewCustomFocus(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Focus')}
+                    placeholder="Select focus..."
+                  />
+                </ModalField>
+              </>
+            ) : null}
+          </Modal>
+          {isEditingLocationNestedEntity && (
+            <MenuGroup>
+              <MenuItem 
+                label={`Remove ${entity.name}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setConfirmDialogMessage(`Are you sure you want to remove "${entity.name}"? This action cannot be undone.`);
+                  setConfirmDialogCallback(() => () => {
+                    removeLocationNestedEntity(sectorId, locationId, entityId);
+                    goBack();
+                  });
+                  setShowConfirmDialog(true);
+                }}
+                isButton={true}
+                destructive={true}
+              />
+            </MenuGroup>
+          )}
         </NavigationView>
       );
     }
@@ -4690,7 +5167,25 @@ export const ExploreTab = ({
       return (
         <NavigationView 
           title={entity.name} 
-          onBack={goBack}
+          onBack={() => {
+            if (isEditingNestedEntity) {
+              // Cancel edit mode
+              setIsEditingNestedEntity(false);
+            } else {
+              goBack();
+            }
+          }}
+          backButtonText={isEditingNestedEntity ? 'Cancel' : 'Back'}
+          rightActionText={isEditingNestedEntity ? 'Save' : 'Edit'}
+          onRightActionText={() => {
+            if (isEditingNestedEntity) {
+              // TODO: Implement save logic
+              console.log('Save nested entity in sub-location:', sectorId, locationId, subLocationId, entityId);
+              setIsEditingNestedEntity(false);
+            } else {
+              setIsEditingNestedEntity(true);
+            }
+          }}
           {...scrollProps}
         >
           <DetailCard
@@ -4699,6 +5194,50 @@ export const ExploreTab = ({
             title={entity.name}
             description={typeInfo.label}
           />
+
+          {/* Onboard section for nested starship entities */}
+          {entity.type === 'starship' && (
+            <>
+              <MenuGroup title="Onboard">
+                {(() => {
+                  const onboardEntities = entity.nestedEntities || [];
+                  return onboardEntities.length === 0 ? (
+                    <MenuItem 
+                      label="No entities yet"
+                      showChevron={false}
+                      muted={true}
+                    />
+                  ) : (
+                    onboardEntities.map(childEntity => {
+                      const entityTypeInfo = getEntityTypeInfo(childEntity.type) || { icon: '📍', label: 'Entity' };
+                      return (
+                        <MenuItem 
+                          key={childEntity.id}
+                          icon={entityTypeInfo.icon}
+                          iconBg={entityTypeInfo.iconBg}
+                          label={childEntity.name}
+                          onClick={() => navigate(`nested-child-${sectorId}-${locationId}-${subLocationId}-${entityId}-${childEntity.id}`)}
+                        />
+                      );
+                    })
+                  );
+                })()}
+                <MenuItem 
+                  label="Add entity"
+                  onClick={() => {
+                    setCurrentSectorId(sectorId);
+                    setCurrentLocationId(locationId);
+                    setCurrentSubLocationId(subLocationId);
+                    setCurrentParentEntityId(entityId);
+                    setParentEntityType(entity.type);
+                    setDeepNestedTargetType('sublocation-nested');
+                    setShowDeepNestedModal(true);
+                  }}
+                  isButton={true}
+                />
+              </MenuGroup>
+            </>
+          )}
 
           <MenuGroup title="Details">
             {entity.type === 'character' && (
@@ -4795,6 +5334,679 @@ export const ExploreTab = ({
               isButton={true}
             />
           </MenuGroup>
+
+          {/* Modal for entities within nested entities (sublocation-nested) */}
+          <Modal
+            isOpen={showDeepNestedModal && deepNestedTargetType === 'sublocation-nested'}
+            onClose={closeDeepNestedModal}
+            onBack={newDeepNestedEntityType ? () => { setNewDeepNestedEntityType(null); resetAllEntityFields(); } : null}
+            title={newDeepNestedEntityType ? getEntityTypeInfo(newDeepNestedEntityType)?.label : 'Add onboard entity'}
+            action={newDeepNestedEntityType ? {
+              label: 'Create',
+              onClick: createDeepNestedEntity,
+              disabled: (newDeepNestedEntityType === 'character' && !newCharacterName.trim()) ||
+                        (newDeepNestedEntityType === 'custom' && !newCustomName.trim())
+            } : null}
+          >
+            {!newDeepNestedEntityType ? (
+              <MenuGroup>
+                <MenuItem 
+                  icon="👤"
+                  iconBg="rgba(255, 204, 0, 0.3)"
+                  label="Character"
+                  onClick={() => {
+                    setNewDeepNestedEntityType('character');
+                    rollAllCharacterFields();
+                  }}
+                />
+                <MenuItem 
+                  icon="👾"
+                  iconBg="rgba(52, 199, 89, 0.3)"
+                  label="Creature"
+                  onClick={() => {
+                    setNewDeepNestedEntityType('creature');
+                    rollAllCreatureFields();
+                  }}
+                />
+                <MenuItem 
+                  icon="🚀"
+                  iconBg="rgba(88, 86, 214, 0.3)"
+                  label="Starship"
+                  onClick={() => {
+                    setNewDeepNestedEntityType('starship');
+                    rollAllStarshipFields();
+                  }}
+                />
+                <MenuItem 
+                  icon="⭐"
+                  iconBg="rgba(255, 204, 0, 0.3)"
+                  label="Custom"
+                  onClick={() => {
+                    setNewDeepNestedEntityType('custom');
+                    rollAllCustomFields();
+                  }}
+                />
+              </MenuGroup>
+            ) : newDeepNestedEntityType === 'character' ? (
+              <>
+                <ModalField label="Name">
+                  <DiceInput
+                    value={newCharacterName}
+                    onChange={(e) => setNewCharacterName(e.target.value)}
+                    onDiceClick={() => {
+                      const name = generateCharacterName();
+                      if (name) setNewCharacterName(name);
+                    }}
+                    placeholder="Enter name..."
+                  />
+                </ModalField>
+                <ModalField label="First Look">
+                  <DiceSelect
+                    value={newCharacterFirstLook}
+                    onChange={(e) => setNewCharacterFirstLook(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'First Look');
+                      if (result) setNewCharacterFirstLook(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'First Look')}
+                    placeholder="Select first look..."
+                  />
+                </ModalField>
+                <ModalField label="Initial Disposition">
+                  <DiceSelect
+                    value={newCharacterDisposition}
+                    onChange={(e) => setNewCharacterDisposition(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'Initial Disposition');
+                      if (result) setNewCharacterDisposition(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'Initial Disposition')}
+                    placeholder="Select disposition..."
+                  />
+                </ModalField>
+                <ModalField label="Role">
+                  <DiceSelect
+                    value={newCharacterRole}
+                    onChange={(e) => setNewCharacterRole(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'Role');
+                      if (result) setNewCharacterRole(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'Role')}
+                    placeholder="Select role..."
+                  />
+                </ModalField>
+                <ModalField label="Goal">
+                  <DiceSelect
+                    value={newCharacterGoal}
+                    onChange={(e) => setNewCharacterGoal(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'Goal');
+                      if (result) setNewCharacterGoal(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'Goal')}
+                    placeholder="Select goal..."
+                  />
+                </ModalField>
+              </>
+            ) : newDeepNestedEntityType === 'creature' ? (
+              <>
+                <ModalField label="Environment">
+                  <DiceSelect
+                    value={newCreatureEnvironment}
+                    onChange={(e) => setNewCreatureEnvironment(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Environment');
+                      if (result) setNewCreatureEnvironment(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Environment')}
+                    placeholder="Select environment..."
+                  />
+                </ModalField>
+                <ModalField label="Scale">
+                  <DiceSelect
+                    value={newCreatureScale}
+                    onChange={(e) => setNewCreatureScale(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Scale');
+                      if (result) setNewCreatureScale(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Scale')}
+                    placeholder="Select scale..."
+                  />
+                </ModalField>
+                <ModalField label="Basic Form">
+                  <DiceSelect
+                    value={newCreatureForm}
+                    onChange={(e) => setNewCreatureForm(e.target.value)}
+                    onDiceClick={() => {
+                      const basicForm = rollCreatureBasicForm(starforgedData, newCreatureEnvironment);
+                      if (basicForm) setNewCreatureForm(basicForm);
+                    }}
+                    options={getCreatureBasicFormOptions(starforgedData, newCreatureEnvironment)}
+                    placeholder="Select basic form..."
+                  />
+                </ModalField>
+                <ModalField label="First Look">
+                  <DiceSelect
+                    value={newCreatureFirstLook}
+                    onChange={(e) => setNewCreatureFirstLook(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'First Look');
+                      if (result) setNewCreatureFirstLook(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'First Look')}
+                    placeholder="Select first look..."
+                  />
+                </ModalField>
+                <ModalField label="Encountered Behavior">
+                  <DiceSelect
+                    value={newCreatureBehavior}
+                    onChange={(e) => setNewCreatureBehavior(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Encountered Behavior');
+                      if (result) setNewCreatureBehavior(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Encountered Behavior')}
+                    placeholder="Select behavior..."
+                  />
+                </ModalField>
+                <ModalField label="Revealed Aspect">
+                  <DiceSelect
+                    value={newCreatureAspect}
+                    onChange={(e) => setNewCreatureAspect(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Revealed Aspect');
+                      if (result) setNewCreatureAspect(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Revealed Aspect')}
+                    placeholder="Select aspect..."
+                  />
+                </ModalField>
+              </>
+            ) : newDeepNestedEntityType === 'starship' ? (
+              <>
+                <ModalField label="Name">
+                  <DiceInput
+                    value={newStarshipName}
+                    onChange={(e) => setNewStarshipName(e.target.value)}
+                    onDiceClick={() => {
+                      const name = generateStarshipName(starforgedData);
+                      if (name) setNewStarshipName(name);
+                    }}
+                    placeholder="Enter starship name..."
+                  />
+                </ModalField>
+                <ModalField label="Type">
+                  <DiceSelect
+                    value={newStarshipType}
+                    onChange={(e) => setNewStarshipType(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Type');
+                      if (result) setNewStarshipType(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Type')}
+                    placeholder="Select type..."
+                  />
+                </ModalField>
+                <ModalField label="Fleet">
+                  <DiceSelect
+                    value={newStarshipFleet}
+                    onChange={(e) => setNewStarshipFleet(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Fleet');
+                      if (result) setNewStarshipFleet(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Fleet')}
+                    placeholder="Select fleet..."
+                  />
+                </ModalField>
+                <ModalField label="Initial Contact">
+                  <DiceSelect
+                    value={newStarshipInitialContact}
+                    onChange={(e) => setNewStarshipInitialContact(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Initial Contact');
+                      if (result) setNewStarshipInitialContact(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Initial Contact')}
+                    placeholder="Select contact..."
+                  />
+                </ModalField>
+                <ModalField label="First Look">
+                  <DiceSelect
+                    value={newStarshipFirstLook}
+                    onChange={(e) => setNewStarshipFirstLook(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'First Look');
+                      if (result) setNewStarshipFirstLook(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'First Look')}
+                    placeholder="Select first look..."
+                  />
+                </ModalField>
+                <ModalField label="Mission">
+                  <DiceSelect
+                    value={newStarshipMission}
+                    onChange={(e) => setNewStarshipMission(e.target.value)}
+                    onDiceClick={() => {
+                      const mission = rollStarshipMission(starforgedData);
+                      if (mission) setNewStarshipMission(mission);
+                    }}
+                    options={getStarshipMissionOptions(starforgedData)}
+                    placeholder="Select mission..."
+                  />
+                </ModalField>
+              </>
+            ) : newDeepNestedEntityType === 'custom' ? (
+              <>
+                <ModalField label="Name">
+                  <DiceInput
+                    value={newCustomName}
+                    onChange={(e) => setNewCustomName(e.target.value)}
+                    placeholder="Enter name..."
+                  />
+                </ModalField>
+                <ModalField label="Action">
+                  <DiceSelect
+                    value={newCustomAction}
+                    onChange={(e) => setNewCustomAction(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Action');
+                      if (result) setNewCustomAction(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Action')}
+                    placeholder="Select action..."
+                  />
+                </ModalField>
+                <ModalField label="Theme">
+                  <DiceSelect
+                    value={newCustomTheme}
+                    onChange={(e) => setNewCustomTheme(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Theme');
+                      if (result) setNewCustomTheme(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Theme')}
+                    placeholder="Select theme..."
+                  />
+                </ModalField>
+                <ModalField label="Descriptor">
+                  <DiceSelect
+                    value={newCustomDescriptor}
+                    onChange={(e) => setNewCustomDescriptor(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Descriptor');
+                      if (result) setNewCustomDescriptor(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Descriptor')}
+                    placeholder="Select descriptor..."
+                  />
+                </ModalField>
+                <ModalField label="Focus">
+                  <DiceSelect
+                    value={newCustomFocus}
+                    onChange={(e) => setNewCustomFocus(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Focus');
+                      if (result) setNewCustomFocus(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Focus')}
+                    placeholder="Select focus..."
+                  />
+                </ModalField>
+              </>
+            ) : null}
+          </Modal>
+          {isEditingNestedEntity && (
+            <MenuGroup>
+              <MenuItem 
+                label={`Remove ${entity.name}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setConfirmDialogMessage(`Are you sure you want to remove "${entity.name}"? This action cannot be undone.`);
+                  setConfirmDialogCallback(() => () => {
+                    removeNestedEntity(sectorId, locationId, subLocationId, entityId);
+                    goBack();
+                  });
+                  setShowConfirmDialog(true);
+                }}
+                isButton={true}
+                destructive={true}
+              />
+            </MenuGroup>
+          )}
+        </NavigationView>
+      );
+    }
+  }
+
+  // Location Nested Entity Child Detail View (entities within location nested entities)
+  if (viewName.startsWith('location-nested-child-')) {
+    const parts = viewName.split('-');
+    const sectorId = parseInt(parts[3]);
+    const locationId = parseInt(parts[4]);
+    const parentEntityId = parseInt(parts[5]);
+    const childEntityId = parseInt(parts[6]);
+    const location = getLocation(sectorId, locationId);
+    const parentEntity = getLocationNestedEntity(sectorId, locationId, parentEntityId);
+    const childEntity = getLocationNestedEntityChild(sectorId, locationId, parentEntityId, childEntityId);
+
+    if (childEntity && parentEntity && location) {
+      const typeInfo = getEntityTypeInfo(childEntity.type) || { icon: '📍', label: 'Entity' };
+
+      return (
+        <NavigationView 
+          title={childEntity.name} 
+          onBack={() => {
+            if (isEditingLocationNestedEntityChild) {
+              // Cancel edit mode
+              setIsEditingLocationNestedEntityChild(false);
+            } else {
+              goBack();
+            }
+          }}
+          backButtonText={isEditingLocationNestedEntityChild ? 'Cancel' : 'Back'}
+          rightActionText={isEditingLocationNestedEntityChild ? 'Save' : 'Edit'}
+          onRightActionText={() => {
+            if (isEditingLocationNestedEntityChild) {
+              // TODO: Implement save logic
+              console.log('Save child entity in location:', sectorId, locationId, parentEntityId, childEntityId);
+              setIsEditingLocationNestedEntityChild(false);
+            } else {
+              setIsEditingLocationNestedEntityChild(true);
+            }
+          }}
+          {...scrollProps}
+        >
+          <DetailCard
+            icon={typeInfo.icon}
+            iconBg={typeInfo.iconBg}
+            title={childEntity.name}
+            description={typeInfo.label}
+          />
+
+          <MenuGroup title="Details">
+            {childEntity.type === 'character' && (
+              <>
+                {childEntity.characterName && (
+                  <MenuItem label="Name" value={childEntity.characterName} showChevron={false} stacked />
+                )}
+                {childEntity.firstLook && (
+                  <MenuItem label="First Look" value={childEntity.firstLook} showChevron={false} stacked />
+                )}
+                {childEntity.initialDisposition && (
+                  <MenuItem label="Initial Disposition" value={childEntity.initialDisposition} showChevron={false} stacked />
+                )}
+                {childEntity.role && (
+                  <MenuItem label="Role" value={childEntity.role} showChevron={false} stacked />
+                )}
+                {childEntity.goal && (
+                  <MenuItem label="Goal" value={childEntity.goal} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {childEntity.type === 'creature' && (
+              <>
+                {childEntity.environment && (
+                  <MenuItem label="Environment" value={childEntity.environment} showChevron={false} stacked />
+                )}
+                {childEntity.creatureScale && (
+                  <MenuItem label="Scale" value={childEntity.creatureScale} showChevron={false} stacked />
+                )}
+                {childEntity.basicForm && (
+                  <MenuItem label="Basic Form" value={childEntity.basicForm} showChevron={false} stacked />
+                )}
+                {childEntity.firstLook && (
+                  <MenuItem label="First Look" value={childEntity.firstLook} showChevron={false} stacked />
+                )}
+                {childEntity.encounteredBehavior && (
+                  <MenuItem label="Encountered Behavior" value={childEntity.encounteredBehavior} showChevron={false} stacked />
+                )}
+                {childEntity.revealedAspect && (
+                  <MenuItem label="Revealed Aspect" value={childEntity.revealedAspect} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {childEntity.type === 'starship' && (
+              <>
+                {childEntity.starshipName && (
+                  <MenuItem label="Name" value={childEntity.starshipName} showChevron={false} stacked />
+                )}
+                {childEntity.starshipType && (
+                  <MenuItem label="Type" value={childEntity.starshipType} showChevron={false} stacked />
+                )}
+                {childEntity.fleet && (
+                  <MenuItem label="Fleet" value={childEntity.fleet} showChevron={false} stacked />
+                )}
+                {childEntity.initialContact && (
+                  <MenuItem label="Initial Contact" value={childEntity.initialContact} showChevron={false} stacked />
+                )}
+                {childEntity.firstLook && (
+                  <MenuItem label="First Look" value={childEntity.firstLook} showChevron={false} stacked />
+                )}
+                {childEntity.mission && (
+                  <MenuItem label="Mission" value={childEntity.mission} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {childEntity.type === 'custom' && (
+              <>
+                {childEntity.customName && (
+                  <MenuItem label="Name" value={childEntity.customName} showChevron={false} stacked />
+                )}
+                {childEntity.action && (
+                  <MenuItem label="Action" value={childEntity.action} showChevron={false} stacked />
+                )}
+                {childEntity.theme && (
+                  <MenuItem label="Theme" value={childEntity.theme} showChevron={false} stacked />
+                )}
+                {childEntity.descriptor && (
+                  <MenuItem label="Descriptor" value={childEntity.descriptor} showChevron={false} stacked />
+                )}
+                {childEntity.focus && (
+                  <MenuItem label="Focus" value={childEntity.focus} showChevron={false} stacked />
+                )}
+              </>
+            )}
+          </MenuGroup>
+
+          <MenuGroup>
+            <MenuItem 
+              label="Remove Entity"
+              onClick={() => {
+                removeLocationNestedEntityChild(sectorId, locationId, parentEntityId, childEntityId);
+                goBack();
+              }}
+              isButton={true}
+            />
+          </MenuGroup>
+          {isEditingLocationNestedEntityChild && (
+            <MenuGroup>
+              <MenuItem 
+                label={`Remove ${childEntity.name}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setConfirmDialogMessage(`Are you sure you want to remove "${childEntity.name}"? This action cannot be undone.`);
+                  setConfirmDialogCallback(() => () => {
+                    removeLocationNestedEntityChild(sectorId, locationId, parentEntityId, childEntityId);
+                    goBack();
+                  });
+                  setShowConfirmDialog(true);
+                }}
+                isButton={true}
+                destructive={true}
+              />
+            </MenuGroup>
+          )}
+        </NavigationView>
+      );
+    }
+  }
+
+  // Sublocation Nested Entity Child Detail View (entities within sublocation nested entities)
+  if (viewName.startsWith('nested-child-')) {
+    const parts = viewName.split('-');
+    const sectorId = parseInt(parts[2]);
+    const locationId = parseInt(parts[3]);
+    const subLocationId = parseInt(parts[4]);
+    const parentEntityId = parseInt(parts[5]);
+    const childEntityId = parseInt(parts[6]);
+    const subLocation = getSubLocation(sectorId, locationId, subLocationId);
+    const location = getLocation(sectorId, locationId);
+    const parentEntity = getNestedEntity(sectorId, locationId, subLocationId, parentEntityId);
+    const childEntity = getNestedEntityChild(sectorId, locationId, subLocationId, parentEntityId, childEntityId);
+
+    if (childEntity && parentEntity && subLocation) {
+      const typeInfo = getEntityTypeInfo(childEntity.type) || { icon: '📍', label: 'Entity' };
+
+      return (
+        <NavigationView 
+          title={childEntity.name} 
+          onBack={() => {
+            if (isEditingNestedEntityChild) {
+              // Cancel edit mode
+              setIsEditingNestedEntityChild(false);
+            } else {
+              goBack();
+            }
+          }}
+          backButtonText={isEditingNestedEntityChild ? 'Cancel' : 'Back'}
+          rightActionText={isEditingNestedEntityChild ? 'Save' : 'Edit'}
+          onRightActionText={() => {
+            if (isEditingNestedEntityChild) {
+              // TODO: Implement save logic
+              console.log('Save child entity in sub-location:', sectorId, locationId, subLocationId, parentEntityId, childEntityId);
+              setIsEditingNestedEntityChild(false);
+            } else {
+              setIsEditingNestedEntityChild(true);
+            }
+          }}
+          {...scrollProps}
+        >
+          <DetailCard
+            icon={typeInfo.icon}
+            iconBg={typeInfo.iconBg}
+            title={childEntity.name}
+            description={typeInfo.label}
+          />
+
+          <MenuGroup title="Details">
+            {childEntity.type === 'character' && (
+              <>
+                {childEntity.characterName && (
+                  <MenuItem label="Name" value={childEntity.characterName} showChevron={false} stacked />
+                )}
+                {childEntity.firstLook && (
+                  <MenuItem label="First Look" value={childEntity.firstLook} showChevron={false} stacked />
+                )}
+                {childEntity.initialDisposition && (
+                  <MenuItem label="Initial Disposition" value={childEntity.initialDisposition} showChevron={false} stacked />
+                )}
+                {childEntity.role && (
+                  <MenuItem label="Role" value={childEntity.role} showChevron={false} stacked />
+                )}
+                {childEntity.goal && (
+                  <MenuItem label="Goal" value={childEntity.goal} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {childEntity.type === 'creature' && (
+              <>
+                {childEntity.environment && (
+                  <MenuItem label="Environment" value={childEntity.environment} showChevron={false} stacked />
+                )}
+                {childEntity.creatureScale && (
+                  <MenuItem label="Scale" value={childEntity.creatureScale} showChevron={false} stacked />
+                )}
+                {childEntity.basicForm && (
+                  <MenuItem label="Basic Form" value={childEntity.basicForm} showChevron={false} stacked />
+                )}
+                {childEntity.firstLook && (
+                  <MenuItem label="First Look" value={childEntity.firstLook} showChevron={false} stacked />
+                )}
+                {childEntity.encounteredBehavior && (
+                  <MenuItem label="Encountered Behavior" value={childEntity.encounteredBehavior} showChevron={false} stacked />
+                )}
+                {childEntity.revealedAspect && (
+                  <MenuItem label="Revealed Aspect" value={childEntity.revealedAspect} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {childEntity.type === 'starship' && (
+              <>
+                {childEntity.starshipName && (
+                  <MenuItem label="Name" value={childEntity.starshipName} showChevron={false} stacked />
+                )}
+                {childEntity.starshipType && (
+                  <MenuItem label="Type" value={childEntity.starshipType} showChevron={false} stacked />
+                )}
+                {childEntity.fleet && (
+                  <MenuItem label="Fleet" value={childEntity.fleet} showChevron={false} stacked />
+                )}
+                {childEntity.initialContact && (
+                  <MenuItem label="Initial Contact" value={childEntity.initialContact} showChevron={false} stacked />
+                )}
+                {childEntity.firstLook && (
+                  <MenuItem label="First Look" value={childEntity.firstLook} showChevron={false} stacked />
+                )}
+                {childEntity.mission && (
+                  <MenuItem label="Mission" value={childEntity.mission} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {childEntity.type === 'custom' && (
+              <>
+                {childEntity.customName && (
+                  <MenuItem label="Name" value={childEntity.customName} showChevron={false} stacked />
+                )}
+                {childEntity.action && (
+                  <MenuItem label="Action" value={childEntity.action} showChevron={false} stacked />
+                )}
+                {childEntity.theme && (
+                  <MenuItem label="Theme" value={childEntity.theme} showChevron={false} stacked />
+                )}
+                {childEntity.descriptor && (
+                  <MenuItem label="Descriptor" value={childEntity.descriptor} showChevron={false} stacked />
+                )}
+                {childEntity.focus && (
+                  <MenuItem label="Focus" value={childEntity.focus} showChevron={false} stacked />
+                )}
+              </>
+            )}
+          </MenuGroup>
+
+          <MenuGroup>
+            <MenuItem 
+              label="Remove Entity"
+              onClick={() => {
+                removeNestedEntityChild(sectorId, locationId, subLocationId, parentEntityId, childEntityId);
+                goBack();
+              }}
+              isButton={true}
+            />
+          </MenuGroup>
+          {isEditingNestedEntityChild && (
+            <MenuGroup>
+              <MenuItem 
+                label={`Remove ${childEntity.name}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setConfirmDialogMessage(`Are you sure you want to remove "${childEntity.name}"? This action cannot be undone.`);
+                  setConfirmDialogCallback(() => () => {
+                    removeNestedEntityChild(sectorId, locationId, subLocationId, parentEntityId, childEntityId);
+                    goBack();
+                  });
+                  setShowConfirmDialog(true);
+                }}
+                isButton={true}
+                destructive={true}
+              />
+            </MenuGroup>
+          )}
         </NavigationView>
       );
     }
@@ -4859,5 +6071,21 @@ export const ExploreTab = ({
     }
   }
 
-  return null;
+  return (
+    <>
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        message={confirmDialogMessage}
+        onConfirm={() => {
+          setShowConfirmDialog(false);
+          if (confirmDialogCallback) {
+            confirmDialogCallback();
+          }
+        }}
+        onCancel={() => {
+          setShowConfirmDialog(false);
+        }}
+      />
+    </>
+  );
 };

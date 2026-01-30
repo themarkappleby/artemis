@@ -2,22 +2,27 @@ import React from 'react';
 import { NavigationView } from '../../components/NavigationView';
 import { MenuGroup } from '../../components/MenuGroup';
 import { MenuItem } from '../../components/MenuItem';
+import { useCharacterContext } from '../../contexts/CharacterContext';
+import { useRollContext } from '../../contexts/RollContext';
 import './RollTab.css';
 
 export const RollTab = ({
   viewName,
-  character,
-  rollStat,
-  setRollStat,
-  rollAdds,
-  setRollAdds,
-  lastRoll,
-  makeActionRoll,
-  burnMomentum,
-  wouldImprove,
-  getBurnOutcome,
   scrollProps = {}
 }) => {
+  const { character } = useCharacterContext();
+  const {
+    rollStat,
+    setRollStat,
+    rollAdds,
+    setRollAdds,
+    lastRoll,
+    makeActionRoll,
+    burnMomentum,
+    wouldImprove,
+    getBurnOutcome
+  } = useRollContext();
+
   if (viewName !== 'roll-home') return null;
 
   const burnOutcome = getBurnOutcome();

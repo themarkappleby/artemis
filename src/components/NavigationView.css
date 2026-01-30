@@ -74,6 +74,23 @@
   fill: #007AFF;
 }
 
+.action-text-button {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  background: none;
+  border: none;
+  color: #007AFF;
+  font-size: 17px;
+  cursor: pointer;
+  padding: 4px 8px;
+  transition: opacity 0.2s;
+}
+
+.action-text-button:active {
+  opacity: 0.5;
+}
+
 .navigation-title {
   font-size: 17px;
   font-weight: 600;

@@ -9,151 +9,38 @@ import { ProgressTrack, RANK_LABELS } from '../../components/ProgressTrack';
 import { ModalField } from '../../components/Modal/Modal';
 import { DiceInput } from '../../components/DiceInput/DiceInput';
 import { getAssetIcon, getAssetIconBg, getStatIcon, getStatIconBg, getProgressIconBg, getGenericIconBg } from '../../utils/icons';
+import { generateCharacterName, generateAssetInputName } from '../../utils/oracleRollers';
+import { useStarforgedContext } from '../../contexts/StarforgedContext';
+import { useCharacterContext } from '../../contexts/CharacterContext';
+import { useNavigationContext } from '../../contexts/NavigationContext';
 import '../../styles/forms.css';
 import './CharacterTab.css';
 
-// Helper to get oracle category by name
-const getOracleCategory = (starforgedData, categoryName) => {
-  if (!starforgedData?.oracleCategories) return null;
-  return starforgedData.oracleCategories.find(c => c.Name === categoryName);
-};
-
-// Helper to get oracle from category
-const getOracleFromCategory = (category, oracleName) => {
-  if (!category?.Oracles) return null;
-  return category.Oracles.find(o => 
-    o.Name === oracleName || 
-    o.Name.toLowerCase().includes(oracleName.toLowerCase())
-  );
-};
-
-// Helper to filter valid oracle rows
-const filterValidRows = (table) => {
-  if (!table) return null;
-  return table.filter(row => {
-    const hasFloorCeiling = row.Floor !== undefined && row.Floor !== null && 
-                            row.Ceiling !== undefined && row.Ceiling !== null;
-    const hasChance = row.Chance !== undefined && row.Chance !== null;
-    return hasFloorCeiling || hasChance;
-  });
-};
-
-// Helper to roll on a table
-const rollOnTable = (table) => {
-  const validTable = filterValidRows(table);
-  if (!validTable || validTable.length === 0) return null;
-  const roll = Math.floor(Math.random() * 100) + 1;
-  const result = validTable.find(row => {
-    const floor = row.Floor || row.Chance || 1;
-    const ceiling = row.Ceiling || row.Chance || 100;
-    return roll >= floor && roll <= ceiling;
-  });
-  return result?.Result || null;
-};
-
-// Get character oracle (handles nested Name oracle structure)
-const getCharacterOracle = (starforgedData, oracleName) => {
-  const category = getOracleCategory(starforgedData, 'Characters');
-  if (!category) return null;
-  
-  let oracle = getOracleFromCategory(category, oracleName);
-  if (oracle) return oracle;
-  
-  // Check nested Name oracle
-  const nameOracle = getOracleFromCategory(category, 'Name');
-  if (nameOracle?.Oracles) {
-    oracle = nameOracle.Oracles.find(o => 
-      o.Name === oracleName || 
-      o.Name.toLowerCase().includes(oracleName.toLowerCase())
-    );
-    if (oracle) return oracle;
-  }
-  
-  return null;
-};
-
-// Roll on character oracle
-const rollCharacterOracle = (starforgedData, oracleName) => {
-  const oracle = getCharacterOracle(starforgedData, oracleName);
-  if (!oracle?.Table) return null;
-  return rollOnTable(oracle.Table);
-};
-
-// Generate character name in format: Given "Callsign" Family
-const generateCharacterName = (starforgedData) => {
-  const givenName = rollCharacterOracle(starforgedData, 'Given Name');
-  const familyName = rollCharacterOracle(starforgedData, 'Family Name');
-  const callsign = rollCharacterOracle(starforgedData, 'Callsign');
-  
-  if (givenName && callsign && familyName) {
-    return `${givenName} "${callsign}" ${familyName}`;
-  } else if (givenName && familyName) {
-    return `${givenName} ${familyName}`;
-  }
-  return givenName || familyName || callsign || null;
-};
-
-// Generate starship name from Starships oracle
-const generateStarshipName = (starforgedData) => {
-  const category = getOracleCategory(starforgedData, 'Starships');
-  if (!category) return null;
-  
-  const nameOracle = getOracleFromCategory(category, 'Name');
-  if (!nameOracle?.Table) return null;
-  
-  return rollOnTable(nameOracle.Table);
-};
-
-// Generate asset input name based on asset type
-const generateAssetInputName = (starforgedData, assetType, inputName) => {
-  // Lowercase for comparison
-  const type = assetType?.toLowerCase() || '';
-  const input = inputName?.toLowerCase() || '';
-  
-  // Vehicle assets use starship names
-  if (type.includes('vehicle') || type.includes('starship')) {
-    return generateStarshipName(starforgedData);
-  }
-  
-  // Companion assets use character names or callsigns
-  if (type.includes('companion') || type.includes('creature')) {
-    // For companions, just use a callsign
-    return rollCharacterOracle(starforgedData, 'Callsign');
-  }
-  
-  // Default to callsign for generic "Name" inputs
-  if (input === 'name') {
-    return rollCharacterOracle(starforgedData, 'Callsign');
-  }
-  
-  return null;
-};
-
 export const CharacterTab = ({
   viewName,
-  navigate,
-  goBack,
-  resetToHome,
-  starforgedData,
-  character,
-  updateStat,
-  updateCondition,
-  updateName,
-  addAsset,
-  removeAsset,
-  toggleAssetAbility,
-  updateAssetInput,
-  newTrackName,
-  setNewTrackName,
-  newTrackRank,
-  setNewTrackRank,
-  addProgressTrack,
-  removeProgressTrack,
-  markProgress,
-  clearProgress,
-  markLegacy,
   scrollProps = {}
 }) => {
+  const { data: starforgedData } = useStarforgedContext();
+  const { navigate, goBack, resetToHome } = useNavigationContext();
+  const {
+    character,
+    newTrackName,
+    setNewTrackName,
+    newTrackRank,
+    setNewTrackRank,
+    updateStat,
+    updateCondition,
+    updateName,
+    addAsset,
+    removeAsset,
+    toggleAssetAbility,
+    updateAssetInput,
+    addProgressTrack,
+    removeProgressTrack,
+    markProgress,
+    clearProgress,
+    markLegacy
+  } = useCharacterContext();
   // Character Home
   if (viewName === 'character-home') {
     return (

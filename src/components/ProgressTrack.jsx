@@ -1,22 +1,6 @@
 import React from 'react';
+import { RANK_TICKS, RANK_LABELS } from '../constants';
 import './ProgressTrack.css';
-
-// Ticks per "mark progress" based on rank
-const RANK_TICKS = {
-  troublesome: 12, // 3 boxes
-  dangerous: 8,    // 2 boxes
-  formidable: 4,   // 1 box
-  extreme: 2,      // 2 ticks
-  epic: 1          // 1 tick
-};
-
-const RANK_LABELS = {
-  troublesome: 'Troublesome',
-  dangerous: 'Dangerous',
-  formidable: 'Formidable',
-  extreme: 'Extreme',
-  epic: 'Epic'
-};
 
 export const ProgressTrack = ({ name, rank, ticks = 0, onMarkProgress, onClearProgress }) => {
   // Calculate boxes and remaining ticks

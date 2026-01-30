@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RANK_TICKS } from '../components/ProgressTrack';
+import { RANK_TICKS } from '../constants';
 
 const initialCharacter = {
   name: '',
