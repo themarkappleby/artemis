@@ -281,12 +281,15 @@ export const CharacterTab = ({
               if (!asset) return null;
               const enabledCount = ownedAsset.enabledAbilities?.length || 0;
               const totalCount = asset.Abilities?.length || 0;
+              // Use custom name from inputs if available, otherwise fall back to asset type name
+              const customName = ownedAsset.inputs?.Name;
+              const displayName = customName || asset.Name;
               return (
                 <MenuItem 
                   key={`owned-${ownedAsset.typeIndex}-${ownedAsset.assetIndex}`}
                   icon={getAssetIcon(assetType.Name)}
                   iconBg={getAssetIconBg(assetType.Name)}
-                  label={asset.Name}
+                  label={displayName}
                   value={`${enabledCount}/${totalCount}`}
                   onClick={() => navigate(`owned-asset-${ownedAsset.typeIndex}-${ownedAsset.assetIndex}`)}
                 />
@@ -462,20 +465,22 @@ export const CharacterTab = ({
     );
 
     if (asset && ownedAsset) {
-      return (
-        <NavigationView title={asset.Name} onBack={goBack} {...scrollProps}>
-          {asset.Requirement && (
-            <DetailCard
-              icon={getAssetIcon(assetType.Name)}
-              iconBg={getAssetIconBg(assetType.Name)}
-              title="Requirement"
-              description={asset.Requirement}
-            />
-          )}
+      // Use custom name from inputs if available, otherwise fall back to asset name
+      const customName = ownedAsset.inputs?.Name;
+      const displayName = customName || asset.Name;
 
-          {((asset.Inputs && asset.Inputs.length > 0) || (asset.Abilities && asset.Abilities.length > 0)) && (
-            <MenuGroup>
-              {asset.Inputs && asset.Inputs.length > 0 && asset.Inputs.map((input, inputIndex) => (
+      return (
+        <NavigationView title={displayName} onBack={goBack} {...scrollProps}>
+          <DetailCard
+            icon={getAssetIcon(assetType.Name)}
+            iconBg={getAssetIconBg(assetType.Name)}
+            title={displayName}
+            description={assetType.Name}
+          />
+
+          {asset.Inputs && asset.Inputs.length > 0 && (
+            <MenuGroup title="Details">
+              {asset.Inputs.map((input, inputIndex) => (
                 <ModalField key={`input-${inputIndex}`} label={input.Name || `Input ${inputIndex + 1}`}>
                   <DiceInput
                     value={ownedAsset.inputs?.[input.Name] || ''}
@@ -488,7 +493,21 @@ export const CharacterTab = ({
                   />
                 </ModalField>
               ))}
-              {asset.Abilities && asset.Abilities.length > 0 && asset.Abilities.map((ability, abilityIndex) => {
+            </MenuGroup>
+          )}
+
+          {asset.Requirement && (
+            <MenuGroup title="Requirement">
+              <MenuItem 
+                label={asset.Requirement}
+                showChevron={false}
+              />
+            </MenuGroup>
+          )}
+
+          {asset.Abilities && asset.Abilities.length > 0 && (
+            <MenuGroup title="Abilities">
+              {asset.Abilities.map((ability, abilityIndex) => {
                 const isEnabled = ownedAsset.enabledAbilities.includes(abilityIndex);
                 return (
                   <MenuItem 

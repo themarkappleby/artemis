@@ -211,7 +211,13 @@ function App() {
     removeLocation,
     addSubLocation,
     getSubLocation,
-    removeSubLocation
+    removeSubLocation,
+    addNestedEntity,
+    getNestedEntity,
+    removeNestedEntity,
+    addLocationNestedEntity,
+    getLocationNestedEntity,
+    removeLocationNestedEntity
   } = useExplore();
 
   // Generate random character name on initial load when data is available and name is empty
@@ -281,6 +287,12 @@ function App() {
           addSubLocation={addSubLocation}
           getSubLocation={getSubLocation}
           removeSubLocation={removeSubLocation}
+          addNestedEntity={addNestedEntity}
+          getNestedEntity={getNestedEntity}
+          removeNestedEntity={removeNestedEntity}
+          addLocationNestedEntity={addLocationNestedEntity}
+          getLocationNestedEntity={getLocationNestedEntity}
+          removeLocationNestedEntity={removeLocationNestedEntity}
           scrollProps={scrollProps}
         />
       );

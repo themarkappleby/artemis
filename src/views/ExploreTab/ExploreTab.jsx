@@ -8,6 +8,17 @@ import { DiceInput, DiceSelect } from '../../components/DiceInput/DiceInput';
 import { getRegionIcon, getRegionIconBg, getRegionLabel, getGenericIconBg } from '../../utils/icons';
 import './ExploreTab.css';
 
+// Region descriptions from Starforged rulebook
+const getRegionDescription = (region) => {
+  const descriptions = {
+    terminus: 'Your people landed in this region following their exodus from their home galaxy. Settlements are common here. Factions compete for resources, and spaceborne caravans follow charted paths among the stars. But the Forge is a vast galaxy; even here, there are still unknown and isolated domains.',
+    outlands: 'In the last few decades, your people have pushed deeper into the galaxy, searching for habitable planets, resources, and opportunities. Settlements within the Outlands are scattered, and navigation paths are often uncharted.',
+    expanse: 'A few bold pioneers have delved the far-flung reaches of the Forge. Isolated settlements have been built among these distant domains, but they are usually lost and disconnected from the settled regions.',
+    void: 'Beyond the Forge, there are only a few isolated stars and vast gulfs of nothing. Travel beyond the periphery of the Forge is difficult or impossible.'
+  };
+  return descriptions[region] || descriptions.terminus;
+};
+
 // Helper to find move indices from a Starforged link
 const findMoveFromLink = (link, starforgedData) => {
   if (!link || !link.startsWith('Starforged/Moves/') || !starforgedData) {
@@ -822,6 +833,12 @@ export const ExploreTab = ({
   getLocation,
   addSubLocation,
   getSubLocation,
+  addNestedEntity,
+  getNestedEntity,
+  removeNestedEntity,
+  addLocationNestedEntity,
+  getLocationNestedEntity,
+  removeLocationNestedEntity,
   scrollProps = {}
 }) => {
   // Modal state (local, resets on navigation is fine)
@@ -908,6 +925,13 @@ export const ExploreTab = ({
   const [subLocationPlacement, setSubLocationPlacement] = useState(null); // 'orbit' or 'planetside'
   const [currentLocationId, setCurrentLocationId] = useState(null);
   const [newSubLocationType, setNewSubLocationType] = useState(null);
+
+  // Onboard entity modal state (for starships)
+  const [showOnboardModal, setShowOnboardModal] = useState(false);
+  const [currentSubLocationId, setCurrentSubLocationId] = useState(null);
+  const [newOnboardEntityType, setNewOnboardEntityType] = useState(null);
+  const [onboardTargetType, setOnboardTargetType] = useState(null); // 'location' or 'sublocation'
+  const [parentEntityType, setParentEntityType] = useState(null); // Track parent type for modal title
 
   const createSector = () => {
     if (!newSectorName.trim()) return;
@@ -1017,7 +1041,7 @@ export const ExploreTab = ({
           creatureScale: newCreatureScale,
           basicForm: newCreatureForm,
           firstLook: newCreatureFirstLook,
-          behavior: newCreatureBehavior,
+          encounteredBehavior: newCreatureBehavior,
           revealedAspect: newCreatureAspect
         };
         break;
@@ -1114,7 +1138,7 @@ export const ExploreTab = ({
           creatureScale: newCreatureScale,
           basicForm: newCreatureForm,
           firstLook: newCreatureFirstLook,
-          behavior: newCreatureBehavior,
+          encounteredBehavior: newCreatureBehavior,
           revealedAspect: newCreatureAspect
         };
         break;
@@ -1156,6 +1180,84 @@ export const ExploreTab = ({
     setSubLocationPlacement(null);
     resetAllEntityFields();
     setShowSubLocationModal(false);
+  };
+
+  const createOnboardEntity = () => {
+    if (!currentSectorId || !currentLocationId || !newOnboardEntityType) return;
+    // For sublocation targets, we also need currentSubLocationId
+    if (onboardTargetType === 'sublocation' && !currentSubLocationId) return;
+    
+    let name;
+    let data = {};
+    
+    switch (newOnboardEntityType) {
+      case 'character':
+        name = newCharacterName || 'Character';
+        data = {
+          characterName: newCharacterName,
+          firstLook: newCharacterFirstLook,
+          initialDisposition: newCharacterDisposition,
+          role: newCharacterRole,
+          goal: newCharacterGoal
+        };
+        break;
+      
+      case 'creature':
+        name = newCreatureForm || 'Creature';
+        data = {
+          environment: newCreatureEnvironment,
+          creatureScale: newCreatureScale,
+          basicForm: newCreatureForm,
+          firstLook: newCreatureFirstLook,
+          encounteredBehavior: newCreatureBehavior,
+          revealedAspect: newCreatureAspect
+        };
+        break;
+      
+      case 'custom':
+        name = newCustomName || 'Custom Entity';
+        data = {
+          customName: newCustomName,
+          action: newCustomAction,
+          theme: newCustomTheme,
+          descriptor: newCustomDescriptor,
+          focus: newCustomFocus
+        };
+        break;
+      
+      case 'starship':
+        name = newStarshipName || newStarshipType || 'Starship';
+        data = {
+          starshipName: newStarshipName,
+          starshipType: newStarshipType,
+          fleet: newStarshipFleet,
+          initialContact: newStarshipInitialContact,
+          firstLook: newStarshipFirstLook,
+          mission: newStarshipMission
+        };
+        break;
+      
+      default:
+        name = 'Entity';
+    }
+    
+    if (onboardTargetType === 'location') {
+      addLocationNestedEntity(currentSectorId, currentLocationId, name, newOnboardEntityType, data);
+    } else {
+      addNestedEntity(currentSectorId, currentLocationId, currentSubLocationId, name, newOnboardEntityType, data);
+    }
+    setNewOnboardEntityType(null);
+    setOnboardTargetType(null);
+    resetAllEntityFields();
+    setShowOnboardModal(false);
+  };
+
+  const closeOnboardModal = () => {
+    setNewOnboardEntityType(null);
+    setOnboardTargetType(null);
+    setParentEntityType(null);
+    resetAllEntityFields();
+    setShowOnboardModal(false);
   };
   
   const resetAllEntityFields = () => {
@@ -1599,6 +1701,12 @@ export const ExploreTab = ({
           onBack={goBack}
           {...scrollProps}
         >
+          <DetailCard
+            icon={getRegionIcon(sector.region)}
+            iconBg={getRegionIconBg(sector.region)}
+            title={sector.name}
+            description={`${getRegionLabel(sector.region)} - ${getRegionDescription(sector.region)}`}
+          />
           <MenuGroup title="Connected">
             {(() => {
               const connectedLocations = (sector.locations || []).filter(l => l.connected !== false);
@@ -2587,15 +2695,17 @@ export const ExploreTab = ({
                         rollAllCreatureFields();
                       }}
                     />
-                    <MenuItem 
-                      icon="👤"
-                      iconBg="rgba(255, 204, 0, 0.3)"
-                      label="Character"
-                      onClick={() => {
-                        setNewSubLocationType('character');
-                        rollAllCharacterFields();
-                      }}
-                    />
+                    {subLocationPlacement !== 'orbit' && (
+                      <MenuItem 
+                        icon="👤"
+                        iconBg="rgba(255, 204, 0, 0.3)"
+                        label="Character"
+                        onClick={() => {
+                          setNewSubLocationType('character');
+                          rollAllCharacterFields();
+                        }}
+                      />
+                    )}
                     <MenuItem 
                       icon="⭐"
                       iconBg="rgba(255, 204, 0, 0.3)"
@@ -3083,6 +3193,174 @@ export const ExploreTab = ({
             </>
           )}
 
+          {/* Within section for settlement locations */}
+          {location.type === 'settlement' && (
+            <>
+              <MenuGroup title="Within">
+                {(() => {
+                  const withinEntities = location.nestedEntities || [];
+                  return withinEntities.length === 0 ? (
+                    <MenuItem 
+                      label="No entities yet"
+                      showChevron={false}
+                      muted={true}
+                    />
+                  ) : (
+                    withinEntities.map(entity => {
+                      const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      return (
+                        <MenuItem 
+                          key={entity.id}
+                          icon={entityTypeInfo.icon}
+                          iconBg={entityTypeInfo.iconBg}
+                          label={entity.name}
+                          onClick={() => navigate(`location-nested-${sectorId}-${locationId}-${entity.id}`)}
+                        />
+                      );
+                    })
+                  );
+                })()}
+                <MenuItem 
+                  label="Add entity"
+                  onClick={() => {
+                    setCurrentSectorId(sectorId);
+                    setCurrentLocationId(locationId);
+                    setParentEntityType(location.type);
+                    setOnboardTargetType('location');
+                    setShowOnboardModal(true);
+                  }}
+                  isButton={true}
+                />
+              </MenuGroup>
+            </>
+          )}
+
+          {/* Within section for derelict locations */}
+          {location.type === 'derelict' && (
+            <>
+              <MenuGroup title="Within">
+                {(() => {
+                  const withinEntities = location.nestedEntities || [];
+                  return withinEntities.length === 0 ? (
+                    <MenuItem 
+                      label="No entities yet"
+                      showChevron={false}
+                      muted={true}
+                    />
+                  ) : (
+                    withinEntities.map(entity => {
+                      const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      return (
+                        <MenuItem 
+                          key={entity.id}
+                          icon={entityTypeInfo.icon}
+                          iconBg={entityTypeInfo.iconBg}
+                          label={entity.name}
+                          onClick={() => navigate(`location-nested-${sectorId}-${locationId}-${entity.id}`)}
+                        />
+                      );
+                    })
+                  );
+                })()}
+                <MenuItem 
+                  label="Add entity"
+                  onClick={() => {
+                    setCurrentSectorId(sectorId);
+                    setCurrentLocationId(locationId);
+                    setParentEntityType(location.type);
+                    setOnboardTargetType('location');
+                    setShowOnboardModal(true);
+                  }}
+                  isButton={true}
+                />
+              </MenuGroup>
+            </>
+          )}
+
+          {/* Within section for vault locations */}
+          {location.type === 'vault' && (
+            <>
+              <MenuGroup title="Within">
+                {(() => {
+                  const withinEntities = location.nestedEntities || [];
+                  return withinEntities.length === 0 ? (
+                    <MenuItem 
+                      label="No entities yet"
+                      showChevron={false}
+                      muted={true}
+                    />
+                  ) : (
+                    withinEntities.map(entity => {
+                      const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      return (
+                        <MenuItem 
+                          key={entity.id}
+                          icon={entityTypeInfo.icon}
+                          iconBg={entityTypeInfo.iconBg}
+                          label={entity.name}
+                          onClick={() => navigate(`location-nested-${sectorId}-${locationId}-${entity.id}`)}
+                        />
+                      );
+                    })
+                  );
+                })()}
+                <MenuItem 
+                  label="Add entity"
+                  onClick={() => {
+                    setCurrentSectorId(sectorId);
+                    setCurrentLocationId(locationId);
+                    setParentEntityType(location.type);
+                    setOnboardTargetType('location');
+                    setShowOnboardModal(true);
+                  }}
+                  isButton={true}
+                />
+              </MenuGroup>
+            </>
+          )}
+
+          {/* Onboard section for starship locations */}
+          {location.type === 'starship' && (
+            <>
+              <MenuGroup title="Onboard">
+                {(() => {
+                  const onboardEntities = location.nestedEntities || [];
+                  return onboardEntities.length === 0 ? (
+                    <MenuItem 
+                      label="No entities yet"
+                      showChevron={false}
+                      muted={true}
+                    />
+                  ) : (
+                    onboardEntities.map(entity => {
+                      const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      return (
+                        <MenuItem 
+                          key={entity.id}
+                          icon={entityTypeInfo.icon}
+                          iconBg={entityTypeInfo.iconBg}
+                          label={entity.name}
+                          onClick={() => navigate(`location-nested-${sectorId}-${locationId}-${entity.id}`)}
+                        />
+                      );
+                    })
+                  );
+                })()}
+                <MenuItem 
+                  label="Add entity"
+                  onClick={() => {
+                    setCurrentSectorId(sectorId);
+                    setCurrentLocationId(locationId);
+                    setParentEntityType(location.type);
+                    setOnboardTargetType('location');
+                    setShowOnboardModal(true);
+                  }}
+                  isButton={true}
+                />
+              </MenuGroup>
+            </>
+          )}
+
           <MenuGroup title="Details">
             {location.type === 'planet' && (
               <>
@@ -3255,6 +3533,330 @@ export const ExploreTab = ({
               </>
             )}
           </MenuGroup>
+
+          {/* Entity Modal for location entities (starship, settlement, derelict, vault) */}
+          <Modal
+            isOpen={showOnboardModal && onboardTargetType === 'location'}
+            onClose={closeOnboardModal}
+            onBack={newOnboardEntityType ? () => { setNewOnboardEntityType(null); resetAllEntityFields(); } : null}
+            title={newOnboardEntityType ? getEntityTypeInfo(newOnboardEntityType)?.label : (parentEntityType === 'starship' ? 'Add onboard entity' : 'Add entity within')}
+            action={newOnboardEntityType ? {
+              label: 'Create',
+              onClick: createOnboardEntity,
+              disabled: (newOnboardEntityType === 'character' && !newCharacterName.trim()) ||
+                        (newOnboardEntityType === 'custom' && !newCustomName.trim())
+            } : null}
+          >
+            {!newOnboardEntityType ? (
+              <MenuGroup>
+                <MenuItem 
+                  icon="👤"
+                  iconBg="rgba(255, 204, 0, 0.3)"
+                  label="Character"
+                  onClick={() => {
+                    setNewOnboardEntityType('character');
+                    rollAllCharacterFields();
+                  }}
+                />
+                <MenuItem 
+                  icon="👾"
+                  iconBg="rgba(52, 199, 89, 0.3)"
+                  label="Creature"
+                  onClick={() => {
+                    setNewOnboardEntityType('creature');
+                    rollAllCreatureFields();
+                  }}
+                />
+                <MenuItem 
+                  icon="🚀"
+                  iconBg="rgba(88, 86, 214, 0.3)"
+                  label="Starship"
+                  onClick={() => {
+                    setNewOnboardEntityType('starship');
+                    rollAllStarshipFields();
+                  }}
+                />
+                <MenuItem 
+                  icon="⭐"
+                  iconBg="rgba(255, 204, 0, 0.3)"
+                  label="Custom"
+                  onClick={() => {
+                    setNewOnboardEntityType('custom');
+                    rollAllCustomFields();
+                  }}
+                />
+              </MenuGroup>
+            ) : newOnboardEntityType === 'character' ? (
+              <>
+                <ModalField label="Name">
+                  <DiceInput
+                    value={newCharacterName}
+                    onChange={(e) => setNewCharacterName(e.target.value)}
+                    onDiceClick={() => {
+                      const name = generateCharacterName();
+                      if (name) setNewCharacterName(name);
+                    }}
+                    placeholder="Enter name..."
+                  />
+                </ModalField>
+                <ModalField label="First Look">
+                  <DiceSelect
+                    value={newCharacterFirstLook}
+                    onChange={(e) => setNewCharacterFirstLook(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'First Look');
+                      if (result) setNewCharacterFirstLook(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'First Look')}
+                    placeholder="Select first look..."
+                  />
+                </ModalField>
+                <ModalField label="Initial Disposition">
+                  <DiceSelect
+                    value={newCharacterDisposition}
+                    onChange={(e) => setNewCharacterDisposition(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'Initial Disposition');
+                      if (result) setNewCharacterDisposition(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'Initial Disposition')}
+                    placeholder="Select disposition..."
+                  />
+                </ModalField>
+                <ModalField label="Role">
+                  <DiceSelect
+                    value={newCharacterRole}
+                    onChange={(e) => setNewCharacterRole(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'Role');
+                      if (result) setNewCharacterRole(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'Role')}
+                    placeholder="Select role..."
+                  />
+                </ModalField>
+                <ModalField label="Goal">
+                  <DiceSelect
+                    value={newCharacterGoal}
+                    onChange={(e) => setNewCharacterGoal(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'Goal');
+                      if (result) setNewCharacterGoal(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'Goal')}
+                    placeholder="Select goal..."
+                  />
+                </ModalField>
+              </>
+            ) : newOnboardEntityType === 'creature' ? (
+              <>
+                <ModalField label="Environment">
+                  <DiceSelect
+                    value={newCreatureEnvironment}
+                    onChange={(e) => setNewCreatureEnvironment(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Environment');
+                      if (result) setNewCreatureEnvironment(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Environment')}
+                    placeholder="Select environment..."
+                  />
+                </ModalField>
+                <ModalField label="Scale">
+                  <DiceSelect
+                    value={newCreatureScale}
+                    onChange={(e) => setNewCreatureScale(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Scale');
+                      if (result) setNewCreatureScale(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Scale')}
+                    placeholder="Select scale..."
+                  />
+                </ModalField>
+                <ModalField label="Basic Form">
+                  <DiceSelect
+                    value={newCreatureForm}
+                    onChange={(e) => setNewCreatureForm(e.target.value)}
+                    onDiceClick={() => {
+                      const basicForm = rollCreatureBasicForm(starforgedData, newCreatureEnvironment);
+                      if (basicForm) setNewCreatureForm(basicForm);
+                    }}
+                    options={getCreatureBasicFormOptions(starforgedData, newCreatureEnvironment)}
+                    placeholder="Select basic form..."
+                  />
+                </ModalField>
+                <ModalField label="First Look">
+                  <DiceSelect
+                    value={newCreatureFirstLook}
+                    onChange={(e) => setNewCreatureFirstLook(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'First Look');
+                      if (result) setNewCreatureFirstLook(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'First Look')}
+                    placeholder="Select first look..."
+                  />
+                </ModalField>
+                <ModalField label="Encountered Behavior">
+                  <DiceSelect
+                    value={newCreatureBehavior}
+                    onChange={(e) => setNewCreatureBehavior(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Encountered Behavior');
+                      if (result) setNewCreatureBehavior(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Encountered Behavior')}
+                    placeholder="Select behavior..."
+                  />
+                </ModalField>
+                <ModalField label="Revealed Aspect">
+                  <DiceSelect
+                    value={newCreatureAspect}
+                    onChange={(e) => setNewCreatureAspect(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Revealed Aspect');
+                      if (result) setNewCreatureAspect(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Revealed Aspect')}
+                    placeholder="Select aspect..."
+                  />
+                </ModalField>
+              </>
+            ) : newOnboardEntityType === 'starship' ? (
+              <>
+                <ModalField label="Name">
+                  <DiceInput
+                    value={newStarshipName}
+                    onChange={(e) => setNewStarshipName(e.target.value)}
+                    onDiceClick={() => {
+                      const name = generateStarshipName(starforgedData);
+                      if (name) setNewStarshipName(name);
+                    }}
+                    placeholder="Enter starship name..."
+                  />
+                </ModalField>
+                <ModalField label="Type">
+                  <DiceSelect
+                    value={newStarshipType}
+                    onChange={(e) => setNewStarshipType(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Type');
+                      if (result) setNewStarshipType(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Type')}
+                    placeholder="Select type..."
+                  />
+                </ModalField>
+                <ModalField label="Fleet">
+                  <DiceSelect
+                    value={newStarshipFleet}
+                    onChange={(e) => setNewStarshipFleet(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Fleet');
+                      if (result) setNewStarshipFleet(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Fleet')}
+                    placeholder="Select fleet..."
+                  />
+                </ModalField>
+                <ModalField label="Initial Contact">
+                  <DiceSelect
+                    value={newStarshipInitialContact}
+                    onChange={(e) => setNewStarshipInitialContact(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Initial Contact');
+                      if (result) setNewStarshipInitialContact(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Initial Contact')}
+                    placeholder="Select initial contact..."
+                  />
+                </ModalField>
+                <ModalField label="First Look">
+                  <DiceSelect
+                    value={newStarshipFirstLook}
+                    onChange={(e) => setNewStarshipFirstLook(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'First Look');
+                      if (result) setNewStarshipFirstLook(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'First Look')}
+                    placeholder="Select first look..."
+                  />
+                </ModalField>
+                <ModalField label="Mission">
+                  <DiceSelect
+                    value={newStarshipMission}
+                    onChange={(e) => setNewStarshipMission(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Mission');
+                      if (result) setNewStarshipMission(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Mission')}
+                    placeholder="Select mission..."
+                  />
+                </ModalField>
+              </>
+            ) : newOnboardEntityType === 'custom' ? (
+              <>
+                <ModalField label="Name">
+                  <DiceInput
+                    value={newCustomName}
+                    onChange={(e) => setNewCustomName(e.target.value)}
+                    placeholder="Enter name..."
+                  />
+                </ModalField>
+                <ModalField label="Action">
+                  <DiceSelect
+                    value={newCustomAction}
+                    onChange={(e) => setNewCustomAction(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Action');
+                      if (result) setNewCustomAction(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Action')}
+                    placeholder="Select action..."
+                  />
+                </ModalField>
+                <ModalField label="Theme">
+                  <DiceSelect
+                    value={newCustomTheme}
+                    onChange={(e) => setNewCustomTheme(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Theme');
+                      if (result) setNewCustomTheme(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Theme')}
+                    placeholder="Select theme..."
+                  />
+                </ModalField>
+                <ModalField label="Descriptor">
+                  <DiceSelect
+                    value={newCustomDescriptor}
+                    onChange={(e) => setNewCustomDescriptor(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Descriptor');
+                      if (result) setNewCustomDescriptor(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Descriptor')}
+                    placeholder="Select descriptor..."
+                  />
+                </ModalField>
+                <ModalField label="Focus">
+                  <DiceSelect
+                    value={newCustomFocus}
+                    onChange={(e) => setNewCustomFocus(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Focus');
+                      if (result) setNewCustomFocus(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Focus')}
+                    placeholder="Select focus..."
+                  />
+                </ModalField>
+              </>
+            ) : null}
+          </Modal>
         </NavigationView>
       );
     }
@@ -3444,6 +4046,754 @@ export const ExploreTab = ({
             {subLocation.placement && (
               <MenuItem label="Placement" value={subLocation.placement === 'orbit' ? 'In Orbit' : 'Planetside'} showChevron={false} stacked />
             )}
+          </MenuGroup>
+
+          {/* Within section for settlement sublocations */}
+          {subLocation.type === 'settlement' && (
+            <>
+              <MenuGroup title="Within">
+                {(() => {
+                  const withinEntities = subLocation.nestedEntities || [];
+                  return withinEntities.length === 0 ? (
+                    <MenuItem 
+                      label="No entities yet"
+                      showChevron={false}
+                      muted={true}
+                    />
+                  ) : (
+                    withinEntities.map(entity => {
+                      const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      return (
+                        <MenuItem 
+                          key={entity.id}
+                          icon={entityTypeInfo.icon}
+                          iconBg={entityTypeInfo.iconBg}
+                          label={entity.name}
+                          onClick={() => navigate(`nested-${sectorId}-${locationId}-${subLocationId}-${entity.id}`)}
+                        />
+                      );
+                    })
+                  );
+                })()}
+                <MenuItem 
+                  label="Add entity"
+                  onClick={() => {
+                    setCurrentSectorId(sectorId);
+                    setCurrentLocationId(locationId);
+                    setCurrentSubLocationId(subLocationId);
+                    setParentEntityType(subLocation.type);
+                    setOnboardTargetType('sublocation');
+                    setShowOnboardModal(true);
+                  }}
+                  isButton={true}
+                />
+              </MenuGroup>
+            </>
+          )}
+
+          {/* Within section for derelict sublocations */}
+          {subLocation.type === 'derelict' && (
+            <>
+              <MenuGroup title="Within">
+                {(() => {
+                  const withinEntities = subLocation.nestedEntities || [];
+                  return withinEntities.length === 0 ? (
+                    <MenuItem 
+                      label="No entities yet"
+                      showChevron={false}
+                      muted={true}
+                    />
+                  ) : (
+                    withinEntities.map(entity => {
+                      const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      return (
+                        <MenuItem 
+                          key={entity.id}
+                          icon={entityTypeInfo.icon}
+                          iconBg={entityTypeInfo.iconBg}
+                          label={entity.name}
+                          onClick={() => navigate(`nested-${sectorId}-${locationId}-${subLocationId}-${entity.id}`)}
+                        />
+                      );
+                    })
+                  );
+                })()}
+                <MenuItem 
+                  label="Add entity"
+                  onClick={() => {
+                    setCurrentSectorId(sectorId);
+                    setCurrentLocationId(locationId);
+                    setCurrentSubLocationId(subLocationId);
+                    setParentEntityType(subLocation.type);
+                    setOnboardTargetType('sublocation');
+                    setShowOnboardModal(true);
+                  }}
+                  isButton={true}
+                />
+              </MenuGroup>
+            </>
+          )}
+
+          {/* Within section for vault sublocations */}
+          {subLocation.type === 'vault' && (
+            <>
+              <MenuGroup title="Within">
+                {(() => {
+                  const withinEntities = subLocation.nestedEntities || [];
+                  return withinEntities.length === 0 ? (
+                    <MenuItem 
+                      label="No entities yet"
+                      showChevron={false}
+                      muted={true}
+                    />
+                  ) : (
+                    withinEntities.map(entity => {
+                      const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      return (
+                        <MenuItem 
+                          key={entity.id}
+                          icon={entityTypeInfo.icon}
+                          iconBg={entityTypeInfo.iconBg}
+                          label={entity.name}
+                          onClick={() => navigate(`nested-${sectorId}-${locationId}-${subLocationId}-${entity.id}`)}
+                        />
+                      );
+                    })
+                  );
+                })()}
+                <MenuItem 
+                  label="Add entity"
+                  onClick={() => {
+                    setCurrentSectorId(sectorId);
+                    setCurrentLocationId(locationId);
+                    setCurrentSubLocationId(subLocationId);
+                    setParentEntityType(subLocation.type);
+                    setOnboardTargetType('sublocation');
+                    setShowOnboardModal(true);
+                  }}
+                  isButton={true}
+                />
+              </MenuGroup>
+            </>
+          )}
+
+          {/* Onboard section for starships */}
+          {subLocation.type === 'starship' && (
+            <>
+              <MenuGroup title="Onboard">
+                {(() => {
+                  const onboardEntities = subLocation.nestedEntities || [];
+                  return onboardEntities.length === 0 ? (
+                    <MenuItem 
+                      label="No entities yet"
+                      showChevron={false}
+                      muted={true}
+                    />
+                  ) : (
+                    onboardEntities.map(entity => {
+                      const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      return (
+                        <MenuItem 
+                          key={entity.id}
+                          icon={entityTypeInfo.icon}
+                          iconBg={entityTypeInfo.iconBg}
+                          label={entity.name}
+                          onClick={() => navigate(`nested-${sectorId}-${locationId}-${subLocationId}-${entity.id}`)}
+                        />
+                      );
+                    })
+                  );
+                })()}
+                <MenuItem 
+                  label="Add entity"
+                  onClick={() => {
+                    setCurrentSectorId(sectorId);
+                    setCurrentLocationId(locationId);
+                    setCurrentSubLocationId(subLocationId);
+                    setParentEntityType(subLocation.type);
+                    setOnboardTargetType('sublocation');
+                    setShowOnboardModal(true);
+                  }}
+                  isButton={true}
+                />
+              </MenuGroup>
+            </>
+          )}
+
+          {/* Entity Modal for sublocation entities (starship, settlement, derelict, vault) */}
+          <Modal
+            isOpen={showOnboardModal && onboardTargetType === 'sublocation'}
+            onClose={closeOnboardModal}
+            onBack={newOnboardEntityType ? () => { setNewOnboardEntityType(null); resetAllEntityFields(); } : null}
+            title={newOnboardEntityType ? getEntityTypeInfo(newOnboardEntityType)?.label : (parentEntityType === 'starship' ? 'Add onboard entity' : 'Add entity within')}
+            action={newOnboardEntityType ? {
+              label: 'Create',
+              onClick: createOnboardEntity,
+              disabled: (newOnboardEntityType === 'character' && !newCharacterName.trim()) ||
+                        (newOnboardEntityType === 'custom' && !newCustomName.trim())
+            } : null}
+          >
+            {!newOnboardEntityType ? (
+              <MenuGroup>
+                <MenuItem 
+                  icon="👤"
+                  iconBg="rgba(255, 204, 0, 0.3)"
+                  label="Character"
+                  onClick={() => {
+                    setNewOnboardEntityType('character');
+                    rollAllCharacterFields();
+                  }}
+                />
+                <MenuItem 
+                  icon="👾"
+                  iconBg="rgba(52, 199, 89, 0.3)"
+                  label="Creature"
+                  onClick={() => {
+                    setNewOnboardEntityType('creature');
+                    rollAllCreatureFields();
+                  }}
+                />
+                <MenuItem 
+                  icon="🚀"
+                  iconBg="rgba(88, 86, 214, 0.3)"
+                  label="Starship"
+                  onClick={() => {
+                    setNewOnboardEntityType('starship');
+                    rollAllStarshipFields();
+                  }}
+                />
+                <MenuItem 
+                  icon="⭐"
+                  iconBg="rgba(255, 204, 0, 0.3)"
+                  label="Custom"
+                  onClick={() => {
+                    setNewOnboardEntityType('custom');
+                    rollAllCustomFields();
+                  }}
+                />
+              </MenuGroup>
+            ) : newOnboardEntityType === 'character' ? (
+              <>
+                <ModalField label="Name">
+                  <DiceInput
+                    value={newCharacterName}
+                    onChange={(e) => setNewCharacterName(e.target.value)}
+                    onDiceClick={() => {
+                      const name = generateCharacterName();
+                      if (name) setNewCharacterName(name);
+                    }}
+                    placeholder="Enter name..."
+                  />
+                </ModalField>
+                <ModalField label="First Look">
+                  <DiceSelect
+                    value={newCharacterFirstLook}
+                    onChange={(e) => setNewCharacterFirstLook(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'First Look');
+                      if (result) setNewCharacterFirstLook(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'First Look')}
+                    placeholder="Select first look..."
+                  />
+                </ModalField>
+                <ModalField label="Initial Disposition">
+                  <DiceSelect
+                    value={newCharacterDisposition}
+                    onChange={(e) => setNewCharacterDisposition(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'Initial Disposition');
+                      if (result) setNewCharacterDisposition(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'Initial Disposition')}
+                    placeholder="Select disposition..."
+                  />
+                </ModalField>
+                <ModalField label="Role">
+                  <DiceSelect
+                    value={newCharacterRole}
+                    onChange={(e) => setNewCharacterRole(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'Role');
+                      if (result) setNewCharacterRole(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'Role')}
+                    placeholder="Select role..."
+                  />
+                </ModalField>
+                <ModalField label="Goal">
+                  <DiceSelect
+                    value={newCharacterGoal}
+                    onChange={(e) => setNewCharacterGoal(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCharacterOracle(starforgedData, 'Goal');
+                      if (result) setNewCharacterGoal(result);
+                    }}
+                    options={getCharacterOracleOptions(starforgedData, 'Goal')}
+                    placeholder="Select goal..."
+                  />
+                </ModalField>
+              </>
+            ) : newOnboardEntityType === 'creature' ? (
+              <>
+                <ModalField label="Environment">
+                  <DiceSelect
+                    value={newCreatureEnvironment}
+                    onChange={(e) => setNewCreatureEnvironment(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Environment');
+                      if (result) setNewCreatureEnvironment(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Environment')}
+                    placeholder="Select environment..."
+                  />
+                </ModalField>
+                <ModalField label="Scale">
+                  <DiceSelect
+                    value={newCreatureScale}
+                    onChange={(e) => setNewCreatureScale(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Scale');
+                      if (result) setNewCreatureScale(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Scale')}
+                    placeholder="Select scale..."
+                  />
+                </ModalField>
+                <ModalField label="Basic Form">
+                  <DiceSelect
+                    value={newCreatureForm}
+                    onChange={(e) => setNewCreatureForm(e.target.value)}
+                    onDiceClick={() => {
+                      const basicForm = rollCreatureBasicForm(starforgedData, newCreatureEnvironment);
+                      if (basicForm) setNewCreatureForm(basicForm);
+                    }}
+                    options={getCreatureBasicFormOptions(starforgedData, newCreatureEnvironment)}
+                    placeholder="Select basic form..."
+                  />
+                </ModalField>
+                <ModalField label="First Look">
+                  <DiceSelect
+                    value={newCreatureFirstLook}
+                    onChange={(e) => setNewCreatureFirstLook(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'First Look');
+                      if (result) setNewCreatureFirstLook(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'First Look')}
+                    placeholder="Select first look..."
+                  />
+                </ModalField>
+                <ModalField label="Encountered Behavior">
+                  <DiceSelect
+                    value={newCreatureBehavior}
+                    onChange={(e) => setNewCreatureBehavior(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Encountered Behavior');
+                      if (result) setNewCreatureBehavior(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Encountered Behavior')}
+                    placeholder="Select behavior..."
+                  />
+                </ModalField>
+                <ModalField label="Revealed Aspect">
+                  <DiceSelect
+                    value={newCreatureAspect}
+                    onChange={(e) => setNewCreatureAspect(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCreatureOracle(starforgedData, 'Revealed Aspect');
+                      if (result) setNewCreatureAspect(result);
+                    }}
+                    options={getCreatureOracleOptions(starforgedData, 'Revealed Aspect')}
+                    placeholder="Select aspect..."
+                  />
+                </ModalField>
+              </>
+            ) : newOnboardEntityType === 'starship' ? (
+              <>
+                <ModalField label="Name">
+                  <DiceInput
+                    value={newStarshipName}
+                    onChange={(e) => setNewStarshipName(e.target.value)}
+                    onDiceClick={() => {
+                      const name = generateStarshipName(starforgedData);
+                      if (name) setNewStarshipName(name);
+                    }}
+                    placeholder="Enter starship name..."
+                  />
+                </ModalField>
+                <ModalField label="Type">
+                  <DiceSelect
+                    value={newStarshipType}
+                    onChange={(e) => setNewStarshipType(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Type');
+                      if (result) setNewStarshipType(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Type')}
+                    placeholder="Select type..."
+                  />
+                </ModalField>
+                <ModalField label="Fleet">
+                  <DiceSelect
+                    value={newStarshipFleet}
+                    onChange={(e) => setNewStarshipFleet(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Fleet');
+                      if (result) setNewStarshipFleet(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Fleet')}
+                    placeholder="Select fleet..."
+                  />
+                </ModalField>
+                <ModalField label="Initial Contact">
+                  <DiceSelect
+                    value={newStarshipInitialContact}
+                    onChange={(e) => setNewStarshipInitialContact(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Initial Contact');
+                      if (result) setNewStarshipInitialContact(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Initial Contact')}
+                    placeholder="Select initial contact..."
+                  />
+                </ModalField>
+                <ModalField label="First Look">
+                  <DiceSelect
+                    value={newStarshipFirstLook}
+                    onChange={(e) => setNewStarshipFirstLook(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'First Look');
+                      if (result) setNewStarshipFirstLook(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'First Look')}
+                    placeholder="Select first look..."
+                  />
+                </ModalField>
+                <ModalField label="Mission">
+                  <DiceSelect
+                    value={newStarshipMission}
+                    onChange={(e) => setNewStarshipMission(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollStarshipOracle(starforgedData, 'Mission');
+                      if (result) setNewStarshipMission(result);
+                    }}
+                    options={getStarshipOracleOptions(starforgedData, 'Mission')}
+                    placeholder="Select mission..."
+                  />
+                </ModalField>
+              </>
+            ) : newOnboardEntityType === 'custom' ? (
+              <>
+                <ModalField label="Name">
+                  <DiceInput
+                    value={newCustomName}
+                    onChange={(e) => setNewCustomName(e.target.value)}
+                    placeholder="Enter name..."
+                  />
+                </ModalField>
+                <ModalField label="Action">
+                  <DiceSelect
+                    value={newCustomAction}
+                    onChange={(e) => setNewCustomAction(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Action');
+                      if (result) setNewCustomAction(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Action')}
+                    placeholder="Select action..."
+                  />
+                </ModalField>
+                <ModalField label="Theme">
+                  <DiceSelect
+                    value={newCustomTheme}
+                    onChange={(e) => setNewCustomTheme(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Theme');
+                      if (result) setNewCustomTheme(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Theme')}
+                    placeholder="Select theme..."
+                  />
+                </ModalField>
+                <ModalField label="Descriptor">
+                  <DiceSelect
+                    value={newCustomDescriptor}
+                    onChange={(e) => setNewCustomDescriptor(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Descriptor');
+                      if (result) setNewCustomDescriptor(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Descriptor')}
+                    placeholder="Select descriptor..."
+                  />
+                </ModalField>
+                <ModalField label="Focus">
+                  <DiceSelect
+                    value={newCustomFocus}
+                    onChange={(e) => setNewCustomFocus(e.target.value)}
+                    onDiceClick={() => {
+                      const result = rollCoreOracle(starforgedData, 'Focus');
+                      if (result) setNewCustomFocus(result);
+                    }}
+                    options={getCoreOracleOptions(starforgedData, 'Focus')}
+                    placeholder="Select focus..."
+                  />
+                </ModalField>
+              </>
+            ) : null}
+          </Modal>
+        </NavigationView>
+      );
+    }
+  }
+
+  // Location Nested Entity Detail View (entities within locations)
+  if (viewName.startsWith('location-nested-')) {
+    const parts = viewName.split('-');
+    const sectorId = parseInt(parts[2]);
+    const locationId = parseInt(parts[3]);
+    const entityId = parseInt(parts[4]);
+    const location = getLocation(sectorId, locationId);
+    const entity = getLocationNestedEntity(sectorId, locationId, entityId);
+
+    if (entity && location) {
+      const typeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+
+      return (
+        <NavigationView 
+          title={entity.name} 
+          onBack={goBack}
+          {...scrollProps}
+        >
+          <DetailCard
+            icon={typeInfo.icon}
+            iconBg={typeInfo.iconBg}
+            title={entity.name}
+            description={typeInfo.label}
+          />
+
+          <MenuGroup title="Details">
+            {entity.type === 'character' && (
+              <>
+                {entity.characterName && (
+                  <MenuItem label="Name" value={entity.characterName} showChevron={false} stacked />
+                )}
+                {entity.firstLook && (
+                  <MenuItem label="First Look" value={entity.firstLook} showChevron={false} stacked />
+                )}
+                {entity.initialDisposition && (
+                  <MenuItem label="Initial Disposition" value={entity.initialDisposition} showChevron={false} stacked />
+                )}
+                {entity.role && (
+                  <MenuItem label="Role" value={entity.role} showChevron={false} stacked />
+                )}
+                {entity.goal && (
+                  <MenuItem label="Goal" value={entity.goal} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {entity.type === 'creature' && (
+              <>
+                {entity.environment && (
+                  <MenuItem label="Environment" value={entity.environment} showChevron={false} stacked />
+                )}
+                {entity.creatureScale && (
+                  <MenuItem label="Scale" value={entity.creatureScale} showChevron={false} stacked />
+                )}
+                {entity.basicForm && (
+                  <MenuItem label="Basic Form" value={entity.basicForm} showChevron={false} stacked />
+                )}
+                {entity.firstLook && (
+                  <MenuItem label="First Look" value={entity.firstLook} showChevron={false} stacked />
+                )}
+                {entity.encounteredBehavior && (
+                  <MenuItem label="Encountered Behavior" value={entity.encounteredBehavior} showChevron={false} stacked />
+                )}
+                {entity.revealedAspect && (
+                  <MenuItem label="Revealed Aspect" value={entity.revealedAspect} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {entity.type === 'starship' && (
+              <>
+                {entity.starshipName && (
+                  <MenuItem label="Name" value={entity.starshipName} showChevron={false} stacked />
+                )}
+                {entity.starshipType && (
+                  <MenuItem label="Type" value={entity.starshipType} showChevron={false} stacked />
+                )}
+                {entity.fleet && (
+                  <MenuItem label="Fleet" value={entity.fleet} showChevron={false} stacked />
+                )}
+                {entity.initialContact && (
+                  <MenuItem label="Initial Contact" value={entity.initialContact} showChevron={false} stacked />
+                )}
+                {entity.firstLook && (
+                  <MenuItem label="First Look" value={entity.firstLook} showChevron={false} stacked />
+                )}
+                {entity.mission && (
+                  <MenuItem label="Mission" value={entity.mission} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {entity.type === 'custom' && (
+              <>
+                {entity.customName && (
+                  <MenuItem label="Name" value={entity.customName} showChevron={false} stacked />
+                )}
+                {entity.action && (
+                  <MenuItem label="Action" value={entity.action} showChevron={false} stacked />
+                )}
+                {entity.theme && (
+                  <MenuItem label="Theme" value={entity.theme} showChevron={false} stacked />
+                )}
+                {entity.descriptor && (
+                  <MenuItem label="Descriptor" value={entity.descriptor} showChevron={false} stacked />
+                )}
+                {entity.focus && (
+                  <MenuItem label="Focus" value={entity.focus} showChevron={false} stacked />
+                )}
+              </>
+            )}
+          </MenuGroup>
+
+          <MenuGroup>
+            <MenuItem 
+              label="Remove Entity"
+              onClick={() => {
+                removeLocationNestedEntity(sectorId, locationId, entityId);
+                goBack();
+              }}
+              isButton={true}
+            />
+          </MenuGroup>
+        </NavigationView>
+      );
+    }
+  }
+
+  // Sublocation Nested Entity Detail View (entities within sublocations)
+  if (viewName.startsWith('nested-')) {
+    const parts = viewName.split('-');
+    const sectorId = parseInt(parts[1]);
+    const locationId = parseInt(parts[2]);
+    const subLocationId = parseInt(parts[3]);
+    const entityId = parseInt(parts[4]);
+    const subLocation = getSubLocation(sectorId, locationId, subLocationId);
+    const location = getLocation(sectorId, locationId);
+    const entity = getNestedEntity(sectorId, locationId, subLocationId, entityId);
+
+    if (entity && subLocation) {
+      const typeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+
+      return (
+        <NavigationView 
+          title={entity.name} 
+          onBack={goBack}
+          {...scrollProps}
+        >
+          <DetailCard
+            icon={typeInfo.icon}
+            iconBg={typeInfo.iconBg}
+            title={entity.name}
+            description={typeInfo.label}
+          />
+
+          <MenuGroup title="Details">
+            {entity.type === 'character' && (
+              <>
+                {entity.characterName && (
+                  <MenuItem label="Name" value={entity.characterName} showChevron={false} stacked />
+                )}
+                {entity.firstLook && (
+                  <MenuItem label="First Look" value={entity.firstLook} showChevron={false} stacked />
+                )}
+                {entity.initialDisposition && (
+                  <MenuItem label="Initial Disposition" value={entity.initialDisposition} showChevron={false} stacked />
+                )}
+                {entity.role && (
+                  <MenuItem label="Role" value={entity.role} showChevron={false} stacked />
+                )}
+                {entity.goal && (
+                  <MenuItem label="Goal" value={entity.goal} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {entity.type === 'creature' && (
+              <>
+                {entity.environment && (
+                  <MenuItem label="Environment" value={entity.environment} showChevron={false} stacked />
+                )}
+                {entity.creatureScale && (
+                  <MenuItem label="Scale" value={entity.creatureScale} showChevron={false} stacked />
+                )}
+                {entity.basicForm && (
+                  <MenuItem label="Basic Form" value={entity.basicForm} showChevron={false} stacked />
+                )}
+                {entity.firstLook && (
+                  <MenuItem label="First Look" value={entity.firstLook} showChevron={false} stacked />
+                )}
+                {entity.encounteredBehavior && (
+                  <MenuItem label="Encountered Behavior" value={entity.encounteredBehavior} showChevron={false} stacked />
+                )}
+                {entity.revealedAspect && (
+                  <MenuItem label="Revealed Aspect" value={entity.revealedAspect} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {entity.type === 'starship' && (
+              <>
+                {entity.starshipName && (
+                  <MenuItem label="Name" value={entity.starshipName} showChevron={false} stacked />
+                )}
+                {entity.starshipType && (
+                  <MenuItem label="Type" value={entity.starshipType} showChevron={false} stacked />
+                )}
+                {entity.fleet && (
+                  <MenuItem label="Fleet" value={entity.fleet} showChevron={false} stacked />
+                )}
+                {entity.initialContact && (
+                  <MenuItem label="Initial Contact" value={entity.initialContact} showChevron={false} stacked />
+                )}
+                {entity.firstLook && (
+                  <MenuItem label="First Look" value={entity.firstLook} showChevron={false} stacked />
+                )}
+                {entity.mission && (
+                  <MenuItem label="Mission" value={entity.mission} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {entity.type === 'custom' && (
+              <>
+                {entity.customName && (
+                  <MenuItem label="Name" value={entity.customName} showChevron={false} stacked />
+                )}
+                {entity.action && (
+                  <MenuItem label="Action" value={entity.action} showChevron={false} stacked />
+                )}
+                {entity.theme && (
+                  <MenuItem label="Theme" value={entity.theme} showChevron={false} stacked />
+                )}
+                {entity.descriptor && (
+                  <MenuItem label="Descriptor" value={entity.descriptor} showChevron={false} stacked />
+                )}
+                {entity.focus && (
+                  <MenuItem label="Focus" value={entity.focus} showChevron={false} stacked />
+                )}
+              </>
+            )}
+          </MenuGroup>
+
+          <MenuGroup>
+            <MenuItem 
+              label="Remove Entity"
+              onClick={() => {
+                removeNestedEntity(sectorId, locationId, subLocationId, entityId);
+                goBack();
+              }}
+              isButton={true}
+            />
           </MenuGroup>
         </NavigationView>
       );
