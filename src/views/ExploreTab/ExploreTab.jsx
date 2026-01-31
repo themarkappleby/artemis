@@ -446,14 +446,25 @@ const generateSettlementData = (starforgedData, region) => {
 };
 
 // Generate complete planet data for auto-population
-const generatePlanetData = (starforgedData, region) => {
+const generatePlanetData = (starforgedData, region, hasSettlement = false) => {
   const capitalizedRegion = region.charAt(0).toUpperCase() + region.slice(1);
   const planetClass = generatePlanetClass(starforgedData);
   if (!planetClass) return null;
   
   const name = rollPlanetName(starforgedData, planetClass);
   const atmosphere = rollPlanetOracle(starforgedData, planetClass, 'Atmosphere');
-  const settlements = rollPlanetOracle(starforgedData, planetClass, 'Settlements', capitalizedRegion);
+  
+  // Roll settlements detail - if planet has a settlement, re-roll until we get something other than "None"
+  let settlements = rollPlanetOracle(starforgedData, planetClass, 'Settlements', capitalizedRegion);
+  if (hasSettlement) {
+    let rerollCount = 0;
+    const maxRerolls = 10; // Safety limit to prevent infinite loops
+    while (settlements && settlements.toLowerCase().includes('none') && rerollCount < maxRerolls) {
+      settlements = rollPlanetOracle(starforgedData, planetClass, 'Settlements', capitalizedRegion);
+      rerollCount++;
+    }
+  }
+  
   const observed = rollPlanetOracle(starforgedData, planetClass, 'Observed From Space');
   const feature = rollPlanetOracle(starforgedData, planetClass, 'Feature');
   const life = rollPlanetOracle(starforgedData, planetClass, 'Life');
@@ -884,8 +895,8 @@ export const ExploreTab = ({
         // Planetside or Orbital: Generate a planet and add settlement to it
         const placement = normalizedLocation.includes('orbital') ? 'orbit' : 'planetside';
         
-        // Generate a new planet
-        const planetData = generatePlanetData(starforgedData, region);
+        // Generate a new planet (pass hasSettlement=true to ensure settlements detail isn't "None")
+        const planetData = generatePlanetData(starforgedData, region, true);
         if (planetData) {
           const planetName = planetData.planetName || planetData.planetClass;
           const planet = addLocation(sectorId, planetName, 'planet', {
@@ -907,6 +918,23 @@ export const ExploreTab = ({
               placement,
               settlementDataWithoutLocation
             );
+            
+            // If settlements detail indicates multiple settlements or conflict, add another settlement
+            const settlementsLower = planetData.settlements?.toLowerCase() || '';
+            if (settlementsLower.includes('multiple') || settlementsLower.includes('conflict')) {
+              const secondPlacement = Math.random() < 0.5 ? 'orbit' : 'planetside';
+              const secondSettlementData = generateSettlementData(starforgedData, region);
+              const { location: _loc, ...secondSettlementDataWithoutLocation } = secondSettlementData;
+              
+              addSubLocation(
+                sectorId,
+                planet.id,
+                secondSettlementData.settlementName || 'Settlement',
+                'settlement',
+                secondPlacement,
+                secondSettlementDataWithoutLocation
+              );
+            }
           }
         }
       }
@@ -3539,9 +3567,6 @@ export const ExploreTab = ({
                 {location.settlementName && (
                   <MenuItem label="Name" value={location.settlementName} showChevron={false} stacked />
                 )}
-                {location.location && (
-                  <MenuItem label="Location" value={location.location} showChevron={false} stacked />
-                )}
                 {location.population && (
                   <MenuItem label="Population" value={location.population} showChevron={false} stacked />
                 )}
@@ -4250,9 +4275,6 @@ export const ExploreTab = ({
               <>
                 {subLocation.settlementName && (
                   <MenuItem label="Name" value={subLocation.settlementName} showChevron={false} stacked />
-                )}
-                {subLocation.location && (
-                  <MenuItem label="Location" value={subLocation.location} showChevron={false} stacked />
                 )}
                 {subLocation.population && (
                   <MenuItem label="Population" value={subLocation.population} showChevron={false} stacked />
