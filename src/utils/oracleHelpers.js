@@ -30,8 +30,38 @@ export const findMoveFromLink = (link, starforgedData) => {
 export const getOracleFromId = (oracleId, starforgedData) => {
   if (!starforgedData) return null;
   
+  // Combined Action + Theme oracle
+  if (oracleId.startsWith('oracle-action-theme-')) {
+    const parts = oracleId.split('-');
+    const catIndex = parseInt(parts[3]);
+    const category = starforgedData.oracleCategories[catIndex];
+    // Return a synthetic oracle object for display
+    return { 
+      oracle: { Name: 'Action + Theme' }, 
+      category, 
+      oracleId, 
+      catIndex, 
+      type: 'action-theme' 
+    };
+  }
+  
+  // Combined Descriptor + Focus oracle
+  if (oracleId.startsWith('oracle-descriptor-focus-')) {
+    const parts = oracleId.split('-');
+    const catIndex = parseInt(parts[3]);
+    const category = starforgedData.oracleCategories[catIndex];
+    // Return a synthetic oracle object for display
+    return { 
+      oracle: { Name: 'Descriptor + Focus' }, 
+      category, 
+      oracleId, 
+      catIndex, 
+      type: 'descriptor-focus' 
+    };
+  }
+  
   // Direct from category: oracle-{catIndex}-{oracleIndex}
-  if (oracleId.startsWith('oracle-') && !oracleId.includes('detail')) {
+  if (oracleId.startsWith('oracle-') && !oracleId.includes('detail') && !oracleId.includes('action') && !oracleId.includes('descriptor')) {
     const parts = oracleId.split('-');
     const catIndex = parseInt(parts[1]);
     const oracleIndex = parseInt(parts[2]);

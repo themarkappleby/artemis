@@ -107,7 +107,17 @@ export function getOracleIconBg(categoryName) {
 // Count oracles in a category
 export function countOracles(category) {
   if (category.Oracles) {
-    return category.Oracles.length;
+    let count = category.Oracles.length;
+    // For Core category, Action+Theme and Descriptor+Focus are combined (4 oracles become 2)
+    if (category.Name === 'Core') {
+      const hasAction = category.Oracles.some(o => o.Name === 'Action');
+      const hasTheme = category.Oracles.some(o => o.Name === 'Theme');
+      const hasDescriptor = category.Oracles.some(o => o.Name === 'Descriptor');
+      const hasFocus = category.Oracles.some(o => o.Name === 'Focus');
+      if (hasAction && hasTheme) count -= 1; // Action + Theme combined
+      if (hasDescriptor && hasFocus) count -= 1; // Descriptor + Focus combined
+    }
+    return count;
   }
   if (category.Categories) {
     return category.Categories.length;

@@ -15,6 +15,8 @@ export const DescriptorFocusView = ({
   getOracleTable,
   rollOracle,
   renderResult,
+  toggleFavoriteOracle,
+  isOracleFavorited,
   scrollProps = {}
 }) => {
   const { catIndex, descriptorIndex, focusIndex } = parsed;
@@ -24,7 +26,8 @@ export const DescriptorFocusView = ({
 
   if (!descriptorOracle || !focusOracle) return null;
 
-  const oracleKey = 'descriptor-focus-combined';
+  const oracleKey = `oracle-descriptor-focus-${catIndex}-${descriptorIndex}-${focusIndex}`;
+  const oracleIsFavorited = isOracleFavorited(oracleKey);
   const rolledResult = oracleRolls[oracleKey];
 
   const rollCombined = () => {
@@ -60,6 +63,8 @@ export const DescriptorFocusView = ({
     <NavigationView 
       title="Descriptor + Focus" 
       onBack={goBack}
+      actionIcon={oracleIsFavorited}
+      onAction={() => toggleFavoriteOracle(oracleKey)}
       {...scrollProps}
     >
       <DetailCard

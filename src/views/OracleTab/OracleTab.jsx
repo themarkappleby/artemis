@@ -118,6 +118,8 @@ export const OracleTab = ({
         <ActionThemeView
           {...oracleProps}
           parsed={parsed}
+          toggleFavoriteOracle={toggleFavoriteOracle}
+          isOracleFavorited={isOracleFavorited}
         />
       );
 
@@ -126,6 +128,8 @@ export const OracleTab = ({
         <DescriptorFocusView
           {...oracleProps}
           parsed={parsed}
+          toggleFavoriteOracle={toggleFavoriteOracle}
+          isOracleFavorited={isOracleFavorited}
         />
       );
 

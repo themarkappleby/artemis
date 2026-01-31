@@ -15,6 +15,8 @@ export const ActionThemeView = ({
   getOracleTable,
   rollOracle,
   renderResult,
+  toggleFavoriteOracle,
+  isOracleFavorited,
   scrollProps = {}
 }) => {
   const { catIndex, actionIndex, themeIndex } = parsed;
@@ -24,7 +26,8 @@ export const ActionThemeView = ({
 
   if (!actionOracle || !themeOracle) return null;
 
-  const oracleKey = 'action-theme-combined';
+  const oracleKey = `oracle-action-theme-${catIndex}-${actionIndex}-${themeIndex}`;
+  const oracleIsFavorited = isOracleFavorited(oracleKey);
   const rolledResult = oracleRolls[oracleKey];
 
   const rollCombined = () => {
@@ -60,6 +63,8 @@ export const ActionThemeView = ({
     <NavigationView 
       title="Action + Theme" 
       onBack={goBack}
+      actionIcon={oracleIsFavorited}
+      onAction={() => toggleFavoriteOracle(oracleKey)}
       {...scrollProps}
     >
       <DetailCard
