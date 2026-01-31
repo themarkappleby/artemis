@@ -1,5 +1,15 @@
 import { useState } from 'react';
 
+// Generate unique IDs that won't collide even in tight loops
+// Using underscore separator since hyphens are used in URL routing
+const generateUniqueId = (() => {
+  let counter = 0;
+  return () => {
+    counter += 1;
+    return `${Date.now()}_${counter}_${Math.random().toString(36).substr(2, 9)}`;
+  };
+})();
+
 export const useExplore = () => {
   // Sectors state
   const [sectors, setSectors] = useState([]);
@@ -9,7 +19,7 @@ export const useExplore = () => {
 
   const addSector = (name, region) => {
     const newSector = {
-      id: Date.now(),
+      id: generateUniqueId(),
       name: name.trim(),
       region,
       locations: []
@@ -28,7 +38,7 @@ export const useExplore = () => {
 
   const addFaction = (name) => {
     const newFaction = {
-      id: Date.now(),
+      id: generateUniqueId(),
       name: name.trim()
     };
     setFactions(prev => [...prev, newFaction]);
@@ -45,7 +55,7 @@ export const useExplore = () => {
 
   const addLocation = (sectorId, name, type = 'planet', data = {}) => {
     const newLocation = {
-      id: Date.now(),
+      id: generateUniqueId(),
       name: name.trim(),
       type,
       subLocations: [],
@@ -83,7 +93,7 @@ export const useExplore = () => {
 
   const addSubLocation = (sectorId, locationId, name, type, placement, data = {}) => {
     const newSubLocation = {
-      id: Date.now(),
+      id: generateUniqueId(),
       name: name.trim(),
       type,
       placement, // 'orbit' or 'planetside'
@@ -138,7 +148,7 @@ export const useExplore = () => {
   // Add a nested entity to a subLocation (e.g., entities onboard a starship)
   const addNestedEntity = (sectorId, locationId, subLocationId, name, type, data = {}) => {
     const newEntity = {
-      id: Date.now(),
+      id: generateUniqueId(),
       name: name.trim(),
       type,
       ...data
@@ -208,7 +218,7 @@ export const useExplore = () => {
   // Add a nested entity directly to a location (e.g., entities onboard a starship location)
   const addLocationNestedEntity = (sectorId, locationId, name, type, data = {}) => {
     const newEntity = {
-      id: Date.now(),
+      id: generateUniqueId(),
       name: name.trim(),
       type,
       ...data
@@ -262,7 +272,7 @@ export const useExplore = () => {
   // Add a nested entity to a location's nested entity (e.g., entities onboard a nested starship)
   const addLocationNestedEntityChild = (sectorId, locationId, parentEntityId, name, type, data = {}) => {
     const newEntity = {
-      id: Date.now(),
+      id: generateUniqueId(),
       name: name.trim(),
       type,
       ...data
@@ -332,7 +342,7 @@ export const useExplore = () => {
   // Add a nested entity to a sublocation's nested entity (e.g., entities onboard a nested starship)
   const addNestedEntityChild = (sectorId, locationId, subLocationId, parentEntityId, name, type, data = {}) => {
     const newEntity = {
-      id: Date.now(),
+      id: generateUniqueId(),
       name: name.trim(),
       type,
       ...data

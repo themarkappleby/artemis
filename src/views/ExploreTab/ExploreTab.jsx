@@ -430,6 +430,63 @@ const generateSettlementName = (starforgedData) => {
   return baseName;
 };
 
+// Generate complete settlement data for auto-population
+const generateSettlementData = (starforgedData, region) => {
+  const capitalizedRegion = region.charAt(0).toUpperCase() + region.slice(1);
+  return {
+    settlementName: generateSettlementName(starforgedData),
+    location: rollSettlementOracle(starforgedData, 'Location'),
+    population: rollSettlementOracle(starforgedData, 'Population', capitalizedRegion),
+    firstLook: rollSettlementOracle(starforgedData, 'First Look'),
+    initialContact: rollSettlementOracle(starforgedData, 'Initial Contact'),
+    authority: rollSettlementOracle(starforgedData, 'Authority'),
+    projects: rollSettlementOracle(starforgedData, 'Projects'),
+    trouble: rollSettlementOracle(starforgedData, 'Trouble')
+  };
+};
+
+// Generate complete planet data for auto-population
+const generatePlanetData = (starforgedData, region) => {
+  const capitalizedRegion = region.charAt(0).toUpperCase() + region.slice(1);
+  const planetClass = generatePlanetClass(starforgedData);
+  if (!planetClass) return null;
+  
+  const name = rollPlanetName(starforgedData, planetClass);
+  const atmosphere = rollPlanetOracle(starforgedData, planetClass, 'Atmosphere');
+  const settlements = rollPlanetOracle(starforgedData, planetClass, 'Settlements', capitalizedRegion);
+  const observed = rollPlanetOracle(starforgedData, planetClass, 'Observed From Space');
+  const feature = rollPlanetOracle(starforgedData, planetClass, 'Feature');
+  const life = rollPlanetOracle(starforgedData, planetClass, 'Life');
+  
+  // Determine if planet has life for peril/opportunity
+  const hasLife = life && !life.toLowerCase().includes('none') && !life.toLowerCase().includes('extinct');
+  const peril = rollPerilOracle(starforgedData, planetClass, hasLife);
+  const opportunity = rollOpportunityOracle(starforgedData, planetClass, hasLife);
+  
+  return {
+    planetClass,
+    planetName: name || planetClass,
+    atmosphere,
+    settlements,
+    observed,
+    feature,
+    life,
+    peril,
+    opportunity
+  };
+};
+
+// Get settlement count based on region
+const getSettlementCountForRegion = (region) => {
+  switch (region) {
+    case 'terminus': return 4;
+    case 'outlands': return 3;
+    case 'expanse': return 2;
+    case 'void': return 0;
+    default: return 0;
+  }
+};
+
 // ==================== STARSHIP HELPERS ====================
 
 const getStarshipOracle = (starforgedData, oracleName) => {
@@ -776,10 +833,72 @@ export const ExploreTab = ({
 
   const createSector = () => {
     if (!newSectorName.trim()) return;
-    addSector(newSectorName, newSectorRegion);
+    const sector = addSector(newSectorName, newSectorRegion);
+    
+    // Auto-populate sector based on region
+    if (sector && newSectorRegion !== 'void') {
+      populateSector(sector.id, newSectorRegion);
+    }
+    
     setNewSectorName('');
     setNewSectorRegion('terminus');
     setShowSectorModal(false);
+  };
+  
+  // Auto-populate a sector with settlements based on region
+  const populateSector = (sectorId, region) => {
+    const settlementCount = getSettlementCountForRegion(region);
+    
+    for (let i = 0; i < settlementCount; i++) {
+      // Roll on Settlement Location oracle to determine: Planetside, Orbital, or Deep Space
+      const locationResult = rollSettlementOracle(starforgedData, 'Location');
+      
+      // Ensure at least 2 entities are connected, remaining are random
+      // First 2 entities (index 0, 1) are always connected
+      // Any additional entities (index 2+) are randomly connected or not
+      const isConnected = i < 2 ? true : Math.random() < 0.5;
+      
+      // Normalize the location result
+      const normalizedLocation = locationResult?.toLowerCase() || '';
+      
+      if (normalizedLocation.includes('deep space')) {
+        // Deep Space: Add settlement directly to sector (no planet)
+        const settlementData = generateSettlementData(starforgedData, region);
+        addLocation(sectorId, settlementData.settlementName || 'Settlement', 'settlement', {
+          connected: isConnected,
+          ...settlementData
+        });
+      } else {
+        // Planetside or Orbital: Generate a planet and add settlement to it
+        const placement = normalizedLocation.includes('orbital') ? 'orbit' : 'planetside';
+        
+        // Generate a new planet
+        const planetData = generatePlanetData(starforgedData, region);
+        if (planetData) {
+          const planetName = planetData.planetName || planetData.planetClass;
+          const planet = addLocation(sectorId, planetName, 'planet', {
+            connected: isConnected,
+            ...planetData
+          });
+          
+          if (planet) {
+            // Add settlement to the planet (in orbit or planetside)
+            const settlementData = generateSettlementData(starforgedData, region);
+            // Remove the 'location' field since placement determines where it goes
+            const { location: _, ...settlementDataWithoutLocation } = settlementData;
+            
+            addSubLocation(
+              sectorId,
+              planet.id,
+              settlementData.settlementName || 'Settlement',
+              'settlement',
+              placement,
+              settlementDataWithoutLocation
+            );
+          }
+        }
+      }
+    }
   };
 
   const createFaction = () => {
@@ -1611,7 +1730,7 @@ export const ExploreTab = ({
 
   // Sector Detail View
   if (viewName.startsWith('sector-')) {
-    const sectorId = parseInt(viewName.split('-')[1]);
+    const sectorId = viewName.split('-')[1];
     const sector = getSector(sectorId);
 
     if (!sector) {
@@ -2510,8 +2629,8 @@ export const ExploreTab = ({
   // Location Detail View
   if (viewName.startsWith('location-')) {
     const parts = viewName.split('-');
-    const sectorId = parseInt(parts[1]);
-    const locationId = parseInt(parts[2]);
+    const sectorId = parts[1];
+    const locationId = parts[2];
     const location = getLocation(sectorId, locationId);
     const sector = getSector(sectorId);
 
@@ -3901,9 +4020,9 @@ export const ExploreTab = ({
   // Sub-location Detail View
   if (viewName.startsWith('sublocation-')) {
     const parts = viewName.split('-');
-    const sectorId = parseInt(parts[1]);
-    const locationId = parseInt(parts[2]);
-    const subLocationId = parseInt(parts[3]);
+    const sectorId = parts[1];
+    const locationId = parts[2];
+    const subLocationId = parts[3];
     const subLocation = getSubLocation(sectorId, locationId, subLocationId);
     const sector = getSector(sectorId);
     const location = getLocation(sectorId, locationId);
@@ -4618,9 +4737,9 @@ export const ExploreTab = ({
   // Location Nested Entity Detail View (entities within locations)
   if (viewName.startsWith('location-nested-')) {
     const parts = viewName.split('-');
-    const sectorId = parseInt(parts[2]);
-    const locationId = parseInt(parts[3]);
-    const entityId = parseInt(parts[4]);
+    const sectorId = parts[2];
+    const locationId = parts[3];
+    const entityId = parts[4];
     const location = getLocation(sectorId, locationId);
     const entity = getLocationNestedEntity(sectorId, locationId, entityId);
 
@@ -5147,10 +5266,10 @@ export const ExploreTab = ({
   // Sublocation Nested Entity Detail View (entities within sublocations)
   if (viewName.startsWith('nested-')) {
     const parts = viewName.split('-');
-    const sectorId = parseInt(parts[1]);
-    const locationId = parseInt(parts[2]);
-    const subLocationId = parseInt(parts[3]);
-    const entityId = parseInt(parts[4]);
+    const sectorId = parts[1];
+    const locationId = parts[2];
+    const subLocationId = parts[3];
+    const entityId = parts[4];
     const subLocation = getSubLocation(sectorId, locationId, subLocationId);
     const location = getLocation(sectorId, locationId);
     const entity = getNestedEntity(sectorId, locationId, subLocationId, entityId);
@@ -5668,10 +5787,10 @@ export const ExploreTab = ({
   // Location Nested Entity Child Detail View (entities within location nested entities)
   if (viewName.startsWith('location-nested-child-')) {
     const parts = viewName.split('-');
-    const sectorId = parseInt(parts[3]);
-    const locationId = parseInt(parts[4]);
-    const parentEntityId = parseInt(parts[5]);
-    const childEntityId = parseInt(parts[6]);
+    const sectorId = parts[3];
+    const locationId = parts[4];
+    const parentEntityId = parts[5];
+    const childEntityId = parts[6];
     const location = getLocation(sectorId, locationId);
     const parentEntity = getLocationNestedEntity(sectorId, locationId, parentEntityId);
     const childEntity = getLocationNestedEntityChild(sectorId, locationId, parentEntityId, childEntityId);
@@ -5832,11 +5951,11 @@ export const ExploreTab = ({
   // Sublocation Nested Entity Child Detail View (entities within sublocation nested entities)
   if (viewName.startsWith('nested-child-')) {
     const parts = viewName.split('-');
-    const sectorId = parseInt(parts[2]);
-    const locationId = parseInt(parts[3]);
-    const subLocationId = parseInt(parts[4]);
-    const parentEntityId = parseInt(parts[5]);
-    const childEntityId = parseInt(parts[6]);
+    const sectorId = parts[2];
+    const locationId = parts[3];
+    const subLocationId = parts[4];
+    const parentEntityId = parts[5];
+    const childEntityId = parts[6];
     const subLocation = getSubLocation(sectorId, locationId, subLocationId);
     const location = getLocation(sectorId, locationId);
     const parentEntity = getNestedEntity(sectorId, locationId, subLocationId, parentEntityId);
@@ -5997,7 +6116,7 @@ export const ExploreTab = ({
 
   // Faction Detail View
   if (viewName.startsWith('faction-')) {
-    const factionId = parseInt(viewName.split('-')[1]);
+    const factionId = viewName.split('-')[1];
     const faction = getFaction(factionId);
 
     if (faction) {
