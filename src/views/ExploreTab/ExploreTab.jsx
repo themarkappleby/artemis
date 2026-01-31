@@ -847,16 +847,28 @@ export const ExploreTab = ({
   
   // Auto-populate a sector with settlements based on region
   const populateSector = (sectorId, region) => {
+    // Add a random stellar object
+    const stellarType = rollStellarObject(starforgedData);
+    if (stellarType) {
+      addLocation(sectorId, stellarType, 'stellar', {
+        stellarType,
+        connected: false
+      });
+    }
+    
     const settlementCount = getSettlementCountForRegion(region);
     
     for (let i = 0; i < settlementCount; i++) {
       // Roll on Settlement Location oracle to determine: Planetside, Orbital, or Deep Space
       const locationResult = rollSettlementOracle(starforgedData, 'Location');
       
-      // Ensure at least 2 entities are connected, remaining are random
-      // First 2 entities (index 0, 1) are always connected
-      // Any additional entities (index 2+) are randomly connected or not
-      const isConnected = i < 2 ? true : Math.random() < 0.5;
+      // Determine connection status:
+      // - Last entity is always NOT connected (ensures at least one in "Not Connected" group)
+      // - First 2 entities are connected (except Expanse which only has 2 total, so just 1 connected)
+      // - Additional middle entities (if any) are randomly connected
+      const isLastEntity = i === settlementCount - 1;
+      const guaranteedConnectedCount = settlementCount === 2 ? 1 : 2;
+      const isConnected = isLastEntity ? false : (i < guaranteedConnectedCount ? true : Math.random() < 0.5);
       
       // Normalize the location result
       const normalizedLocation = locationResult?.toLowerCase() || '';
