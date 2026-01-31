@@ -3,7 +3,7 @@ import { NavigationView } from '../../../components/NavigationView';
 import { MenuGroup } from '../../../components/MenuGroup';
 import { MenuItem } from '../../../components/MenuItem';
 import { getGenericIconBg } from '../../../utils/icons';
-import { resolveOracle } from '../../../utils/oracleHelpers';
+import { resolveOracle, findOracleByPath } from '../../../utils/oracleHelpers';
 
 export const OracleTableView = ({
   parsed,
@@ -27,15 +27,48 @@ export const OracleTableView = ({
   const hasMultiRollColumns = oracle?.Display?.Table?.['Roll columns'];
   const isMultiRollColumnOracle = hasMultiRollColumns && hasMultiRollColumns.length > 1;
 
+  // Helper to get table for a column (handles nested oracles, external references, and region-based Tables)
+  const getColumnTable = (columnOracleId) => {
+    if (!columnOracleId) return [];
+    
+    // First try nested oracles within the current oracle
+    let columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
+    
+    // If not found locally, look up in the global starforged data (external reference)
+    if (!columnOracle) {
+      columnOracle = findOracleByPath(columnOracleId, starforgedData);
+    }
+    
+    if (columnOracle) {
+      return getOracleTable(columnOracle) || [];
+    }
+    
+    // For region-based oracles, extract region key from ID
+    if (oracle.Tables) {
+      const idParts = columnOracleId.split('/');
+      const regionKey = idParts[idParts.length - 1];
+      const tableKey = Object.keys(oracle.Tables).find(
+        k => k.toLowerCase() === regionKey?.toLowerCase()
+      );
+      
+      if (tableKey && oracle.Tables[tableKey]) {
+        const regionTable = oracle.Tables[tableKey];
+        return getOracleTable(regionTable) || 
+          regionTable.Table || regionTable.Rows || [];
+      }
+    }
+    
+    return [];
+  };
+
   if (isMultiResultColumnOracle) {
     // Handle multi result-column display (like Name)
     const columns = oracle.Display.Table['Result columns'];
     const columnTables = columns.map(col => {
       const columnOracleId = col['Use content from'];
-      const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
       return {
         label: col.Label.replace(/_/g, ' '),
-        table: getOracleTable(columnOracle) || []
+        table: getColumnTable(columnOracleId)
       };
     });
 
@@ -68,10 +101,9 @@ export const OracleTableView = ({
     const columns = oracle.Display.Table['Roll columns'];
     const columnTables = columns.map(col => {
       const columnOracleId = col['Use content from'];
-      const columnOracle = oracle.Oracles?.find(o => o['$id'] === columnOracleId);
       return {
         label: col.Label.replace(/_/g, ' '),
-        table: getOracleTable(columnOracle) || []
+        table: getColumnTable(columnOracleId)
       };
     });
 

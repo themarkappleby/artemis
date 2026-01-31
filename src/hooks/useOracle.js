@@ -7,13 +7,32 @@ export const useOracle = (starforgedData) => {
   // Helper to get oracle table data (handles different data structures)
   const getOracleTable = (oracle) => {
     if (!oracle) return null;
+    // Direct Table array
     if (oracle.Table && oracle.Table.length > 0) {
       return filterValidRows(oracle.Table);
     }
+    // Some oracles use "Rows" instead of "Table"
+    if (oracle.Rows && oracle.Rows.length > 0) {
+      return filterValidRows(oracle.Rows);
+    }
+    // Some oracles use "Results" 
+    if (oracle.Results && oracle.Results.length > 0) {
+      return filterValidRows(oracle.Results);
+    }
+    // Region-based tables (e.g., Terminus/Outlands/Expanse)
     if (oracle.Tables) {
       const tableKeys = Object.keys(oracle.Tables);
       if (tableKeys.length > 0) {
-        return filterValidRows(oracle.Tables[tableKeys[0]]?.Table) || null;
+        const firstTable = oracle.Tables[tableKeys[0]];
+        if (firstTable?.Table) {
+          return filterValidRows(firstTable.Table);
+        }
+        if (firstTable?.Rows) {
+          return filterValidRows(firstTable.Rows);
+        }
+        if (firstTable?.Results) {
+          return filterValidRows(firstTable.Results);
+        }
       }
     }
     return null;
@@ -29,7 +48,9 @@ export const useOracle = (starforgedData) => {
       return;
     }
     
-    if (!oracleTable || oracleTable.length === 0) return;
+    if (!oracleTable || oracleTable.length === 0) {
+      return;
+    }
 
     const roll = Math.floor(Math.random() * 100) + 1;
 

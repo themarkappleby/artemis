@@ -30,13 +30,13 @@ export const OracleDetailView = ({
   const oracleTable = getOracleTable(oracle);
   const oracleIsFavorited = isOracleFavorited(oracleKey);
 
-  // Check if this is a multi-column oracle
+  // Check if this is a multi-column oracle (any result columns defined)
   const hasMultiResultColumns = oracle?.Display?.Table?.['Result columns'];
-  const isMultiResultColumnOracle = hasMultiResultColumns && hasMultiResultColumns.length > 1;
+  const isMultiResultColumnOracle = hasMultiResultColumns && hasMultiResultColumns.length >= 1;
   
   // Check if this has multiple roll columns (like Basic Form with Space/Interior/Land/etc)
   const hasMultiRollColumns = oracle?.Display?.Table?.['Roll columns'];
-  const isMultiRollColumnOracle = hasMultiRollColumns && hasMultiRollColumns.length > 1;
+  const isMultiRollColumnOracle = hasMultiRollColumns && hasMultiRollColumns.length >= 1;
 
   const handleLinkClick = (href) => {
     const moveIndices = findMoveFromLink(href, starforgedData);
@@ -73,6 +73,7 @@ export const OracleDetailView = ({
             rollOracle={rollOracle}
             renderResult={renderResult}
             categoryName={parentCategory.Name}
+            starforgedData={starforgedData}
           />
           <MenuGroup>
             <MenuItem 
@@ -95,6 +96,7 @@ export const OracleDetailView = ({
             rollOracle={rollOracle}
             renderResult={renderResult}
             categoryName={parentCategory.Name}
+            starforgedData={starforgedData}
           />
           <MenuGroup>
             <MenuItem 

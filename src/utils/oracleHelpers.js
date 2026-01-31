@@ -306,6 +306,50 @@ export const resolveOracle = (parsed, starforgedData) => {
   return null;
 };
 
+// Find an oracle object by its Starforged path (e.g., "Starforged/Oracles/Character_Creation/Background_Assets")
+export const findOracleByPath = (path, starforgedData) => {
+  if (!starforgedData || !path) return null;
+
+  for (const category of starforgedData.oracleCategories || []) {
+    // Check direct oracles in category
+    if (category.Oracles) {
+      for (const oracle of category.Oracles) {
+        if (oracle['$id'] === path) {
+          return oracle;
+        }
+      }
+    }
+    
+    // Check sub-categories
+    if (category.Categories) {
+      for (const subCat of category.Categories) {
+        if (subCat.Oracles) {
+          for (const oracle of subCat.Oracles) {
+            if (oracle['$id'] === path) {
+              return oracle;
+            }
+          }
+        }
+        
+        // Check deeply nested categories
+        if (subCat.Categories) {
+          for (const subSubCat of subCat.Categories) {
+            if (subSubCat.Oracles) {
+              for (const oracle of subSubCat.Oracles) {
+                if (oracle['$id'] === path) {
+                  return oracle;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return null;
+};
+
 // Navigate to an oracle or move from a Starforged path
 export const createOraclePathNavigator = (starforgedData, navigate) => (path) => {
   if (!starforgedData || !path) return;
