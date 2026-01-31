@@ -157,6 +157,10 @@ export const MovesTab = ({
           {starforgedData?.moveCategories
             .map((category, index) => ({ category, index }))
             .filter(({ category }) => ['Quest', 'Connection', 'Exploration', 'Combat', 'Scene Challenge'].includes(category.Name))
+            .sort((a, b) => {
+              const order = ['Exploration', 'Combat', 'Connection', 'Quest', 'Scene Challenge'];
+              return order.indexOf(a.category.Name) - order.indexOf(b.category.Name);
+            })
             .map(({ category, index }) => (
               <MenuItem 
                 key={category['$id'] || index}
@@ -302,7 +306,8 @@ export const MovesTab = ({
                 const stat = option.Using?.[0];
                 if (!stat) return null;
                 const statLower = stat.toLowerCase();
-                const statValue = character?.stats?.[statLower] || 0;
+                // Check both stats and conditions (for supply, health, spirit, momentum)
+                const statValue = character?.stats?.[statLower] ?? character?.conditions?.[statLower] ?? 0;
                 const statCapitalized = stat.charAt(0).toUpperCase() + stat.slice(1).toLowerCase();
                 const optionLabel = option.Text || `Using ${statCapitalized}`;
                 return (
@@ -311,7 +316,7 @@ export const MovesTab = ({
                     icon={getStatIcon(statLower)}
                     iconBg={getStatIconBg(statLower)}
                     label={optionLabel}
-                    value={`+${statValue} (${statCapitalized})`}
+                    subtitle={`${statCapitalized} (${statValue})`}
                     onClick={() => {
                       // Set stat and generate roll before navigation
                       setRollStat(statLower);
