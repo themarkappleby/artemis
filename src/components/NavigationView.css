@@ -97,6 +97,10 @@
   margin: 0;
   text-align: center;
   line-height: 22px;
+  max-width: calc(100% - 140px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .navigation-content {

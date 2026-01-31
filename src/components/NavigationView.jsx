@@ -23,9 +23,11 @@ export const NavigationView = ({ title, onBack, backButtonText = 'Back', childre
       <div className="navigation-bar">
         {onBack && (
           <button className="back-button" onClick={onBack}>
-            <svg width="13" height="21" viewBox="0 0 13 21" fill="none">
-              <path d="M11 2L2 10.5L11 19" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            {backButtonText !== 'Cancel' && (
+              <svg width="13" height="21" viewBox="0 0 13 21" fill="none">
+                <path d="M11 2L2 10.5L11 19" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
             <span>{backButtonText}</span>
           </button>
         )}

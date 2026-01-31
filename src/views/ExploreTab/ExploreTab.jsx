@@ -3942,166 +3942,6 @@ export const ExploreTab = ({
             description={typeInfo.label}
           />
 
-          <MenuGroup title="Details">
-            {subLocation.type === 'settlement' && (
-              <>
-                {subLocation.settlementName && (
-                  <MenuItem label="Name" value={subLocation.settlementName} showChevron={false} stacked />
-                )}
-                {subLocation.location && (
-                  <MenuItem label="Location" value={subLocation.location} showChevron={false} stacked />
-                )}
-                {subLocation.population && (
-                  <MenuItem label="Population" value={subLocation.population} showChevron={false} stacked />
-                )}
-                {subLocation.firstLook && (
-                  <MenuItem label="First Look" value={subLocation.firstLook} showChevron={false} stacked />
-                )}
-                {subLocation.initialContact && (
-                  <MenuItem label="Initial Contact" value={subLocation.initialContact} showChevron={false} stacked />
-                )}
-                {subLocation.authority && (
-                  <MenuItem label="Authority" value={subLocation.authority} showChevron={false} stacked />
-                )}
-                {subLocation.projects && (
-                  <MenuItem label="Projects" value={subLocation.projects} showChevron={false} stacked />
-                )}
-                {subLocation.trouble && (
-                  <MenuItem label="Trouble" value={subLocation.trouble} showChevron={false} stacked />
-                )}
-              </>
-            )}
-            {subLocation.type === 'starship' && (
-              <>
-                {subLocation.starshipName && (
-                  <MenuItem label="Name" value={subLocation.starshipName} showChevron={false} stacked />
-                )}
-                {subLocation.starshipType && (
-                  <MenuItem label="Type" value={subLocation.starshipType} showChevron={false} stacked />
-                )}
-                {subLocation.fleet && (
-                  <MenuItem label="Fleet" value={subLocation.fleet} showChevron={false} stacked />
-                )}
-                {subLocation.initialContact && (
-                  <MenuItem label="Initial Contact" value={subLocation.initialContact} showChevron={false} stacked />
-                )}
-                {subLocation.firstLook && (
-                  <MenuItem label="First Look" value={subLocation.firstLook} showChevron={false} stacked />
-                )}
-                {subLocation.mission && (
-                  <MenuItem label="Mission" value={subLocation.mission} showChevron={false} stacked />
-                )}
-              </>
-            )}
-            {subLocation.type === 'derelict' && (
-              <>
-                {subLocation.derelictLocation && (
-                  <MenuItem label="Location" value={subLocation.derelictLocation} showChevron={false} stacked />
-                )}
-                {subLocation.derelictType && (
-                  <MenuItem label="Type" value={subLocation.derelictType} showChevron={false} stacked />
-                )}
-                {subLocation.condition && (
-                  <MenuItem label="Condition" value={subLocation.condition} showChevron={false} stacked />
-                )}
-                {subLocation.outerFirstLook && (
-                  <MenuItem label="Outer First Look" value={subLocation.outerFirstLook} showChevron={false} stacked />
-                )}
-                {subLocation.innerFirstLook && (
-                  <MenuItem label="Inner First Look" value={subLocation.innerFirstLook} showChevron={false} stacked />
-                )}
-              </>
-            )}
-            {subLocation.type === 'vault' && (
-              <>
-                {subLocation.vaultLocation && (
-                  <MenuItem label="Location" value={subLocation.vaultLocation} showChevron={false} stacked />
-                )}
-                {subLocation.scale && (
-                  <MenuItem label="Scale" value={subLocation.scale} showChevron={false} stacked />
-                )}
-                {subLocation.form && (
-                  <MenuItem label="Form" value={subLocation.form} showChevron={false} stacked />
-                )}
-                {subLocation.shape && (
-                  <MenuItem label="Shape" value={subLocation.shape} showChevron={false} stacked />
-                )}
-                {subLocation.material && (
-                  <MenuItem label="Material" value={subLocation.material} showChevron={false} stacked />
-                )}
-                {subLocation.outerFirstLook && (
-                  <MenuItem label="Outer First Look" value={subLocation.outerFirstLook} showChevron={false} stacked />
-                )}
-              </>
-            )}
-            {subLocation.type === 'creature' && (
-              <>
-                {subLocation.environment && (
-                  <MenuItem label="Environment" value={subLocation.environment} showChevron={false} stacked />
-                )}
-                {subLocation.creatureScale && (
-                  <MenuItem label="Scale" value={subLocation.creatureScale} showChevron={false} stacked />
-                )}
-                {subLocation.basicForm && (
-                  <MenuItem label="Basic Form" value={subLocation.basicForm} showChevron={false} stacked />
-                )}
-                {subLocation.firstLook && (
-                  <MenuItem label="First Look" value={subLocation.firstLook} showChevron={false} stacked />
-                )}
-                {subLocation.behavior && (
-                  <MenuItem label="Encountered Behavior" value={subLocation.behavior} showChevron={false} stacked />
-                )}
-                {subLocation.revealedAspect && (
-                  <MenuItem label="Revealed Aspect" value={subLocation.revealedAspect} showChevron={false} stacked />
-                )}
-              </>
-            )}
-            {subLocation.type === 'character' && (
-              <>
-                {subLocation.characterName && (
-                  <MenuItem label="Name" value={subLocation.characterName} showChevron={false} stacked />
-                )}
-                {subLocation.firstLook && (
-                  <MenuItem label="First Look" value={subLocation.firstLook} showChevron={false} stacked />
-                )}
-                {subLocation.initialDisposition && (
-                  <MenuItem label="Initial Disposition" value={subLocation.initialDisposition} showChevron={false} stacked />
-                )}
-                {subLocation.role && (
-                  <MenuItem label="Role" value={subLocation.role} showChevron={false} stacked />
-                )}
-                {subLocation.goal && (
-                  <MenuItem label="Goal" value={subLocation.goal} showChevron={false} stacked />
-                )}
-              </>
-            )}
-            {subLocation.type === 'custom' && (
-              <>
-                {subLocation.customName && (
-                  <MenuItem label="Name" value={subLocation.customName} showChevron={false} stacked />
-                )}
-                {subLocation.action && (
-                  <MenuItem label="Action" value={subLocation.action} showChevron={false} stacked />
-                )}
-                {subLocation.theme && (
-                  <MenuItem label="Theme" value={subLocation.theme} showChevron={false} stacked />
-                )}
-                {subLocation.descriptor && (
-                  <MenuItem label="Descriptor" value={subLocation.descriptor} showChevron={false} stacked />
-                )}
-                {subLocation.focus && (
-                  <MenuItem label="Focus" value={subLocation.focus} showChevron={false} stacked />
-                )}
-              </>
-            )}
-            {location && (
-              <MenuItem label="Planet" value={location.name} showChevron={false} stacked />
-            )}
-            {subLocation.placement && (
-              <MenuItem label="Placement" value={subLocation.placement === 'orbit' ? 'In Orbit' : 'Planetside'} showChevron={false} stacked />
-            )}
-          </MenuGroup>
-
           {/* Within section for settlement sublocations */}
           {subLocation.type === 'settlement' && (
             <>
@@ -4273,6 +4113,160 @@ export const ExploreTab = ({
               </MenuGroup>
             </>
           )}
+
+          <MenuGroup title="Details">
+            {subLocation.type === 'settlement' && (
+              <>
+                {subLocation.settlementName && (
+                  <MenuItem label="Name" value={subLocation.settlementName} showChevron={false} stacked />
+                )}
+                {subLocation.location && (
+                  <MenuItem label="Location" value={subLocation.location} showChevron={false} stacked />
+                )}
+                {subLocation.population && (
+                  <MenuItem label="Population" value={subLocation.population} showChevron={false} stacked />
+                )}
+                {subLocation.firstLook && (
+                  <MenuItem label="First Look" value={subLocation.firstLook} showChevron={false} stacked />
+                )}
+                {subLocation.initialContact && (
+                  <MenuItem label="Initial Contact" value={subLocation.initialContact} showChevron={false} stacked />
+                )}
+                {subLocation.authority && (
+                  <MenuItem label="Authority" value={subLocation.authority} showChevron={false} stacked />
+                )}
+                {subLocation.projects && (
+                  <MenuItem label="Projects" value={subLocation.projects} showChevron={false} stacked />
+                )}
+                {subLocation.trouble && (
+                  <MenuItem label="Trouble" value={subLocation.trouble} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {subLocation.type === 'starship' && (
+              <>
+                {subLocation.starshipName && (
+                  <MenuItem label="Name" value={subLocation.starshipName} showChevron={false} stacked />
+                )}
+                {subLocation.starshipType && (
+                  <MenuItem label="Type" value={subLocation.starshipType} showChevron={false} stacked />
+                )}
+                {subLocation.fleet && (
+                  <MenuItem label="Fleet" value={subLocation.fleet} showChevron={false} stacked />
+                )}
+                {subLocation.initialContact && (
+                  <MenuItem label="Initial Contact" value={subLocation.initialContact} showChevron={false} stacked />
+                )}
+                {subLocation.firstLook && (
+                  <MenuItem label="First Look" value={subLocation.firstLook} showChevron={false} stacked />
+                )}
+                {subLocation.mission && (
+                  <MenuItem label="Mission" value={subLocation.mission} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {subLocation.type === 'derelict' && (
+              <>
+                {subLocation.derelictLocation && (
+                  <MenuItem label="Location" value={subLocation.derelictLocation} showChevron={false} stacked />
+                )}
+                {subLocation.derelictType && (
+                  <MenuItem label="Type" value={subLocation.derelictType} showChevron={false} stacked />
+                )}
+                {subLocation.condition && (
+                  <MenuItem label="Condition" value={subLocation.condition} showChevron={false} stacked />
+                )}
+                {subLocation.outerFirstLook && (
+                  <MenuItem label="Outer First Look" value={subLocation.outerFirstLook} showChevron={false} stacked />
+                )}
+                {subLocation.innerFirstLook && (
+                  <MenuItem label="Inner First Look" value={subLocation.innerFirstLook} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {subLocation.type === 'vault' && (
+              <>
+                {subLocation.vaultLocation && (
+                  <MenuItem label="Location" value={subLocation.vaultLocation} showChevron={false} stacked />
+                )}
+                {subLocation.scale && (
+                  <MenuItem label="Scale" value={subLocation.scale} showChevron={false} stacked />
+                )}
+                {subLocation.form && (
+                  <MenuItem label="Form" value={subLocation.form} showChevron={false} stacked />
+                )}
+                {subLocation.shape && (
+                  <MenuItem label="Shape" value={subLocation.shape} showChevron={false} stacked />
+                )}
+                {subLocation.material && (
+                  <MenuItem label="Material" value={subLocation.material} showChevron={false} stacked />
+                )}
+                {subLocation.outerFirstLook && (
+                  <MenuItem label="Outer First Look" value={subLocation.outerFirstLook} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {subLocation.type === 'creature' && (
+              <>
+                {subLocation.environment && (
+                  <MenuItem label="Environment" value={subLocation.environment} showChevron={false} stacked />
+                )}
+                {subLocation.creatureScale && (
+                  <MenuItem label="Scale" value={subLocation.creatureScale} showChevron={false} stacked />
+                )}
+                {subLocation.basicForm && (
+                  <MenuItem label="Basic Form" value={subLocation.basicForm} showChevron={false} stacked />
+                )}
+                {subLocation.firstLook && (
+                  <MenuItem label="First Look" value={subLocation.firstLook} showChevron={false} stacked />
+                )}
+                {subLocation.behavior && (
+                  <MenuItem label="Encountered Behavior" value={subLocation.behavior} showChevron={false} stacked />
+                )}
+                {subLocation.revealedAspect && (
+                  <MenuItem label="Revealed Aspect" value={subLocation.revealedAspect} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {subLocation.type === 'character' && (
+              <>
+                {subLocation.characterName && (
+                  <MenuItem label="Name" value={subLocation.characterName} showChevron={false} stacked />
+                )}
+                {subLocation.firstLook && (
+                  <MenuItem label="First Look" value={subLocation.firstLook} showChevron={false} stacked />
+                )}
+                {subLocation.initialDisposition && (
+                  <MenuItem label="Initial Disposition" value={subLocation.initialDisposition} showChevron={false} stacked />
+                )}
+                {subLocation.role && (
+                  <MenuItem label="Role" value={subLocation.role} showChevron={false} stacked />
+                )}
+                {subLocation.goal && (
+                  <MenuItem label="Goal" value={subLocation.goal} showChevron={false} stacked />
+                )}
+              </>
+            )}
+            {subLocation.type === 'custom' && (
+              <>
+                {subLocation.customName && (
+                  <MenuItem label="Name" value={subLocation.customName} showChevron={false} stacked />
+                )}
+                {subLocation.action && (
+                  <MenuItem label="Action" value={subLocation.action} showChevron={false} stacked />
+                )}
+                {subLocation.theme && (
+                  <MenuItem label="Theme" value={subLocation.theme} showChevron={false} stacked />
+                )}
+                {subLocation.descriptor && (
+                  <MenuItem label="Descriptor" value={subLocation.descriptor} showChevron={false} stacked />
+                )}
+                {subLocation.focus && (
+                  <MenuItem label="Focus" value={subLocation.focus} showChevron={false} stacked />
+                )}
+              </>
+            )}
+          </MenuGroup>
 
           {/* Entity Modal for sublocation entities (starship, settlement, derelict, vault) */}
           <Modal
@@ -5322,17 +5316,6 @@ export const ExploreTab = ({
                 )}
               </>
             )}
-          </MenuGroup>
-
-          <MenuGroup>
-            <MenuItem 
-              label="Remove Entity"
-              onClick={() => {
-                removeNestedEntity(sectorId, locationId, subLocationId, entityId);
-                goBack();
-              }}
-              isButton={true}
-            />
           </MenuGroup>
 
           {/* Modal for entities within nested entities (sublocation-nested) */}

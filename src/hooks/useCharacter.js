@@ -1,15 +1,29 @@
 import { useState } from 'react';
 import { RANK_TICKS } from '../constants';
 
-const initialCharacter = {
+// Generate randomized stats: one 3, two 2s, two 1s
+const generateRandomStats = () => {
+  const values = [3, 2, 2, 1, 1];
+  
+  // Shuffle the values using Fisher-Yates algorithm
+  for (let i = values.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [values[i], values[j]] = [values[j], values[i]];
+  }
+  
+  // Assign shuffled values to stats
+  return {
+    edge: values[0],
+    heart: values[1],
+    iron: values[2],
+    shadow: values[3],
+    wits: values[4]
+  };
+};
+
+const createInitialCharacter = () => ({
   name: '',
-  stats: {
-    edge: 1,
-    heart: 1,
-    iron: 1,
-    shadow: 1,
-    wits: 1
-  },
+  stats: generateRandomStats(),
   conditions: {
     health: 5,
     spirit: 5,
@@ -30,10 +44,10 @@ const initialCharacter = {
   expeditions: [],
   combatTracks: [],
   connections: []
-};
+});
 
 export const useCharacter = () => {
-  const [character, setCharacter] = useState(initialCharacter);
+  const [character, setCharacter] = useState(createInitialCharacter);
   const [newTrackName, setNewTrackName] = useState('');
   const [newTrackRank, setNewTrackRank] = useState('dangerous');
 
