@@ -13,7 +13,9 @@ import {
   OracleDetailView, 
   OracleTableView,
   OracleSampleNamesView,
-  OracleSampleNamesTableView
+  OracleSampleNamesTableView,
+  ActionThemeView,
+  DescriptorFocusView
 } from './views';
 import './OracleTab.css';
 
@@ -108,6 +110,22 @@ export const OracleTab = ({
           catIndex={parsed.catIndex}
           subIndex={parsed.subIndex}
           subSubIndex={parsed.subSubIndex}
+        />
+      );
+
+    case 'action-theme':
+      return (
+        <ActionThemeView
+          {...oracleProps}
+          parsed={parsed}
+        />
+      );
+
+    case 'descriptor-focus':
+      return (
+        <DescriptorFocusView
+          {...oracleProps}
+          parsed={parsed}
         />
       );
 

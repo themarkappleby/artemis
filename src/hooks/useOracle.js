@@ -20,6 +20,15 @@ export const useOracle = (starforgedData) => {
   };
 
   const rollOracle = (oracleKey, oracleTable, options = {}) => {
+    // Handle custom result (for combined oracles like Action + Theme)
+    if (options.customResult) {
+      setOracleRolls({
+        ...oracleRolls,
+        [oracleKey]: options.customResult
+      });
+      return;
+    }
+    
     if (!oracleTable || oracleTable.length === 0) return;
 
     const roll = Math.floor(Math.random() * 100) + 1;

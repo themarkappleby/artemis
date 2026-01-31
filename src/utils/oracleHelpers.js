@@ -78,6 +78,28 @@ export const parseOracleViewName = (viewName) => {
     return { type: 'home' };
   }
 
+  // Combined Action + Theme oracle view
+  if (viewName.startsWith('oracle-action-theme-')) {
+    const parts = viewName.split('-');
+    return {
+      type: 'action-theme',
+      catIndex: parseInt(parts[3]),
+      actionIndex: parseInt(parts[4]),
+      themeIndex: parseInt(parts[5])
+    };
+  }
+
+  // Combined Descriptor + Focus oracle view
+  if (viewName.startsWith('oracle-descriptor-focus-')) {
+    const parts = viewName.split('-');
+    return {
+      type: 'descriptor-focus',
+      catIndex: parseInt(parts[3]),
+      descriptorIndex: parseInt(parts[4]),
+      focusIndex: parseInt(parts[5])
+    };
+  }
+
   if (viewName.startsWith('oracle-category-')) {
     const index = parseInt(viewName.split('-')[2]);
     return { type: 'category', catIndex: index };

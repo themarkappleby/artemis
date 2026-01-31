@@ -5,3 +5,5 @@ export { OracleDetailView } from './OracleDetailView';
 export { OracleTableView } from './OracleTableView';
 export { OracleSampleNamesView } from './OracleSampleNamesView';
 export { OracleSampleNamesTableView } from './OracleSampleNamesTableView';
+export { ActionThemeView } from './ActionThemeView';
+export { DescriptorFocusView } from './DescriptorFocusView';
