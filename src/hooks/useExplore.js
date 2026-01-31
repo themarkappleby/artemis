@@ -17,12 +17,13 @@ export const useExplore = () => {
   // Factions state
   const [factions, setFactions] = useState([]);
 
-  const addSector = (name, region) => {
+  const addSector = (name, region, data = {}) => {
     const newSector = {
       id: generateUniqueId(),
       name: name.trim(),
       region,
-      locations: []
+      locations: [],
+      ...data
     };
     setSectors(prev => [...prev, newSector]);
     return newSector;

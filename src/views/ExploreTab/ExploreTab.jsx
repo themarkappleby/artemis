@@ -372,6 +372,21 @@ const rollStellarObject = (starforgedData) => {
   return rollOracleResult(oracle);
 };
 
+// ==================== SECTOR TROUBLE HELPERS ====================
+
+const getSectorTroubleOracle = (starforgedData) => {
+  // Sector Trouble is in the Character_Creation category
+  const category = getOracleCategory(starforgedData, 'Character Creation');
+  if (!category) return null;
+  
+  return getOracleFromCategory(category, 'Sector Trouble');
+};
+
+const rollSectorTrouble = (starforgedData) => {
+  const oracle = getSectorTroubleOracle(starforgedData);
+  return rollOracleResult(oracle);
+};
+
 // ==================== SETTLEMENT HELPERS ====================
 
 const getSettlementOracle = (starforgedData, oracleName, region = 'Terminus') => {
@@ -844,7 +859,15 @@ export const ExploreTab = ({
 
   const createSector = () => {
     if (!newSectorName.trim()) return;
-    const sector = addSector(newSectorName, newSectorRegion);
+    
+    // Generate sector details
+    const sectorTrouble = rollSectorTrouble(starforgedData);
+    const stellarObject = rollStellarObject(starforgedData);
+    
+    const sector = addSector(newSectorName, newSectorRegion, {
+      sectorTrouble,
+      stellarObject
+    });
     
     // Auto-populate sector based on region
     if (sector && newSectorRegion !== 'void') {
@@ -858,15 +881,6 @@ export const ExploreTab = ({
   
   // Auto-populate a sector with settlements based on region
   const populateSector = (sectorId, region) => {
-    // Add a random stellar object
-    const stellarType = rollStellarObject(starforgedData);
-    if (stellarType) {
-      addLocation(sectorId, stellarType, 'stellar', {
-        stellarType,
-        connected: false
-      });
-    }
-    
     const settlementCount = getSettlementCountForRegion(region);
     
     for (let i = 0; i < settlementCount; i++) {
@@ -1890,6 +1904,16 @@ export const ExploreTab = ({
               isButton={true}
             />
           </MenuGroup>
+          {(sector.sectorTrouble || sector.stellarObject) && (
+            <MenuGroup title="Details">
+              {sector.stellarObject && (
+                <MenuItem label="Stellar Object" value={sector.stellarObject} showChevron={false} stacked />
+              )}
+              {sector.sectorTrouble && (
+                <MenuItem label="Sector Trouble" value={sector.sectorTrouble} showChevron={false} stacked />
+              )}
+            </MenuGroup>
+          )}
           {isEditingSector && (
             <MenuGroup>
               <MenuItem 
