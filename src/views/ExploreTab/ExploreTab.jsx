@@ -674,6 +674,44 @@ const rollCharacterOracle = (starforgedData, oracleName) => {
   return rollOracleResult(oracle);
 };
 
+// Generate complete character data for auto-population
+const generateCharacterData = (starforgedData) => {
+  const givenName = rollCharacterOracle(starforgedData, 'Given Name');
+  const familyName = rollCharacterOracle(starforgedData, 'Family Name');
+  const callsign = rollCharacterOracle(starforgedData, 'Callsign');
+  
+  let characterName;
+  if (givenName && callsign && familyName) {
+    characterName = `${givenName} "${callsign}" ${familyName}`;
+  } else if (givenName && familyName) {
+    characterName = `${givenName} ${familyName}`;
+  } else {
+    characterName = givenName || familyName || callsign || 'Character';
+  }
+  
+  return {
+    characterName,
+    firstLook: rollCharacterOracle(starforgedData, 'First Look'),
+    initialDisposition: rollCharacterOracle(starforgedData, 'Initial Disposition'),
+    role: rollCharacterOracle(starforgedData, 'Role'),
+    goal: rollCharacterOracle(starforgedData, 'Goal')
+  };
+};
+
+// Map population value to number of characters to generate
+const getCharacterCountForPopulation = (population) => {
+  if (!population) return 0;
+  const pop = population.toLowerCase();
+  
+  if (pop.includes('tens of thousands')) return 5;
+  if (pop.includes('thousands')) return 4;
+  if (pop.includes('hundreds')) return 3;
+  if (pop.includes('dozens')) return 2;
+  if (pop.includes('few')) return 1;
+  
+  return 0;
+};
+
 // ==================== CORE ORACLE HELPERS ====================
 
 const getCoreOracle = (starforgedData, oracleName) => {
@@ -901,10 +939,25 @@ export const ExploreTab = ({
       if (normalizedLocation.includes('deep space')) {
         // Deep Space: Add settlement directly to sector (no planet)
         const settlementData = generateSettlementData(starforgedData, region);
-        addLocation(sectorId, settlementData.settlementName || 'Settlement', 'settlement', {
+        const settlement = addLocation(sectorId, settlementData.settlementName || 'Settlement', 'settlement', {
           connected: isConnected,
           ...settlementData
         });
+        
+        // Add characters based on population
+        if (settlement) {
+          const characterCount = getCharacterCountForPopulation(settlementData.population);
+          for (let c = 0; c < characterCount; c++) {
+            const characterData = generateCharacterData(starforgedData);
+            addLocationNestedEntity(
+              sectorId,
+              settlement.id,
+              characterData.characterName || 'Character',
+              'character',
+              characterData
+            );
+          }
+        }
       } else {
         // Planetside or Orbital: Generate a planet and add settlement to it
         const placement = normalizedLocation.includes('orbital') ? 'orbit' : 'planetside';
@@ -924,7 +977,7 @@ export const ExploreTab = ({
             // Remove the 'location' field since placement determines where it goes
             const { location: _, ...settlementDataWithoutLocation } = settlementData;
             
-            addSubLocation(
+            const settlement = addSubLocation(
               sectorId,
               planet.id,
               settlementData.settlementName || 'Settlement',
@@ -933,6 +986,22 @@ export const ExploreTab = ({
               settlementDataWithoutLocation
             );
             
+            // Add characters based on population
+            if (settlement) {
+              const characterCount = getCharacterCountForPopulation(settlementData.population);
+              for (let c = 0; c < characterCount; c++) {
+                const characterData = generateCharacterData(starforgedData);
+                addNestedEntity(
+                  sectorId,
+                  planet.id,
+                  settlement.id,
+                  characterData.characterName || 'Character',
+                  'character',
+                  characterData
+                );
+              }
+            }
+            
             // If settlements detail indicates multiple settlements or conflict, add another settlement
             const settlementsLower = planetData.settlements?.toLowerCase() || '';
             if (settlementsLower.includes('multiple') || settlementsLower.includes('conflict')) {
@@ -940,7 +1009,7 @@ export const ExploreTab = ({
               const secondSettlementData = generateSettlementData(starforgedData, region);
               const { location: _loc, ...secondSettlementDataWithoutLocation } = secondSettlementData;
               
-              addSubLocation(
+              const secondSettlement = addSubLocation(
                 sectorId,
                 planet.id,
                 secondSettlementData.settlementName || 'Settlement',
@@ -948,6 +1017,22 @@ export const ExploreTab = ({
                 secondPlacement,
                 secondSettlementDataWithoutLocation
               );
+              
+              // Add characters based on population for second settlement
+              if (secondSettlement) {
+                const secondCharacterCount = getCharacterCountForPopulation(secondSettlementData.population);
+                for (let c = 0; c < secondCharacterCount; c++) {
+                  const characterData = generateCharacterData(starforgedData);
+                  addNestedEntity(
+                    sectorId,
+                    planet.id,
+                    secondSettlement.id,
+                    characterData.characterName || 'Character',
+                    'character',
+                    characterData
+                  );
+                }
+              }
             }
           }
         }
@@ -1644,16 +1729,19 @@ export const ExploreTab = ({
                 muted={true}
               />
             ) : (
-              sectors.map(sector => (
-                <MenuItem 
-                  key={sector.id}
-                  icon={getRegionIcon(sector.region)}
-                  iconBg={getRegionIconBg(sector.region)}
-                  label={sector.name}
-                  value={getRegionLabel(sector.region)}
-                  onClick={() => navigate(`sector-${sector.id}`)}
-                />
-              ))
+              sectors.map(sector => {
+                const locationCount = sector.locations?.length || 0;
+                return (
+                  <MenuItem 
+                    key={sector.id}
+                    icon={getRegionIcon(sector.region)}
+                    iconBg={getRegionIconBg(sector.region)}
+                    label={sector.name}
+                    count={locationCount}
+                    onClick={() => navigate(`sector-${sector.id}`)}
+                  />
+                );
+              })
             )}
             <MenuItem 
               label="Create Sector"
@@ -1851,7 +1939,7 @@ export const ExploreTab = ({
                       icon={typeInfo.icon}
                       iconBg={typeInfo.iconBg}
                       label={location.name}
-                      value={entityCount > 0 ? entityCount : undefined}
+                      count={entityCount}
                       onClick={() => navigate(`location-${sectorId}-${location.id}`)}
                     />
                   );
@@ -1887,7 +1975,7 @@ export const ExploreTab = ({
                       icon={typeInfo.icon}
                       iconBg={typeInfo.iconBg}
                       label={location.name}
-                      value={entityCount > 0 ? entityCount : undefined}
+                      count={entityCount}
                       onClick={() => navigate(`location-${sectorId}-${location.id}`)}
                     />
                   );
@@ -2757,14 +2845,14 @@ export const ExploreTab = ({
                   ) : (
                     orbitLocations.map(subLocation => {
                       const subTypeInfo = getEntityTypeInfo(subLocation.type) || { icon: '📍', label: 'Location' };
-                      const entityCount = (subLocation.subLocations || []).length;
+                      const entityCount = (subLocation.nestedEntities || []).length;
                       return (
                         <MenuItem 
                           key={subLocation.id}
                           icon={subTypeInfo.icon}
                           iconBg={subTypeInfo.iconBg}
                           label={subLocation.name}
-                          value={entityCount > 0 ? entityCount : undefined}
+                          count={entityCount}
                           onClick={() => navigate(`sublocation-${sectorId}-${locationId}-${subLocation.id}`)}
                         />
                       );
@@ -2794,14 +2882,14 @@ export const ExploreTab = ({
                   ) : (
                     planetsideLocations.map(subLocation => {
                       const subTypeInfo = getEntityTypeInfo(subLocation.type) || { icon: '📍', label: 'Location' };
-                      const entityCount = (subLocation.subLocations || []).length;
+                      const entityCount = (subLocation.nestedEntities || []).length;
                       return (
                         <MenuItem 
                           key={subLocation.id}
                           icon={subTypeInfo.icon}
                           iconBg={subTypeInfo.iconBg}
                           label={subLocation.name}
-                          value={entityCount > 0 ? entityCount : undefined}
+                          count={entityCount}
                           onClick={() => navigate(`sublocation-${sectorId}-${locationId}-${subLocation.id}`)}
                         />
                       );
@@ -3394,12 +3482,14 @@ export const ExploreTab = ({
                   ) : (
                     withinEntities.map(entity => {
                       const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      const nestedCount = (entity.nestedEntities || []).length;
                       return (
                         <MenuItem 
                           key={entity.id}
                           icon={entityTypeInfo.icon}
                           iconBg={entityTypeInfo.iconBg}
                           label={entity.name}
+                          count={nestedCount}
                           onClick={() => navigate(`location-nested-${sectorId}-${locationId}-${entity.id}`)}
                         />
                       );
@@ -3436,12 +3526,14 @@ export const ExploreTab = ({
                   ) : (
                     withinEntities.map(entity => {
                       const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      const nestedCount = (entity.nestedEntities || []).length;
                       return (
                         <MenuItem 
                           key={entity.id}
                           icon={entityTypeInfo.icon}
                           iconBg={entityTypeInfo.iconBg}
                           label={entity.name}
+                          count={nestedCount}
                           onClick={() => navigate(`location-nested-${sectorId}-${locationId}-${entity.id}`)}
                         />
                       );
@@ -3478,12 +3570,14 @@ export const ExploreTab = ({
                   ) : (
                     withinEntities.map(entity => {
                       const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      const nestedCount = (entity.nestedEntities || []).length;
                       return (
                         <MenuItem 
                           key={entity.id}
                           icon={entityTypeInfo.icon}
                           iconBg={entityTypeInfo.iconBg}
                           label={entity.name}
+                          count={nestedCount}
                           onClick={() => navigate(`location-nested-${sectorId}-${locationId}-${entity.id}`)}
                         />
                       );
@@ -3520,12 +3614,14 @@ export const ExploreTab = ({
                   ) : (
                     onboardEntities.map(entity => {
                       const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      const nestedCount = (entity.nestedEntities || []).length;
                       return (
                         <MenuItem 
                           key={entity.id}
                           icon={entityTypeInfo.icon}
                           iconBg={entityTypeInfo.iconBg}
                           label={entity.name}
+                          count={nestedCount}
                           onClick={() => navigate(`location-nested-${sectorId}-${locationId}-${entity.id}`)}
                         />
                       );
@@ -4137,12 +4233,14 @@ export const ExploreTab = ({
                   ) : (
                     withinEntities.map(entity => {
                       const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      const nestedCount = (entity.nestedEntities || []).length;
                       return (
                         <MenuItem 
                           key={entity.id}
                           icon={entityTypeInfo.icon}
                           iconBg={entityTypeInfo.iconBg}
                           label={entity.name}
+                          count={nestedCount}
                           onClick={() => navigate(`nested-${sectorId}-${locationId}-${subLocationId}-${entity.id}`)}
                         />
                       );
@@ -4180,12 +4278,14 @@ export const ExploreTab = ({
                   ) : (
                     withinEntities.map(entity => {
                       const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      const nestedCount = (entity.nestedEntities || []).length;
                       return (
                         <MenuItem 
                           key={entity.id}
                           icon={entityTypeInfo.icon}
                           iconBg={entityTypeInfo.iconBg}
                           label={entity.name}
+                          count={nestedCount}
                           onClick={() => navigate(`nested-${sectorId}-${locationId}-${subLocationId}-${entity.id}`)}
                         />
                       );
@@ -4223,12 +4323,14 @@ export const ExploreTab = ({
                   ) : (
                     withinEntities.map(entity => {
                       const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      const nestedCount = (entity.nestedEntities || []).length;
                       return (
                         <MenuItem 
                           key={entity.id}
                           icon={entityTypeInfo.icon}
                           iconBg={entityTypeInfo.iconBg}
                           label={entity.name}
+                          count={nestedCount}
                           onClick={() => navigate(`nested-${sectorId}-${locationId}-${subLocationId}-${entity.id}`)}
                         />
                       );
@@ -4266,12 +4368,14 @@ export const ExploreTab = ({
                   ) : (
                     onboardEntities.map(entity => {
                       const entityTypeInfo = getEntityTypeInfo(entity.type) || { icon: '📍', label: 'Entity' };
+                      const nestedCount = (entity.nestedEntities || []).length;
                       return (
                         <MenuItem 
                           key={entity.id}
                           icon={entityTypeInfo.icon}
                           iconBg={entityTypeInfo.iconBg}
                           label={entity.name}
+                          count={nestedCount}
                           onClick={() => navigate(`nested-${sectorId}-${locationId}-${subLocationId}-${entity.id}`)}
                         />
                       );
@@ -4850,12 +4954,14 @@ export const ExploreTab = ({
                   ) : (
                     onboardEntities.map(childEntity => {
                       const entityTypeInfo = getEntityTypeInfo(childEntity.type) || { icon: '📍', label: 'Entity' };
+                      const nestedCount = (childEntity.nestedEntities || []).length;
                       return (
                         <MenuItem 
                           key={childEntity.id}
                           icon={entityTypeInfo.icon}
                           iconBg={entityTypeInfo.iconBg}
                           label={childEntity.name}
+                          count={nestedCount}
                           onClick={() => navigate(`location-nested-child-${sectorId}-${locationId}-${entityId}-${childEntity.id}`)}
                         />
                       );
@@ -5381,12 +5487,14 @@ export const ExploreTab = ({
                   ) : (
                     onboardEntities.map(childEntity => {
                       const entityTypeInfo = getEntityTypeInfo(childEntity.type) || { icon: '📍', label: 'Entity' };
+                      const nestedCount = (childEntity.nestedEntities || []).length;
                       return (
                         <MenuItem 
                           key={childEntity.id}
                           icon={entityTypeInfo.icon}
                           iconBg={entityTypeInfo.iconBg}
                           label={childEntity.name}
+                          count={nestedCount}
                           onClick={() => navigate(`nested-child-${sectorId}-${locationId}-${subLocationId}-${entityId}-${childEntity.id}`)}
                         />
                       );

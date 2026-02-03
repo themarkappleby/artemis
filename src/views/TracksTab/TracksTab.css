@@ -1,0 +1,22 @@
+/* TracksTab styles inherit from CharacterTab */
+.track-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.track-actions .menu-item {
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+
+.track-actions .menu-item:first-child {
+  border-right: 1px solid rgba(60, 60, 67, 0.36);
+}
+
+@media (prefers-color-scheme: dark) {
+  .track-actions .menu-item:first-child {
+    border-right: 1px solid rgba(84, 84, 88, 0.65);
+  }
+}

@@ -1,4 +1,15 @@
 import { useState } from 'react';
+import {
+  getSettlementCountForRegion,
+  rollSettlementOracle,
+  generateSettlementData,
+  generatePlanetData,
+  generateCharacterData,
+  getCharacterCountForPopulation,
+  rollSectorTrouble,
+  rollStellarObject,
+  generateSectorName
+} from '../utils/oracleRollers';
 
 // Generate unique IDs that won't collide even in tight loops
 // Using underscore separator since hyphens are used in URL routing
@@ -426,6 +437,150 @@ export const useExplore = () => {
     }));
   };
 
+  // Auto-populate a sector with settlements based on region
+  const populateSector = (sectorId, region, starforgedData) => {
+    const settlementCount = getSettlementCountForRegion(region);
+    
+    for (let i = 0; i < settlementCount; i++) {
+      // Roll on Settlement Location oracle to determine: Planetside, Orbital, or Deep Space
+      const locationResult = rollSettlementOracle(starforgedData, 'Location');
+      
+      // Determine connection status:
+      // - Last entity is always NOT connected (ensures at least one in "Not Connected" group)
+      // - First 2 entities are connected (except Expanse which only has 2 total, so just 1 connected)
+      // - Additional middle entities (if any) are randomly connected
+      const isLastEntity = i === settlementCount - 1;
+      const guaranteedConnectedCount = settlementCount === 2 ? 1 : 2;
+      const isConnected = isLastEntity ? false : (i < guaranteedConnectedCount ? true : Math.random() < 0.5);
+      
+      // Normalize the location result
+      const normalizedLocation = locationResult?.toLowerCase() || '';
+      
+      if (normalizedLocation.includes('deep space')) {
+        // Deep Space: Add settlement directly to sector (no planet)
+        const settlementData = generateSettlementData(starforgedData, region);
+        const settlement = addLocation(sectorId, settlementData.settlementName || 'Settlement', 'settlement', {
+          connected: isConnected,
+          ...settlementData
+        });
+        
+        // Add characters based on population
+        if (settlement) {
+          const characterCount = getCharacterCountForPopulation(settlementData.population);
+          for (let c = 0; c < characterCount; c++) {
+            const characterData = generateCharacterData(starforgedData);
+            addLocationNestedEntity(
+              sectorId,
+              settlement.id,
+              characterData.characterName || 'Character',
+              'character',
+              characterData
+            );
+          }
+        }
+      } else {
+        // Planetside or Orbital: Generate a planet and add settlement to it
+        const placement = normalizedLocation.includes('orbital') ? 'orbit' : 'planetside';
+        
+        // Generate a new planet (pass hasSettlement=true to ensure settlements detail isn't "None")
+        const planetData = generatePlanetData(starforgedData, region, true);
+        if (planetData) {
+          const planetName = planetData.planetName || planetData.planetClass;
+          const planet = addLocation(sectorId, planetName, 'planet', {
+            connected: isConnected,
+            ...planetData
+          });
+          
+          if (planet) {
+            // Add settlement to the planet (in orbit or planetside)
+            const settlementData = generateSettlementData(starforgedData, region);
+            // Remove the 'location' field since placement determines where it goes
+            const { location: _, ...settlementDataWithoutLocation } = settlementData;
+            
+            const settlement = addSubLocation(
+              sectorId,
+              planet.id,
+              settlementData.settlementName || 'Settlement',
+              'settlement',
+              placement,
+              settlementDataWithoutLocation
+            );
+            
+            // Add characters based on population
+            if (settlement) {
+              const characterCount = getCharacterCountForPopulation(settlementData.population);
+              for (let c = 0; c < characterCount; c++) {
+                const characterData = generateCharacterData(starforgedData);
+                addNestedEntity(
+                  sectorId,
+                  planet.id,
+                  settlement.id,
+                  characterData.characterName || 'Character',
+                  'character',
+                  characterData
+                );
+              }
+            }
+            
+            // If settlements detail indicates multiple settlements or conflict, add another settlement
+            const settlementsLower = planetData.settlements?.toLowerCase() || '';
+            if (settlementsLower.includes('multiple') || settlementsLower.includes('conflict')) {
+              const secondPlacement = Math.random() < 0.5 ? 'orbit' : 'planetside';
+              const secondSettlementData = generateSettlementData(starforgedData, region);
+              const { location: _loc, ...secondSettlementDataWithoutLocation } = secondSettlementData;
+              
+              const secondSettlement = addSubLocation(
+                sectorId,
+                planet.id,
+                secondSettlementData.settlementName || 'Settlement',
+                'settlement',
+                secondPlacement,
+                secondSettlementDataWithoutLocation
+              );
+              
+              // Add characters based on population for second settlement
+              if (secondSettlement) {
+                const secondCharacterCount = getCharacterCountForPopulation(secondSettlementData.population);
+                for (let c = 0; c < secondCharacterCount; c++) {
+                  const characterData = generateCharacterData(starforgedData);
+                  addNestedEntity(
+                    sectorId,
+                    planet.id,
+                    secondSettlement.id,
+                    characterData.characterName || 'Character',
+                    'character',
+                    characterData
+                  );
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+
+  // Create a new sector with generated details and populate it
+  const createAndPopulateSector = (starforgedData, region, name = null) => {
+    const sectorName = name || generateSectorName(starforgedData);
+    if (!sectorName) return null;
+    
+    const sectorTrouble = rollSectorTrouble(starforgedData);
+    const stellarObject = rollStellarObject(starforgedData);
+    
+    const sector = addSector(sectorName, region, {
+      sectorTrouble,
+      stellarObject
+    });
+    
+    // Auto-populate sector based on region (skip void)
+    if (sector && region !== 'void') {
+      populateSector(sector.id, region, starforgedData);
+    }
+    
+    return sector;
+  };
+
   return {
     sectors,
     factions,
@@ -452,6 +607,8 @@ export const useExplore = () => {
     removeLocationNestedEntityChild,
     addNestedEntityChild,
     getNestedEntityChild,
-    removeNestedEntityChild
+    removeNestedEntityChild,
+    populateSector,
+    createAndPopulateSector
   };
 };

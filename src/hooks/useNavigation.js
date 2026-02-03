@@ -3,6 +3,7 @@ import { useState } from 'react';
 const initialNavigationStacks = {
   explore: ['home'],
   character: ['character-home'],
+  tracks: ['tracks-home'],
   moves: ['moves-home'],
   oracle: ['oracle-home'],
   roll: ['roll-home']

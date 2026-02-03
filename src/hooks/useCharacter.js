@@ -43,7 +43,11 @@ const createInitialCharacter = () => ({
   vows: [],
   expeditions: [],
   combatTracks: [],
-  connections: []
+  connections: [],
+  details: {
+    backstoryPrompt: '',
+    incitingIncident: ''
+  }
 });
 
 export const useCharacter = () => {
@@ -75,6 +79,16 @@ export const useCharacter = () => {
     setCharacter({ ...character, name });
   };
 
+  const updateDetail = (detailName, value) => {
+    setCharacter(prev => ({
+      ...prev,
+      details: {
+        ...prev.details,
+        [detailName]: value
+      }
+    }));
+  };
+
   const addAsset = (typeIndex, assetIndex) => {
     const exists = character.assets.some(
       a => a.typeIndex === typeIndex && a.assetIndex === assetIndex
@@ -86,6 +100,26 @@ export const useCharacter = () => {
       });
     }
     return !exists;
+  };
+
+  // Add multiple assets at once (used for initial character setup)
+  const addMultipleAssets = (assetsToAdd) => {
+    const newAssets = assetsToAdd.filter(({ typeIndex, assetIndex }) => 
+      !character.assets.some(a => a.typeIndex === typeIndex && a.assetIndex === assetIndex)
+    ).map(({ typeIndex, assetIndex }) => ({ 
+      typeIndex, 
+      assetIndex, 
+      enabledAbilities: [0], 
+      inputs: {} 
+    }));
+
+    if (newAssets.length > 0) {
+      setCharacter({
+        ...character,
+        assets: [...character.assets, ...newAssets]
+      });
+    }
+    return newAssets.length;
   };
 
   const removeAsset = (typeIndex, assetIndex) => {
@@ -145,7 +179,7 @@ export const useCharacter = () => {
 
     setCharacter({
       ...character,
-      [trackType]: [...character[trackType], newTrack]
+      [trackType]: [...(character[trackType] || []), newTrack]
     });
 
     setNewTrackName('');
@@ -156,14 +190,14 @@ export const useCharacter = () => {
   const removeProgressTrack = (trackType, trackId) => {
     setCharacter({
       ...character,
-      [trackType]: character[trackType].filter(t => t.id !== trackId)
+      [trackType]: (character[trackType] || []).filter(t => t.id !== trackId)
     });
   };
 
   const markProgress = (trackType, trackId) => {
     setCharacter({
       ...character,
-      [trackType]: character[trackType].map(track => {
+      [trackType]: (character[trackType] || []).map(track => {
         if (track.id === trackId) {
           const ticksToAdd = RANK_TICKS[track.rank];
           return {
@@ -179,7 +213,7 @@ export const useCharacter = () => {
   const clearProgress = (trackType, trackId) => {
     setCharacter({
       ...character,
-      [trackType]: character[trackType].map(track => {
+      [trackType]: (character[trackType] || []).map(track => {
         if (track.id === trackId) {
           return {
             ...track,
@@ -211,7 +245,9 @@ export const useCharacter = () => {
     updateStat,
     updateCondition,
     updateName,
+    updateDetail,
     addAsset,
+    addMultipleAssets,
     removeAsset,
     toggleAssetAbility,
     updateAssetInput,

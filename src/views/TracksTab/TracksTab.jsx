@@ -1,408 +1,76 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { NavigationView } from '../../components/NavigationView';
 import { MenuGroup } from '../../components/MenuGroup';
 import { MenuItem } from '../../components/MenuItem';
 import { DetailCard } from '../../components/DetailCard';
-import { StatBar } from '../../components/StatBar';
-import { MeterBar } from '../../components/MeterBar';
 import { ProgressTrack, RANK_LABELS } from '../../components/ProgressTrack';
-import { ModalField } from '../../components/Modal/Modal';
-import { DiceInput } from '../../components/DiceInput/DiceInput';
-import { getAssetIcon, getAssetIconBg, getStatIcon, getStatIconBg, getProgressIconBg, getGenericIconBg } from '../../utils/icons';
-import { generateCharacterName, generateAssetInputName, rollCharacterCreationOracle } from '../../utils/oracleRollers';
-import { useStarforgedContext } from '../../contexts/StarforgedContext';
+import { getProgressIconBg } from '../../utils/icons';
 import { useCharacterContext } from '../../contexts/CharacterContext';
 import { useNavigationContext } from '../../contexts/NavigationContext';
 import '../../styles/forms.css';
-import './CharacterTab.css';
+import './TracksTab.css';
 
-export const CharacterTab = ({
+export const TracksTab = ({
   viewName,
   scrollProps = {}
 }) => {
-  const { data: starforgedData } = useStarforgedContext();
-  const { navigate, goBack, resetToHome } = useNavigationContext();
-  const {
+  const { 
     character,
     newTrackName,
     setNewTrackName,
     newTrackRank,
     setNewTrackRank,
-    updateStat,
-    updateCondition,
-    updateName,
-    updateDetail,
-    addAsset,
-    removeAsset,
-    toggleAssetAbility,
-    updateAssetInput,
     addProgressTrack,
     removeProgressTrack,
     markProgress,
     clearProgress,
     markLegacy
   } = useCharacterContext();
+  const { navigate, goBack } = useNavigationContext();
 
-  // Auto-populate backstory prompt and inciting incident if empty
-  useEffect(() => {
-    if (starforgedData && viewName === 'character-home') {
-      if (!character.details?.backstoryPrompt) {
-        const result = rollCharacterCreationOracle(starforgedData, 'Backstory Prompts');
-        if (result) updateDetail('backstoryPrompt', result);
-      }
-      if (!character.details?.incitingIncident) {
-        const result = rollCharacterCreationOracle(starforgedData, 'Inciting Incident');
-        if (result) updateDetail('incitingIncident', result);
-      }
-    }
-  }, [starforgedData, viewName]);
-
-  // Character Home
-  if (viewName === 'character-home') {
+  // Tracks Home
+  if (viewName === 'tracks-home') {
     return (
-      <NavigationView title="Character" {...scrollProps}>
-        <DetailCard
-          icon="👤"
-          iconBg="#007AFF"
-          title={character.name || "Unnamed Character"}
-          description="Character"
-        />
-
-        <MenuGroup title="Condition Meters">
-          <div style={{ padding: '12px 0' }}>
-            <MeterBar 
-              label="Health" 
-              value={character.conditions.health} 
-              maxValue={5}
-              color="#ff3b30"
-              onChange={(val) => updateCondition('health', val)}
-            />
-            <MeterBar 
-              label="Spirit" 
-              value={character.conditions.spirit} 
-              maxValue={5}
-              color="#007AFF"
-              onChange={(val) => updateCondition('spirit', val)}
-            />
-            <MeterBar 
-              label="Supply" 
-              value={character.conditions.supply} 
-              maxValue={5}
-              color="#34c759"
-              onChange={(val) => updateCondition('supply', val)}
-            />
-            <MeterBar 
-              label="Momentum" 
-              value={character.conditions.momentum} 
-              minValue={-6}
-              maxValue={character.conditions.momentumMax}
-              color="#ff9500"
-              onChange={(val) => updateCondition('momentum', val)}
-              style={{ marginBottom: 0 }}
-            />
-          </div>
-          <StatBar 
-            label="Max" 
-            value={character.conditions.momentumMax}
-            minValue={0}
-            maxValue={10}
-            onChange={(val) => updateCondition('momentumMax', val)}
-          />
-          <StatBar 
-            label="Reset" 
-            value={character.conditions.momentumReset}
-            minValue={-6}
-            maxValue={10}
-            onChange={(val) => updateCondition('momentumReset', val)}
-          />
-        </MenuGroup>
-
-        <MenuGroup title="Assets">
-          {character.assets.length === 0 ? (
-            <MenuItem 
-              label="No assets yet" 
-              showChevron={false}
-              muted={true}
-            />
-          ) : (
-            character.assets.map((ownedAsset, index) => {
-              const assetType = starforgedData?.assetTypes[ownedAsset.typeIndex];
-              const asset = assetType?.Assets?.[ownedAsset.assetIndex];
-              if (!asset) return null;
-              const enabledCount = ownedAsset.enabledAbilities?.length || 0;
-              const totalCount = asset.Abilities?.length || 0;
-              // Use custom name from inputs if available, otherwise fall back to asset type name
-              const customName = ownedAsset.inputs?.Name;
-              const displayName = customName || asset.Name;
-              return (
-                <MenuItem 
-                  key={`owned-${ownedAsset.typeIndex}-${ownedAsset.assetIndex}`}
-                  icon={getAssetIcon(assetType.Name)}
-                  iconBg={getAssetIconBg(assetType.Name)}
-                  label={displayName}
-                  value={`${enabledCount}/${totalCount}`}
-                  onClick={() => navigate(`owned-asset-${ownedAsset.typeIndex}-${ownedAsset.assetIndex}`)}
-                />
-              );
-            })
-          )}
+      <NavigationView title="Progress Tracks" {...scrollProps}>
+        <MenuGroup title="Progress">
           <MenuItem 
-            label="Add Asset"
-            onClick={() => navigate('add-asset')}
-            isButton={true}
+            icon="👑" 
+            iconBg={getProgressIconBg('legacy')}
+            label="Legacy" 
+            value="3"
+            onClick={() => navigate('legacy')}
           />
-        </MenuGroup>
-
-        <MenuGroup title="Stats">
-          <StatBar 
-            icon={getStatIcon('edge')}
-            iconBg={getStatIconBg('edge')}
-            label="Edge" 
-            value={character.stats.edge}
-            maxValue={5}
-            onChange={(val) => updateStat('edge', val)}
+          <MenuItem 
+            icon="🎯" 
+            iconBg={getProgressIconBg('vows')}
+            label="Vows" 
+            value={(character.vows?.length || 0).toString()}
+            onClick={() => navigate('vows')}
           />
-          <StatBar 
-            icon={getStatIcon('heart')}
-            iconBg={getStatIconBg('heart')}
-            label="Heart" 
-            value={character.stats.heart}
-            maxValue={5}
-            onChange={(val) => updateStat('heart', val)}
+          <MenuItem 
+            icon="🗺️" 
+            iconBg={getProgressIconBg('expeditions')}
+            label="Expeditions" 
+            value={(character.expeditions?.length || 0).toString()}
+            onClick={() => navigate('expeditions')}
           />
-          <StatBar 
-            icon={getStatIcon('iron')}
-            iconBg={getStatIconBg('iron')}
-            label="Iron" 
-            value={character.stats.iron}
-            maxValue={5}
-            onChange={(val) => updateStat('iron', val)}
+          <MenuItem 
+            icon="⚔️" 
+            iconBg={getProgressIconBg('combat')}
+            label="Combat" 
+            value={(character.combatTracks?.length || 0).toString()}
+            onClick={() => navigate('combat-tracks')}
           />
-          <StatBar 
-            icon={getStatIcon('shadow')}
-            iconBg={getStatIconBg('shadow')}
-            label="Shadow" 
-            value={character.stats.shadow}
-            maxValue={5}
-            onChange={(val) => updateStat('shadow', val)}
+          <MenuItem 
+            icon="🤝" 
+            iconBg={getProgressIconBg('connections')}
+            label="Connections" 
+            value={(character.connections?.length || 0).toString()}
+            onClick={() => navigate('connections')}
           />
-          <StatBar 
-            icon={getStatIcon('wits')}
-            iconBg={getStatIconBg('wits')}
-            label="Wits" 
-            value={character.stats.wits}
-            maxValue={5}
-            onChange={(val) => updateStat('wits', val)}
-          />
-        </MenuGroup>
-
-        {(character.details?.backstoryPrompt || character.details?.incitingIncident) && (
-          <MenuGroup title="Details">
-            {character.details?.backstoryPrompt && (
-              <MenuItem label="Backstory Prompt" value={character.details.backstoryPrompt} showChevron={false} stacked />
-            )}
-            {character.details?.incitingIncident && (
-              <MenuItem label="Inciting Incident" value={character.details.incitingIncident} showChevron={false} stacked />
-            )}
-          </MenuGroup>
-        )}
-      </NavigationView>
-    );
-  }
-
-  // Add Asset - Browse Asset Types
-  if (viewName === 'add-asset' && starforgedData) {
-    return (
-      <NavigationView title="Add Asset" onBack={goBack} {...scrollProps}>
-        <MenuGroup title="Asset Types">
-          {starforgedData.assetTypes.map((assetType, index) => (
-            <MenuItem 
-              key={assetType['$id'] || index}
-              icon={getAssetIcon(assetType.Name)}
-              iconBg={getAssetIconBg(assetType.Name)}
-              label={assetType.Name}
-              value={`${assetType.Assets?.length || 0} assets`}
-              onClick={() => navigate(`add-asset-type-${index}`)}
-            />
-          ))}
         </MenuGroup>
       </NavigationView>
     );
-  }
-
-  // Add Asset - Browse Assets in Type
-  if (viewName.startsWith('add-asset-type-') && starforgedData) {
-    const index = parseInt(viewName.split('-')[3]);
-    const assetType = starforgedData.assetTypes[index];
-
-    if (assetType) {
-      return (
-        <NavigationView title={assetType.Name} onBack={goBack} {...scrollProps}>
-          <MenuGroup>
-            {assetType.Assets?.map((asset, assetIndex) => {
-              const isOwned = character.assets.some(
-                a => a.typeIndex === index && a.assetIndex === assetIndex
-              );
-              return (
-                <MenuItem 
-                  key={asset['$id'] || assetIndex}
-                  icon={getAssetIcon(assetType.Name)}
-                  iconBg={getAssetIconBg(assetType.Name)}
-                  label={asset.Name}
-                  value={isOwned ? 'Owned' : ''}
-                  onClick={() => navigate(`add-asset-${index}-${assetIndex}`)}
-                />
-              );
-            }) || <MenuItem icon="📄" iconBg={getGenericIconBg('📄')} label="No assets available" showChevron={false} />}
-          </MenuGroup>
-        </NavigationView>
-      );
-    }
-  }
-
-  // Add Asset - Asset Details with Add Button
-  if (viewName.startsWith('add-asset-') && viewName.split('-').length === 4 && starforgedData) {
-    const parts = viewName.split('-');
-    const typeIndex = parseInt(parts[2]);
-    const assetIndex = parseInt(parts[3]);
-    const assetType = starforgedData.assetTypes[typeIndex];
-    const asset = assetType?.Assets?.[assetIndex];
-    const isOwned = character.assets.some(
-      a => a.typeIndex === typeIndex && a.assetIndex === assetIndex
-    );
-
-    if (asset) {
-      return (
-        <NavigationView title={asset.Name} onBack={goBack} {...scrollProps}>
-          {asset.Requirement && (
-            <DetailCard
-              icon={getAssetIcon(assetType.Name)}
-              iconBg={getAssetIconBg(assetType.Name)}
-              title="Requirement"
-              description={asset.Requirement}
-            />
-          )}
-
-          {asset.Abilities && asset.Abilities.length > 0 && (
-            <MenuGroup title="Abilities">
-              {asset.Abilities.map((ability, abilityIndex) => (
-                <MenuItem 
-                  key={abilityIndex}
-                  icon={<input type="checkbox" className="ability-checkbox" checked={false} readOnly />}
-                  label={ability.Name || `Ability ${abilityIndex + 1}`}
-                  subtitle={ability.Text || ''}
-                  showChevron={false}
-                />
-              ))}
-            </MenuGroup>
-          )}
-
-          <MenuGroup>
-            {isOwned ? (
-              <MenuItem 
-                label="Already Owned"
-                showChevron={false}
-              />
-            ) : (
-              <MenuItem 
-                label="Add to Character"
-                onClick={() => {
-                  addAsset(typeIndex, assetIndex);
-                  resetToHome();
-                }}
-                isButton={true}
-              />
-            )}
-          </MenuGroup>
-        </NavigationView>
-      );
-    }
-  }
-
-  // Owned Asset Details
-  if (viewName.startsWith('owned-asset-') && starforgedData) {
-    const parts = viewName.split('-');
-    const typeIndex = parseInt(parts[2]);
-    const assetIndex = parseInt(parts[3]);
-    const assetType = starforgedData.assetTypes[typeIndex];
-    const asset = assetType?.Assets?.[assetIndex];
-    const ownedAsset = character.assets.find(
-      a => a.typeIndex === typeIndex && a.assetIndex === assetIndex
-    );
-
-    if (asset && ownedAsset) {
-      // Use custom name from inputs if available, otherwise fall back to asset name
-      const customName = ownedAsset.inputs?.Name;
-      const displayName = customName || asset.Name;
-
-      return (
-        <NavigationView title={displayName} onBack={goBack} {...scrollProps}>
-          <DetailCard
-            icon={getAssetIcon(assetType.Name)}
-            iconBg={getAssetIconBg(assetType.Name)}
-            title={displayName}
-            description={assetType.Name}
-          />
-
-          {asset.Inputs && asset.Inputs.length > 0 && (
-            <MenuGroup title="Details">
-              {asset.Inputs.map((input, inputIndex) => (
-                <ModalField key={`input-${inputIndex}`} label={input.Name || `Input ${inputIndex + 1}`}>
-                  <DiceInput
-                    value={ownedAsset.inputs?.[input.Name] || ''}
-                    onChange={(e) => updateAssetInput(typeIndex, assetIndex, input.Name, e.target.value)}
-                    onDiceClick={() => {
-                      const name = generateAssetInputName(starforgedData, assetType.Name, input.Name);
-                      if (name) updateAssetInput(typeIndex, assetIndex, input.Name, name);
-                    }}
-                    placeholder={`Enter ${(input.Name || 'value').toLowerCase()}...`}
-                  />
-                </ModalField>
-              ))}
-            </MenuGroup>
-          )}
-
-          {asset.Requirement && (
-            <MenuGroup title="Requirement">
-              <MenuItem 
-                label={asset.Requirement}
-                showChevron={false}
-              />
-            </MenuGroup>
-          )}
-
-          {asset.Abilities && asset.Abilities.length > 0 && (
-            <MenuGroup title="Abilities">
-              {asset.Abilities.map((ability, abilityIndex) => {
-                const isEnabled = ownedAsset.enabledAbilities.includes(abilityIndex);
-                return (
-                  <MenuItem 
-                    key={`ability-${abilityIndex}`}
-                    icon={<input type="checkbox" className="ability-checkbox" checked={isEnabled} readOnly />}
-                    label={ability.Name || `Ability ${abilityIndex + 1}`}
-                    subtitle={ability.Text || ''}
-                    onClick={() => toggleAssetAbility(typeIndex, assetIndex, abilityIndex)}
-                    showChevron={false}
-                  />
-                );
-              })}
-            </MenuGroup>
-          )}
-
-          <MenuGroup>
-            <MenuItem 
-              label="Remove Asset"
-              onClick={() => {
-                removeAsset(typeIndex, assetIndex);
-                goBack();
-              }}
-              isButton={true}
-              destructive={true}
-            />
-          </MenuGroup>
-        </NavigationView>
-      );
-    }
   }
 
   // Legacy View

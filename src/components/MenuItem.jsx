@@ -2,7 +2,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import './MenuItem.css';
 
-export const MenuItem = ({ icon, iconBg, label, subtitle, value, onClick, showChevron = true, isButton = false, destructive = false, muted = false, stacked = false, onLinkClick }) => {
+export const MenuItem = ({ icon, iconBg, label, subtitle, value, count, onClick, showChevron = true, isButton = false, destructive = false, muted = false, stacked = false, onLinkClick }) => {
   // Check if label contains markdown links
   const hasMarkdown = label && (label.includes('[') || label.includes(']('));
   
@@ -65,6 +65,9 @@ export const MenuItem = ({ icon, iconBg, label, subtitle, value, onClick, showCh
         </div>
       </div>
       <div className="menu-item-end">
+        {count !== undefined && count > 0 && (
+          <span className="menu-item-count">{count}</span>
+        )}
         {value && <span className="menu-item-value">{value}</span>}
         {showChevron && (
           <svg className="menu-item-chevron" width="8" height="13" viewBox="0 0 8 13" fill="none">

@@ -67,6 +67,21 @@ export const rollCharacterOracle = (starforgedData, oracleName) => {
   return rollOnTable(oracle.Table);
 };
 
+// Get Character Creation oracle (for Backstory Prompts, Inciting Incident, etc.)
+export const getCharacterCreationOracle = (starforgedData, oracleName) => {
+  const category = getOracleCategory(starforgedData, 'Character Creation');
+  if (!category) return null;
+  
+  return getOracleFromCategory(category, oracleName);
+};
+
+// Roll on Character Creation oracle
+export const rollCharacterCreationOracle = (starforgedData, oracleName) => {
+  const oracle = getCharacterCreationOracle(starforgedData, oracleName);
+  if (!oracle?.Table) return null;
+  return rollOnTable(oracle.Table);
+};
+
 // Generate character name in format: Given "Callsign" Family
 export const generateCharacterName = (starforgedData) => {
   const givenName = rollCharacterOracle(starforgedData, 'Given Name');
@@ -262,4 +277,291 @@ export const getOracleTableForRegion = (oracle, region = 'Terminus') => {
   }
   
   return null;
+};
+
+// ==================== SECTOR POPULATION HELPERS ====================
+
+// Get settlement count based on region
+export const getSettlementCountForRegion = (region) => {
+  switch (region) {
+    case 'terminus': return 4;
+    case 'outlands': return 3;
+    case 'expanse': return 2;
+    case 'void': return 0;
+    default: return 0;
+  }
+};
+
+// Get settlement oracle
+const getSettlementOracle = (starforgedData, oracleName) => {
+  const category = getOracleCategory(starforgedData, 'Settlements');
+  return getOracleFromCategory(category, oracleName);
+};
+
+// Roll on settlement oracle with region support
+export const rollSettlementOracle = (starforgedData, oracleName, region = 'Terminus') => {
+  const oracle = getSettlementOracle(starforgedData, oracleName);
+  if (!oracle) return null;
+  
+  const table = getOracleTableForRegion(oracle, region);
+  if (!table) return null;
+  
+  const result = rollOnTable(table);
+  return parseOracleResult(result);
+};
+
+// Generate settlement name
+export const generateSettlementName = (starforgedData) => {
+  const category = getOracleCategory(starforgedData, 'Settlements');
+  if (!category) return null;
+  
+  const nameOracle = getOracleFromCategory(category, 'Name');
+  if (!nameOracle) return null;
+  
+  let baseName = null;
+  
+  if (nameOracle.Table) {
+    const result = rollOnTable(nameOracle.Table);
+    baseName = parseOracleResult(result);
+  } else if (nameOracle.Oracles) {
+    const subOracle = nameOracle.Oracles[0];
+    if (subOracle?.Table) {
+      const result = rollOnTable(subOracle.Table);
+      baseName = parseOracleResult(result);
+    }
+  }
+  
+  if (!baseName) return null;
+  
+  // 50% chance to add a tag suffix
+  if (Math.random() < 0.5) {
+    const randomTag = SETTLEMENT_NAME_TAGS[Math.floor(Math.random() * SETTLEMENT_NAME_TAGS.length)];
+    return `${baseName} ${randomTag}`;
+  }
+  
+  return baseName;
+};
+
+// Generate complete settlement data for auto-population
+export const generateSettlementData = (starforgedData, region) => {
+  const capitalizedRegion = region.charAt(0).toUpperCase() + region.slice(1);
+  return {
+    settlementName: generateSettlementName(starforgedData),
+    location: rollSettlementOracle(starforgedData, 'Location'),
+    population: rollSettlementOracle(starforgedData, 'Population', capitalizedRegion),
+    firstLook: rollSettlementOracle(starforgedData, 'First Look'),
+    initialContact: rollSettlementOracle(starforgedData, 'Initial Contact'),
+    authority: rollSettlementOracle(starforgedData, 'Authority'),
+    projects: rollSettlementOracle(starforgedData, 'Projects'),
+    trouble: rollSettlementOracle(starforgedData, 'Trouble')
+  };
+};
+
+// Roll on a planet-specific oracle
+export const rollPlanetOracle = (starforgedData, planetClass, oracleName, region = 'Terminus') => {
+  const oracle = getPlanetOracle(starforgedData, planetClass, oracleName);
+  const table = getOracleTableForRegion(oracle, region);
+  
+  if (!table) return null;
+  
+  const result = rollOnTable(table);
+  return parseOracleResult(result);
+};
+
+// Roll on Peril oracle based on life status
+const rollPerilOracle = (starforgedData, planetClass, hasLife) => {
+  // Try planet-specific peril first
+  const planetCategory = getPlanetCategory(starforgedData, planetClass);
+  if (planetCategory?.Oracles) {
+    const oracle = planetCategory.Oracles.find(o => 
+      o.Name.toLowerCase().includes('peril')
+    );
+    if (oracle?.Table) {
+      const result = rollOnTable(oracle.Table);
+      return parseOracleResult(result);
+    }
+  }
+  
+  // Fall back to generic planetside peril
+  const planetsCategory = starforgedData?.oracleCategories?.find(c => c.Name === 'Planets');
+  if (!planetsCategory?.Oracles) return null;
+  
+  const oracle = planetsCategory.Oracles.find(o => 
+    o.Name.toLowerCase().includes('peril')
+  );
+  
+  if (!oracle) return null;
+  
+  // Check for life/lifeless sub-oracles
+  if (oracle.Oracles) {
+    const subOracleName = hasLife ? 'Lifebearing' : 'Lifeless';
+    const subOracle = oracle.Oracles.find(o => 
+      o.Name.toLowerCase().includes(subOracleName.toLowerCase())
+    ) || oracle.Oracles[0];
+    if (subOracle?.Table) {
+      const result = rollOnTable(subOracle.Table);
+      return parseOracleResult(result);
+    }
+  }
+  
+  if (oracle.Table) {
+    const result = rollOnTable(oracle.Table);
+    return parseOracleResult(result);
+  }
+  
+  return null;
+};
+
+// Roll on Opportunity oracle based on life status
+const rollOpportunityOracle = (starforgedData, planetClass, hasLife) => {
+  // Try planet-specific opportunity first
+  const planetCategory = getPlanetCategory(starforgedData, planetClass);
+  if (planetCategory?.Oracles) {
+    const oracle = planetCategory.Oracles.find(o => 
+      o.Name.toLowerCase().includes('opportunity')
+    );
+    if (oracle?.Table) {
+      const result = rollOnTable(oracle.Table);
+      return parseOracleResult(result);
+    }
+  }
+  
+  // Fall back to generic planetside opportunity
+  const planetsCategory = starforgedData?.oracleCategories?.find(c => c.Name === 'Planets');
+  if (!planetsCategory?.Oracles) return null;
+  
+  const oracle = planetsCategory.Oracles.find(o => 
+    o.Name.toLowerCase().includes('opportunity')
+  );
+  
+  if (!oracle) return null;
+  
+  // Check for life/lifeless sub-oracles
+  if (oracle.Oracles) {
+    const subOracleName = hasLife ? 'Lifebearing' : 'Lifeless';
+    const subOracle = oracle.Oracles.find(o => 
+      o.Name.toLowerCase().includes(subOracleName.toLowerCase())
+    ) || oracle.Oracles[0];
+    if (subOracle?.Table) {
+      const result = rollOnTable(subOracle.Table);
+      return parseOracleResult(result);
+    }
+  }
+  
+  if (oracle.Table) {
+    const result = rollOnTable(oracle.Table);
+    return parseOracleResult(result);
+  }
+  
+  return null;
+};
+
+// Generate complete planet data for auto-population
+export const generatePlanetData = (starforgedData, region, hasSettlement = false) => {
+  const capitalizedRegion = region.charAt(0).toUpperCase() + region.slice(1);
+  const planetClass = generatePlanetClass(starforgedData);
+  if (!planetClass) return null;
+  
+  const name = rollPlanetName(starforgedData, planetClass);
+  const atmosphere = rollPlanetOracle(starforgedData, planetClass, 'Atmosphere');
+  
+  // Roll settlements detail - if planet has a settlement, re-roll until we get something other than "None"
+  let settlements = rollPlanetOracle(starforgedData, planetClass, 'Settlements', capitalizedRegion);
+  if (hasSettlement) {
+    let rerollCount = 0;
+    const maxRerolls = 10;
+    while (settlements && settlements.toLowerCase().includes('none') && rerollCount < maxRerolls) {
+      settlements = rollPlanetOracle(starforgedData, planetClass, 'Settlements', capitalizedRegion);
+      rerollCount++;
+    }
+  }
+  
+  const observed = rollPlanetOracle(starforgedData, planetClass, 'Observed From Space');
+  const feature = rollPlanetOracle(starforgedData, planetClass, 'Feature');
+  const life = rollPlanetOracle(starforgedData, planetClass, 'Life');
+  
+  // Determine if planet has life for peril/opportunity
+  const hasLife = life && !life.toLowerCase().includes('none') && !life.toLowerCase().includes('extinct');
+  const peril = rollPerilOracle(starforgedData, planetClass, hasLife);
+  const opportunity = rollOpportunityOracle(starforgedData, planetClass, hasLife);
+  
+  return {
+    planetClass,
+    planetName: name || planetClass,
+    atmosphere,
+    settlements,
+    observed,
+    feature,
+    life,
+    peril,
+    opportunity
+  };
+};
+
+// Generate complete character data for auto-population
+export const generateCharacterData = (starforgedData) => {
+  const givenName = rollCharacterOracle(starforgedData, 'Given Name');
+  const familyName = rollCharacterOracle(starforgedData, 'Family Name');
+  const callsign = rollCharacterOracle(starforgedData, 'Callsign');
+  
+  let characterName;
+  if (givenName && callsign && familyName) {
+    characterName = `${givenName} "${callsign}" ${familyName}`;
+  } else if (givenName && familyName) {
+    characterName = `${givenName} ${familyName}`;
+  } else {
+    characterName = givenName || familyName || callsign || 'Character';
+  }
+  
+  return {
+    characterName,
+    firstLook: rollCharacterOracle(starforgedData, 'First Look'),
+    initialDisposition: rollCharacterOracle(starforgedData, 'Initial Disposition'),
+    role: rollCharacterOracle(starforgedData, 'Role'),
+    goal: rollCharacterOracle(starforgedData, 'Goal')
+  };
+};
+
+// Map population value to number of characters to generate
+export const getCharacterCountForPopulation = (population) => {
+  if (!population) return 0;
+  const pop = population.toLowerCase();
+  
+  if (pop.includes('tens of thousands')) return 5;
+  if (pop.includes('thousands')) return 4;
+  if (pop.includes('hundreds')) return 3;
+  if (pop.includes('dozens')) return 2;
+  if (pop.includes('few')) return 1;
+  
+  return 0;
+};
+
+// Roll sector trouble from Space oracles
+export const rollSectorTrouble = (starforgedData) => {
+  const spaceCategory = getOracleCategory(starforgedData, 'Space');
+  if (!spaceCategory?.Oracles) return null;
+  
+  const troubleOracle = spaceCategory.Oracles.find(o => 
+    o.Name.toLowerCase().includes('trouble')
+  );
+  
+  if (!troubleOracle?.Table) return null;
+  
+  const result = rollOnTable(troubleOracle.Table);
+  return parseOracleResult(result);
+};
+
+// Roll stellar object from Space oracles
+export const rollStellarObject = (starforgedData) => {
+  const spaceCategory = getOracleCategory(starforgedData, 'Space');
+  if (!spaceCategory?.Oracles) return null;
+  
+  const stellarOracle = spaceCategory.Oracles.find(o => 
+    o.Name.toLowerCase().includes('stellar object')
+  );
+  
+  if (!stellarOracle?.Table) return null;
+  
+  const result = rollOnTable(stellarOracle.Table);
+  return parseOracleResult(result);
 };
